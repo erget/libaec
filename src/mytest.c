@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 
     chunk_in = CHUNK_IN;
     chunk_out = CHUNK_OUT;
-    
+
     if (argc == 3)
     {
         chunk_in = atoi(argv[1]);
@@ -47,14 +47,14 @@ int main(int argc, char *argv[])
 
     if (ae_decode_init(&strm) != AE_OK)
         return 1;
-    
+
     strm.next_in = in;
     strm.avail_in = chunk_in;
     strm.next_out = out;
     strm.avail_out = chunk_out;
     todo = 1;
     total_out = 0;
-    
+
     while(todo)
     {
         todo = 0;

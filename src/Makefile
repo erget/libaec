@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall 
+CFLAGS = -g -Wall
 
 objects = mytest.o aed.o
 
@@ -21,4 +21,3 @@ test: mytest
 vtest: mytest
 	valgrind -v ./mytest < ../data/example_data.szip > ../data/ae_out
 	diff ../data/ae_out ../data/example_data
-

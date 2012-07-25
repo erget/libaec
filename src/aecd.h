@@ -17,7 +17,8 @@ typedef struct _ae_stream
 
     uint32_t bit_per_sample; /* resolution in bits per sample (n = 1,..., 32) */
     uint32_t block_size; /* block size in samples (J = 8 or 16) */
-    uint32_t segment_size; /* set of blocks between consecutive reference samples */
+    uint32_t segment_size; /* set of blocks between consecutive reference
+                              samples */
     uint8_t pp; /* pre/post-processor used? */
 
     struct internal_state *state;

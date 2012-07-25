@@ -20,7 +20,7 @@ typedef struct internal_state {
     int id;            /* option ID */
     uint32_t id_len;   /* bit length of code option identification key */
     int *id_table;     /* table maps IDs to states */
-    size_t ref_int;    /* reference sample is every ref_int samples */ 
+    size_t ref_int;    /* reference sample is every ref_int samples */
     uint32_t last_out; /* previous output for post-processing */
     int64_t xmin;      /* minimum integer for post-processing */
     int64_t xmax;      /* maximum integer for post-processing */
@@ -158,15 +158,15 @@ static inline void fast_split(ae_streamp strm)
     {
         start = 1;
         u_put(strm, u_get(strm, strm->bit_per_sample));
-    } 
-                
+    }
+
     for (i = start; i < strm->block_size; i++)
-    { 
+    {
         state->block[i] = u_get_fs(strm) << k;
     }
 
     for (i = start; i < strm->block_size; i++)
-    { 
+    {
         state->block[i] += u_get(strm, k);
         u_put(strm, state->block[i]);
     }
@@ -188,12 +188,12 @@ static inline void fast_se(ae_streamp strm)
     i = REFBLOCK? 1: 0;
 
     while (i < strm->bit_per_sample)
-    { 
+    {
         gamma = u_get_fs(strm);
         beta = second_extension[gamma][0];
         ms = second_extension[gamma][1];
         delta1 = gamma - ms;
-        
+
         if ((i & 1) == 0)
         {
             u_put(strm, beta - delta1);
@@ -239,7 +239,7 @@ int ae_decode_init(ae_streamp strm)
         state->id_len = 3;
 
     state->ref_int = strm->block_size * strm->segment_size;
-    state->in_blklen = (strm->block_size * strm->bit_per_sample 
+    state->in_blklen = (strm->block_size * strm->bit_per_sample
                         + state->id_len) / 8 + 1;
 
     modi = 1UL << state->id_len;
@@ -282,7 +282,7 @@ int ae_decode_init(ae_streamp strm)
             state->bitp += 8;                           \
         }                                               \
     } while (0)
-      
+
 #define GET(n)                                                  \
     ((state->acc >> (state->bitp - (n))) & ((1ULL << (n)) - 1))
 
@@ -326,7 +326,7 @@ int ae_decode(ae_streamp strm, int flush)
        Can work with one byte input und one sample output buffers. If
        enough buffer space is available, then faster implementations
        of the states are called. Inspired by zlib.
-       
+
        TODO: Flush modes like in zlib
     */
 
@@ -343,7 +343,7 @@ int ae_decode(ae_streamp strm, int flush)
         {
         case M_ID:
             ASK(3);
-            state->id = GET(3); 
+            state->id = GET(3);
             DROP(3);
             state->mode = state->id_table[state->id];
             break;
@@ -429,7 +429,7 @@ int ae_decode(ae_streamp strm, int flush)
             if (zero_blocks == ROS)
             {
                 zero_blocks =  strm->segment_size - (
-                    (strm->total_out / strm->block_size) 
+                    (strm->total_out / strm->block_size)
                     % strm->segment_size);
             }
 
@@ -498,7 +498,7 @@ int ae_decode(ae_streamp strm, int flush)
             state->i++;
             state->mode = M_SE_DECODE;
             break;
-            
+
         case M_UNCOMP:
             if (SAFE)
             {
