@@ -33,7 +33,6 @@ typedef struct internal_state {
     uint64_t acc;      /* accumulator for currently used bit sequence */
     uint8_t bitp;      /* bit pointer to the next unused bit in accumulator */
     uint32_t fs;       /* last fundamental sequence in accumulator */
-    uint32_t delta1;   /* interim result we need to keep for SE option */
 } decode_state;
 
 /* decoding table for the second-extension option */
@@ -53,7 +52,6 @@ enum
     M_ID = 0,
     M_SPLIT,
     M_SPLIT_FS,
-    M_SPLIT_BITS,
     M_SPLIT_OUTPUT,
     M_LOW_ENTROPY,
     M_LOW_ENTROPY_REF,
@@ -61,8 +59,6 @@ enum
     M_ZERO_OUTPUT,
     M_SE,
     M_SE_DECODE,
-    M_GAMMA_OUTPUT_0,
-    M_GAMMA_OUTPUT_1,
     M_UNCOMP,
     M_UNCOMP_COPY,
 };
@@ -331,7 +327,7 @@ int ae_decode(ae_streamp strm, int flush)
     */
 
     size_t zero_blocks;
-    uint32_t gamma, beta, ms;
+    uint32_t gamma, beta, ms, delta1;
     int k;
     decode_state *state;
 
@@ -380,24 +376,16 @@ int ae_decode(ae_streamp strm, int flush)
             while(--state->i);
 
             state->i = state->n;
-            state->mode = M_SPLIT_BITS;
+            state->mode = M_SPLIT_OUTPUT;
 
-        case M_SPLIT_BITS:
+        case M_SPLIT_OUTPUT:
             k = state->id - 1;
             do
             {
                 ASK(k);
-                state->block[state->i] += GET(k);
+                PUT(state->block[state->i] + GET(k));
                 DROP(k);
             }
-            while(--state->i);
-
-            state->i = state->n;
-            state->mode = M_SPLIT_OUTPUT;
-
-        case M_SPLIT_OUTPUT:
-            do
-                PUT(state->block[state->i]);
             while(--state->i);
 
             state->mode = M_ID;
@@ -468,35 +456,26 @@ int ae_decode(ae_streamp strm, int flush)
             state->i = REFBLOCK? 1: 0;
 
         case M_SE_DECODE:
-            if(state->i < strm->bit_per_sample)
+            while(state->i < strm->bit_per_sample)
             {
                 ASKFS();
-                state->mode = M_GAMMA_OUTPUT_0;
-            }
-            else
-            {
-                state->mode = M_ID;
-                break;
-            }
+                gamma = GETFS();
+                beta = second_extension[gamma][0];
+                ms = second_extension[gamma][1];
+                delta1 = gamma - ms;
 
-        case M_GAMMA_OUTPUT_0:
-            gamma = GETFS();
-            beta = second_extension[gamma][0];
-            ms = second_extension[gamma][1];
-            state->delta1 = gamma - ms;
+                if ((state->i & 1) == 0)
+                {
+                    PUT(beta - delta1);
+                    state->i++;
+                }
 
-            if ((state->i & 1) == 0)
-            {
-                PUT(beta - state->delta1);
+                PUT(delta1);
                 state->i++;
+                DROPFS();
             }
-            DROPFS();
-            state->mode = M_GAMMA_OUTPUT_1;
 
-        case M_GAMMA_OUTPUT_1:
-            PUT(state->delta1);
-            state->i++;
-            state->mode = M_SE_DECODE;
+            state->mode = M_ID;
             break;
 
         case M_UNCOMP:
