@@ -13,9 +13,12 @@ clean:
 	rm -f mytest ../data/ae_out $(objects)
 
 test: mytest
-	./mytest < ../data/example_data.szip > ../data/ae_out
+	./mytest 1 1 < ../data/example_data.szip > ../data/ae_out
+	diff ../data/ae_out ../data/example_data
+	./mytest 9478 16384 < ../data/example_data.szip > ../data/ae_out
 	diff ../data/ae_out ../data/example_data
 
 vtest: mytest
-	valgrind -v ./mytest < example_data.szip > ae_out
-	diff ae_out example_data
+	valgrind -v ./mytest < ../data/example_data.szip > ../data/ae_out
+	diff ../data/ae_out ../data/example_data
+

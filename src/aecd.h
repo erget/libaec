@@ -7,7 +7,7 @@ struct internal_state;
 
 typedef struct _ae_stream
 {
-    uint8_t *next_in;
+    const uint8_t *next_in;
     size_t avail_in;  /* number of bytes available at next_in */
     size_t total_in;  /* total number of input bytes read so far */
 
@@ -15,12 +15,12 @@ typedef struct _ae_stream
     size_t avail_out; /* remaining free space at next_out */
     size_t total_out; /* total number of bytes output so far */
 
-	uint32_t bit_per_sample; /* resolution in bits per sample (n = 1,..., 32) */
-	uint32_t block_size; /* block size in samples (J = 8 or 16) */
-	uint32_t segment_size; /* set of blocks between consecutive reference samples */
-	uint8_t pp; /* pre/post-processor used? */
+    uint32_t bit_per_sample; /* resolution in bits per sample (n = 1,..., 32) */
+    uint32_t block_size; /* block size in samples (J = 8 or 16) */
+    uint32_t segment_size; /* set of blocks between consecutive reference samples */
+    uint8_t pp; /* pre/post-processor used? */
 
-	struct internal_state *state;
+    struct internal_state *state;
 } ae_stream;
 
 typedef ae_stream *ae_streamp;
