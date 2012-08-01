@@ -105,40 +105,33 @@ int ae_encode_init(ae_streamp strm)
     return AE_OK;
 }
 
-#define EMIT(d, n)                                              \
-    do                                                          \
-    {                                                           \
-        int bits = (n);                                         \
-        uint32_t data = (d);                                    \
-        while(bits)                                             \
-        {                                                       \
-            data &= ((1UL << bits) - 1);                        \
-            if (bits <= state->bitp)                            \
-            {                                                   \
-                data <<= state->bitp - bits;                    \
-                *state->bp_out += data;                         \
-                state->bitp -= bits;                            \
-                bits = 0;                                       \
-            }                                                   \
-            else                                                \
-            {                                                   \
-                *state->bp_out += data >> (bits - state->bitp); \
-                bits -= state->bitp;                            \
-                *++state->bp_out = 0;                           \
-                state->bitp = 8;                                \
-            }                                                   \
-        }                                                       \
-    }                                                           \
-    while (0)
+static inline void emit(encode_state *state, uint32_t data, int bits)
+{
+    while(bits)
+    {
+        data &= ((1UL << bits) - 1);
+        if (bits <= state->bitp)
+        {
+            data <<= state->bitp - bits;
+            *state->bp_out += data;
+            state->bitp -= bits;
+            bits = 0;
+        }
+        else
+        {
+            *state->bp_out += data >> (bits - state->bitp);
+            bits -= state->bitp;
+            *++state->bp_out = 0;
+            state->bitp = 8;
+        }
+    }
+}
 
-
-#define EMITFS(d)                                               \
-    do                                                          \
-    {                                                           \
-        EMIT(0, d);                                             \
-        EMIT(1, 1);                                             \
-    }                                                           \
-    while (0)
+static inline void emitfs(encode_state *state, uint32_t fs)
+{
+    emit(state, 0, fs);
+    emit(state, 1, 1);
+}
 
 int ae_encode(ae_streamp strm, int flush)
 {
@@ -200,7 +193,7 @@ int ae_encode(ae_streamp strm, int flush)
                                if user wants to flush, i.e. we got
                                all input there is.
                             */
-                            EMIT(0xff, state->bitp);
+                            emit(state, 0xff, state->bitp);
                             *state->next_out++ = *state->bp_out;
                             strm->avail_out--;
                             strm->total_out++;
@@ -351,15 +344,15 @@ int ae_encode(ae_streamp strm, int flush)
             }
 
         case M_ENCODE_SPLIT:
-            EMIT(k + 1, state->id_len);
+            emit(state, k + 1, state->id_len);
             if (state->ref)
-                EMIT(state->block_in[0], strm->bit_per_sample);
+                emit(state, state->block_in[0], strm->bit_per_sample);
 
             for (i = state->ref; i < strm->block_size; i++)
-                EMITFS(state->block_in[i] >> k);
+                emitfs(state, state->block_in[i] >> k);
 
             for (i = state->ref; i < strm->block_size; i++)
-                EMIT(state->block_in[i], k);
+                emit(state, state->block_in[i], k);
 
             state->mode = M_FLUSH_BLOCK;
 
@@ -367,7 +360,7 @@ int ae_encode(ae_streamp strm, int flush)
             if (strm->avail_in == 0 && flush == AE_FLUSH)
             {
                 /* pad last byte with 1 bits */
-                EMIT(0xff, state->bitp);
+                emit(state, 0xff, state->bitp);
             }
             state->i = 0;
             state->mode = M_FLUSH_BLOCK_LOOP;
@@ -387,34 +380,34 @@ int ae_encode(ae_streamp strm, int flush)
             break;
 
         case M_ENCODE_UNCOMP:
-            EMIT(0x1f, state->id_len);
+            emit(state, 0x1f, state->id_len);
             for (i = 0; i < strm->block_size; i++)
-                EMIT(state->block_in[i], strm->bit_per_sample);
+                emit(state, state->block_in[i], strm->bit_per_sample);
 
             state->mode = M_FLUSH_BLOCK;
             break;
 
         case M_ENCODE_SE:
-            EMIT(1, state->id_len + 1);
+            emit(state, 1, state->id_len + 1);
             if (state->ref)
-                EMIT(state->block_in[0], strm->bit_per_sample);
+                emit(state, state->block_in[0], strm->bit_per_sample);
 
             for (i = 0; i < strm->block_size; i+= 2)
             {
                 d = state->block_in[i] + state->block_in[i + 1];
-                EMITFS(d * (d + 1) / 2 + state->block_in[i + 1]);
+                emitfs(state, d * (d + 1) / 2 + state->block_in[i + 1]);
             }
 
             state->mode = M_FLUSH_BLOCK;
             break;
 
         case M_ENCODE_ZERO:
-            EMIT(0, state->id_len + 1);
+            emit(state, 0, state->id_len + 1);
             if (state->zero_ref)
             {
-                EMIT(state->zero_ref_sample, strm->bit_per_sample);
+                emit(state, state->zero_ref_sample, strm->bit_per_sample);
             }
-            EMITFS(state->zero_blocks - 1);
+            emitfs(state, state->zero_blocks - 1);
             state->zero_blocks = 0;
             state->mode = M_FLUSH_BLOCK;
             break;

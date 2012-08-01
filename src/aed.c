@@ -337,7 +337,7 @@ int ae_decode(ae_streamp strm, int flush)
         switch(state->mode)
         {
         case M_ID:
-            if (strm->pp 
+            if (strm->pp
                 && (strm->total_out / strm->block_size) % strm->segment_size == 0)
                 state->ref = 1;
             else
