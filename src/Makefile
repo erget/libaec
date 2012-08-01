@@ -1,23 +1,31 @@
 CC = gcc
 CFLAGS = -g -Wall
 
-objects = mytest.o aed.o
+OBJS = aee.o aed.o
 
-mytest: $(objects)
-	$(CC) $(CFLAGS) -o mytest $(objects)
+.PHONY : all clean test
 
-aed.o: aecd.h
+all: libae.a test
 
-.PHONY : clean test vtest
+test_encode: test_encode.o libae.a
+	$(CC) $(CFLAGS) -o test_encode test_encode.o -L. -lae
+
+test_decode: test_decode.o libae.a
+	$(CC) $(CFLAGS) -o test_decode test_decode.o -L. -lae
+
+libae.a: $(OBJS)
+	$(AR) $(ARFLAGS) $@ $(OBJS)
+	-@ ($(RANLIB) $@ || true) >/dev/null 2>&1
+
+aed.o: libae.h
+aee.o: libae.h
+
 clean:
-	rm -f mytest ../data/ae_out $(objects)
+	rm -f $(OBJS) test_encode.o test_decode.o \
+	test_encode test_decode libae.a \
+	../data/test.ae ../data/test
 
-test: mytest
-	./mytest 1 1 < ../data/example_data.szip > ../data/ae_out
-	diff ../data/ae_out ../data/example_data
-	./mytest 9478 16384 < ../data/example_data.szip > ../data/ae_out
-	diff ../data/ae_out ../data/example_data
-
-vtest: mytest
-	valgrind -v ./mytest < ../data/example_data.szip > ../data/ae_out
-	diff ../data/ae_out ../data/example_data
+test: test_encode test_decode
+	./test_encode 1 1 < ../data/example_data > ../data/test.ae
+	./test_decode 1 1 < ../data/test.ae > ../data/test
+	diff ../data/test ../data/example_data

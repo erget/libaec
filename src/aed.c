@@ -7,16 +7,16 @@
 #include <inttypes.h>
 #include <string.h>
 
-#include "aecd.h"
+#include "libae.h"
 
-#define REFBLOCK (strm->pp && (strm->total_out / strm->block_size)  \
-                    % strm->segment_size == 0)
 #define SAFE (strm->avail_in >= state->in_blklen        \
               && strm->avail_out >= strm->block_size)
 
 #define ROS 5
 
 typedef struct internal_state {
+    const uint8_t *next_in;
+    uint32_t *next_out;
     int id;            /* option ID */
     uint32_t id_len;   /* bit length of code option identification key */
     int *id_table;     /* table maps IDs to states */
@@ -33,6 +33,7 @@ typedef struct internal_state {
     uint64_t acc;      /* accumulator for currently used bit sequence */
     uint8_t bitp;      /* bit pointer to the next unused bit in accumulator */
     uint32_t fs;       /* last fundamental sequence in accumulator */
+    int ref;           /* 1 if current block has reference sample */
 } decode_state;
 
 /* decoding table for the second-extension option */
@@ -97,7 +98,7 @@ static inline void u_put(ae_streamp strm, uint32_t sample)
         }
         sample = x + D;
     }
-    *strm->next_out++ = state->last_out = sample;
+    *state->next_out++ = state->last_out = sample;
     strm->avail_out--;
     strm->total_out++;
 }
@@ -117,7 +118,7 @@ static inline uint32_t u_get(ae_streamp strm, unsigned int n)
     {
         strm->avail_in--;
         strm->total_in++;
-        state->acc = (state->acc << 8) + *strm->next_in++;
+        state->acc = (state->acc << 8) + *state->next_in++;
         state->bitp += 8;
     }
     state->bitp -= n;
@@ -143,25 +144,23 @@ static inline uint32_t u_get_fs(ae_streamp strm)
 
 static inline void fast_split(ae_streamp strm)
 {
-    int i, start, k;
+    int i, k;
     decode_state *state;
 
     state = strm->state;
-    start = 0;
     k = state->id - 1;
 
-    if (REFBLOCK)
+    if (state->ref)
     {
-        start = 1;
         u_put(strm, u_get(strm, strm->bit_per_sample));
     }
 
-    for (i = start; i < strm->block_size; i++)
+    for (i = state->ref; i < strm->block_size; i++)
     {
         state->block[i] = u_get_fs(strm) << k;
     }
 
-    for (i = start; i < strm->block_size; i++)
+    for (i = state->ref; i < strm->block_size; i++)
     {
         state->block[i] += u_get(strm, k);
         u_put(strm, state->block[i]);
@@ -181,7 +180,7 @@ static inline void fast_se(ae_streamp strm)
     int i;
     uint32_t gamma, beta, ms, delta1;
 
-    i = REFBLOCK? 1: 0;
+    i = strm->state->ref;
 
     while (i < strm->bit_per_sample)
     {
@@ -266,17 +265,17 @@ int ae_decode_init(ae_streamp strm)
     return AE_OK;
 }
 
-#define ASK(n)                                          \
-    do {                                                \
-        while (state->bitp < (unsigned)(n))             \
-        {                                               \
-            if (strm->avail_in == 0) goto req_buffer;   \
-            strm->avail_in--;                           \
-            strm->total_in++;                           \
-            state->acc <<= 8;                           \
-            state->acc |= (uint64_t)(*strm->next_in++); \
-            state->bitp += 8;                           \
-        }                                               \
+#define ASK(n)                                           \
+    do {                                                 \
+        while (state->bitp < (unsigned)(n))              \
+        {                                                \
+            if (strm->avail_in == 0) goto req_buffer;    \
+            strm->avail_in--;                            \
+            strm->total_in++;                            \
+            state->acc <<= 8;                            \
+            state->acc |= (uint64_t)(*state->next_in++); \
+            state->bitp += 8;                            \
+        }                                                \
     } while (0)
 
 #define GET(n)                                                  \
@@ -322,8 +321,6 @@ int ae_decode(ae_streamp strm, int flush)
        Can work with one byte input und one sample output buffers. If
        enough buffer space is available, then faster implementations
        of the states are called. Inspired by zlib.
-
-       TODO: Flush modes like in zlib
     */
 
     size_t zero_blocks;
@@ -332,15 +329,23 @@ int ae_decode(ae_streamp strm, int flush)
     decode_state *state;
 
     state = strm->state;
+    state->next_in = strm->next_in;
+    state->next_out = strm->next_out;
 
     for (;;)
     {
         switch(state->mode)
         {
         case M_ID:
-            ASK(3);
-            state->id = GET(3);
-            DROP(3);
+            if (strm->pp 
+                && (strm->total_out / strm->block_size) % strm->segment_size == 0)
+                state->ref = 1;
+            else
+                state->ref = 0;
+
+            ASK(state->id_len);
+            state->id = GET(state->id_len);
+            DROP(state->id_len);
             state->mode = state->id_table[state->id];
             break;
 
@@ -352,7 +357,7 @@ int ae_decode(ae_streamp strm, int flush)
                 break;
             }
 
-            if (REFBLOCK)
+            if (state->ref)
             {
                 COPYSAMPLE();
                 state->n = strm->block_size - 1;
@@ -366,11 +371,10 @@ int ae_decode(ae_streamp strm, int flush)
             state->mode = M_SPLIT_FS;
 
         case M_SPLIT_FS:
-            k = state->id - 1;
             do
             {
                 ASKFS();
-                state->block[state->i] = GETFS() << k;
+                state->block[state->i] = GETFS();
                 DROPFS();
             }
             while(--state->i);
@@ -383,7 +387,7 @@ int ae_decode(ae_streamp strm, int flush)
             do
             {
                 ASK(k);
-                PUT(state->block[state->i] + GET(k));
+                PUT((state->block[state->i] << k) + GET(k));
                 DROP(k);
             }
             while(--state->i);
@@ -398,7 +402,7 @@ int ae_decode(ae_streamp strm, int flush)
             state->mode = M_LOW_ENTROPY_REF;
 
         case M_LOW_ENTROPY_REF:
-            if (REFBLOCK)
+            if (state->ref)
                 COPYSAMPLE();
 
             if(state->id == 1)
@@ -422,7 +426,7 @@ int ae_decode(ae_streamp strm, int flush)
             }
 
 
-            if (REFBLOCK)
+            if (state->ref)
                 state->i = zero_blocks * strm->block_size - 1;
             else
                 state->i = zero_blocks * strm->block_size;
@@ -453,7 +457,7 @@ int ae_decode(ae_streamp strm, int flush)
             }
 
             state->mode = M_SE_DECODE;
-            state->i = REFBLOCK? 1: 0;
+            state->i = state->ref;
 
         case M_SE_DECODE:
             while(state->i < strm->bit_per_sample)
@@ -503,5 +507,7 @@ int ae_decode(ae_streamp strm, int flush)
     }
 
 req_buffer:
+    strm->next_in = state->next_in;
+    strm->next_out = state->next_out;
     return AE_OK;
 }
