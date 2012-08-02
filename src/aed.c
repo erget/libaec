@@ -15,29 +15,29 @@
 #define ROS 5
 
 typedef struct internal_state {
-    const uint8_t *next_in;
-    uint32_t *next_out;
     int id;            /* option ID */
-    uint32_t id_len;   /* bit length of code option identification key */
+    int id_len;        /* bit length of code option identification key */
     int *id_table;     /* table maps IDs to states */
+    void (*put_sample)(ae_streamp, int64_t);
     size_t ref_int;    /* reference sample is every ref_int samples */
-    uint32_t last_out; /* previous output for post-processing */
+    int64_t last_out;  /* previous output for post-processing */
     int64_t xmin;      /* minimum integer for post-processing */
     int64_t xmax;      /* maximum integer for post-processing */
     int mode;          /* current mode of FSM */
-    size_t in_blklen;  /* length of uncompressed input block
+    int in_blklen;     /* length of uncompressed input block
                           should be the longest possible block */
-    size_t n, i;       /* counter for samples */
-    uint32_t *block;   /* block buffer for split-sample options */
+    int n, i;          /* counter for samples */
+    int64_t *block;    /* block buffer for split-sample options */
     int se;            /* set if second extension option is selected */
     uint64_t acc;      /* accumulator for currently used bit sequence */
-    uint8_t bitp;      /* bit pointer to the next unused bit in accumulator */
-    uint32_t fs;       /* last fundamental sequence in accumulator */
+    int bitp;          /* bit pointer to the next unused bit in accumulator */
+    int fs;            /* last fundamental sequence in accumulator */
     int ref;           /* 1 if current block has reference sample */
+    int pp;            /* 1 if postprocessor has to be used */
 } decode_state;
 
 /* decoding table for the second-extension option */
-static const uint32_t second_extension[36][2] = {
+static const int second_extension[36][2] = {
     {0, 0},
     {1, 1}, {1, 1},
     {2, 3}, {2, 3}, {2, 3},
@@ -64,13 +64,28 @@ enum
     M_UNCOMP_COPY,
 };
 
-static inline void u_put(ae_streamp strm, uint32_t sample)
+#define PUTF(type) static void put_##type(ae_streamp strm, int64_t data) \
+    {                                                                   \
+        strm->avail_out--;                                              \
+        strm->total_out++;                                              \
+        *(type##_t *)strm->next_out = data;                             \
+        strm->next_out += sizeof(type##_t);                             \
+    }
+
+PUTF(uint8)
+PUTF(int8)
+PUTF(uint16)
+PUTF(int16)
+PUTF(uint32)
+PUTF(int32)
+
+static inline void u_put(ae_streamp strm, int64_t sample)
 {
     int64_t x, d, th, D;
     decode_state *state;
 
     state = strm->state;
-    if (strm->pp && (strm->total_out % state->ref_int != 0))
+    if (state->pp && (strm->total_out % state->ref_int != 0))
     {
         d = sample;
         x = state->last_out;
@@ -98,12 +113,11 @@ static inline void u_put(ae_streamp strm, uint32_t sample)
         }
         sample = x + D;
     }
-    *state->next_out++ = state->last_out = sample;
-    strm->avail_out--;
-    strm->total_out++;
+    state->last_out = sample;
+    state->put_sample(strm, sample);
 }
 
-static inline uint32_t u_get(ae_streamp strm, unsigned int n)
+static inline int64_t u_get(ae_streamp strm, unsigned int n)
 {
     /**
        Unsafe get n bit from input stream
@@ -118,14 +132,14 @@ static inline uint32_t u_get(ae_streamp strm, unsigned int n)
     {
         strm->avail_in--;
         strm->total_in++;
-        state->acc = (state->acc << 8) + *state->next_in++;
+        state->acc = (state->acc << 8) | *strm->next_in++;
         state->bitp += 8;
     }
     state->bitp -= n;
     return (state->acc >> state->bitp) & ((1ULL << n) - 1);
 }
 
-static inline uint32_t u_get_fs(ae_streamp strm)
+static inline int u_get_fs(ae_streamp strm)
 {
     /**
        Interpret a Fundamental Sequence from the input buffer.
@@ -134,7 +148,7 @@ static inline uint32_t u_get_fs(ae_streamp strm)
        1 is encountered. TODO: faster version.
      */
 
-    uint32_t fs = 0;
+    int fs = 0;
 
     while(u_get(strm, 1) == 0)
         fs++;
@@ -178,11 +192,11 @@ static inline void fast_zero(ae_streamp strm)
 static inline void fast_se(ae_streamp strm)
 {
     int i;
-    uint32_t gamma, beta, ms, delta1;
+    int64_t gamma, beta, ms, delta1;
 
     i = strm->state->ref;
 
-    while (i < strm->bit_per_sample)
+    while (i < strm->block_size)
     {
         gamma = u_get_fs(strm);
         beta = second_extension[gamma][0];
@@ -226,12 +240,41 @@ int ae_decode_init(ae_streamp strm)
     }
     strm->state = state;
 
-    if (16 < strm->bit_per_sample)
+    if (strm->bit_per_sample > 16)
+    {
         state->id_len = 5;
-    else if (8 < strm->bit_per_sample)
+        if (strm->flags & AE_DATA_SIGNED)
+            state->put_sample = put_int32;
+        else
+            state->put_sample = put_uint32;
+    }
+    else if (strm->bit_per_sample > 8)
+    {
         state->id_len = 4;
+        if (strm->flags & AE_DATA_SIGNED)
+            state->put_sample = put_int16;
+        else
+            state->put_sample = put_uint16;
+    }
     else
+    {
         state->id_len = 3;
+        if (strm->flags & AE_DATA_SIGNED)
+            state->put_sample = put_int8;
+        else
+            state->put_sample = put_uint8;
+    }
+
+    if (strm->flags & AE_DATA_SIGNED)
+    {
+        state->xmin = -(1ULL << (strm->bit_per_sample - 1));
+        state->xmax = (1ULL << (strm->bit_per_sample - 1)) - 1;
+    }
+    else
+    {
+        state->xmin = 0;
+        state->xmax = (1ULL << strm->bit_per_sample) - 1;
+    }
 
     state->ref_int = strm->block_size * strm->segment_size;
     state->in_blklen = (strm->block_size * strm->bit_per_sample
@@ -250,17 +293,16 @@ int ae_decode_init(ae_streamp strm)
     }
     state->id_table[modi - 1] = M_UNCOMP;
 
-    state->block = (uint32_t *)malloc(strm->block_size * sizeof(uint32_t));
+    state->block = (int64_t *)malloc(strm->block_size * sizeof(int64_t));
     if (state->block == NULL)
     {
         return AE_MEM_ERROR;
     }
     strm->total_in = 0;
     strm->total_out = 0;
-    state->xmin = 0;
-    state->xmax = (1ULL << strm->bit_per_sample) - 1;
 
     state->bitp = 0;
+    state->pp = strm->flags & AE_DATA_PREPROCESS;
     state->mode = M_ID;
     return AE_OK;
 }
@@ -273,7 +315,7 @@ int ae_decode_init(ae_streamp strm)
             strm->avail_in--;                            \
             strm->total_in++;                            \
             state->acc <<= 8;                            \
-            state->acc |= (uint64_t)(*state->next_in++); \
+            state->acc |= *strm->next_in++;              \
             state->bitp += 8;                            \
         }                                                \
     } while (0)
@@ -324,20 +366,18 @@ int ae_decode(ae_streamp strm, int flush)
     */
 
     size_t zero_blocks;
-    uint32_t gamma, beta, ms, delta1;
+    int64_t gamma, beta, ms, delta1;
     int k;
     decode_state *state;
 
     state = strm->state;
-    state->next_in = strm->next_in;
-    state->next_out = strm->next_out;
 
     for (;;)
     {
         switch(state->mode)
         {
         case M_ID:
-            if (strm->pp
+            if (state->pp
                 && (strm->total_out / strm->block_size) % strm->segment_size == 0)
                 state->ref = 1;
             else
@@ -460,7 +500,7 @@ int ae_decode(ae_streamp strm, int flush)
             state->i = state->ref;
 
         case M_SE_DECODE:
-            while(state->i < strm->bit_per_sample)
+            while(state->i < strm->block_size)
             {
                 ASKFS();
                 gamma = GETFS();
@@ -507,7 +547,5 @@ int ae_decode(ae_streamp strm, int flush)
     }
 
 req_buffer:
-    strm->next_in = state->next_in;
-    strm->next_out = state->next_out;
     return AE_OK;
 }

@@ -32,10 +32,10 @@ int main(int argc, char *argv[])
     if (in == NULL || out == NULL)
         return 1;
 
-    strm.bit_per_sample = 8;
+    strm.bit_per_sample = 17;
     strm.block_size = 8;
     strm.segment_size = 2;
-    strm.pp = 1;
+    strm.flags = AE_DATA_SIGNED | AE_DATA_PREPROCESS;
 
     if (ae_encode_init(&strm) != AE_OK)
         return 1;
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
                 in[i++] = c;
             strm.avail_in = i;
 
-            strm.next_in = in;
+            strm.next_in = (uint8_t *)in;
             if (c == EOF)
                 input_avail = 0;
         }

@@ -29,3 +29,6 @@ test: test_encode test_decode
 	./test_encode 1 1 < ../data/example_data > ../data/test.ae
 	./test_decode 1 1 < ../data/test.ae > ../data/test
 	diff ../data/test ../data/example_data
+	./test_encode 99 99 < ../data/example_data > ../data/test.ae
+	./test_decode 101 101 < ../data/test.ae > ../data/test
+	diff ../data/test ../data/example_data

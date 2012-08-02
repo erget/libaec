@@ -31,10 +31,10 @@ int main(int argc, char *argv[])
     if (in == NULL || out == NULL)
         return 1;
 
-    strm.bit_per_sample = 8;
+    strm.bit_per_sample = 17;
     strm.block_size = 8;
     strm.segment_size = 2;
-    strm.pp = 1;
+    strm.flags = AE_DATA_SIGNED | AE_DATA_PREPROCESS;
 
     if (ae_decode_init(&strm) != AE_OK)
         return 1;
@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     total_out = 0;
     strm.avail_in = 0;
     strm.avail_out = chunk_out;
-    strm.next_out = out;
+    strm.next_out = (uint8_t *)out;
 
     input_avail = 1;
     output_avail = 1;
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
             }
             total_out = strm.total_out;
             output_avail = 1;
-            strm.next_out = out;
+            strm.next_out = (uint8_t *)out;
             strm.avail_out = chunk_out;
         }
         else

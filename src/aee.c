@@ -28,25 +28,44 @@ enum
 };
 
 typedef struct internal_state {
-    const uint32_t *next_in;
-    uint8_t *next_out;
-    uint32_t id_len;        /* bit length of code option identification key */
-    uint32_t last_in;       /* previous input for preprocessing */
+    int id_len;             /* bit length of code option identification key */
+    int64_t last_in;        /* previous input for preprocessing */
+    int64_t (*get_sample)(ae_streamp);
     int64_t xmin;           /* minimum integer for preprocessing */
     int64_t xmax;           /* maximum integer for preprocessing */
     int mode;               /* current mode of FSM */
-    size_t i;               /* counter for samples */
-    uint32_t *block_in;     /* input block buffer */
+    int i;                  /* counter for samples */
+    int64_t *block_in;      /* input block buffer */
     uint8_t *block_out;     /* output block buffer */
     uint8_t *bp_out;        /* pointer to current output */
-    uint8_t bitp;           /* bit pointer to the next unused bit in accumulator */
-    uint8_t block_deferred; /* there is a block in the input buffer
+    int bitp;               /* bit pointer to the next unused bit in accumulator */
+    int block_deferred;     /* there is a block in the input buffer
                                but we first have to emit a zero block */
-    uint8_t ref;            /* current buffer has a reference sample */
-    uint8_t zero_ref;       /* current zero block has a reference sample */
-    uint32_t zero_ref_sample; /* reference sample of zero block */
-    size_t zero_blocks;     /* number of contiguous zero blocks */
+    int ref;                /* length of reference sample in current block
+                               i.e. 0 or 1 depending on whether the block has
+                               a reference sample or not */
+    int zero_ref;           /* current zero block has a reference sample */
+    int64_t zero_ref_sample;/* reference sample of zero block */
+    int zero_blocks;        /* number of contiguous zero blocks */
 } encode_state;
+
+
+#define GETF(type) static int64_t get_##type(ae_streamp strm) \
+    {                                                         \
+        int64_t data;                                         \
+        strm->avail_in--;                                     \
+        strm->total_in++;                                     \
+        data = *(type##_t *)strm->next_in;                    \
+        strm->next_in += sizeof(type##_t);                    \
+        return data;                                          \
+    }
+
+GETF(uint8)
+GETF(int8)
+GETF(uint16)
+GETF(int16)
+GETF(uint32)
+GETF(int32)
 
 int ae_encode_init(ae_streamp strm)
 {
@@ -67,14 +86,43 @@ int ae_encode_init(ae_streamp strm)
     }
     strm->state = state;
 
-    if (16 < strm->bit_per_sample)
+    if (strm->bit_per_sample > 16)
+    {
         state->id_len = 5;
-    else if (8 < strm->bit_per_sample)
+        if (strm->flags & AE_DATA_SIGNED)
+            state->get_sample = get_int32;
+        else
+            state->get_sample = get_uint32;
+    }
+    else if (strm->bit_per_sample > 8)
+    {
         state->id_len = 4;
+        if (strm->flags & AE_DATA_SIGNED)
+            state->get_sample = get_int16;
+        else
+            state->get_sample = get_uint16;
+    }
     else
+    {
         state->id_len = 3;
+        if (strm->flags & AE_DATA_SIGNED)
+            state->get_sample = get_int8;
+        else
+            state->get_sample = get_uint8;
+    }
 
-    state->block_in = (uint32_t *)malloc(strm->block_size * sizeof(uint32_t));
+    if (strm->flags & AE_DATA_SIGNED)
+    {
+        state->xmin = -(1ULL << (strm->bit_per_sample - 1));
+        state->xmax = (1ULL << (strm->bit_per_sample - 1)) - 1;
+    }
+    else
+    {
+        state->xmin = 0;
+        state->xmax = (1ULL << strm->bit_per_sample) - 1;
+    }
+
+    state->block_in = (int64_t *)malloc(strm->block_size * sizeof(int64_t));
     if (state->block_in == NULL)
     {
         return AE_MEM_ERROR;
@@ -93,8 +141,6 @@ int ae_encode_init(ae_streamp strm)
 
     strm->total_in = 0;
     strm->total_out = 0;
-    state->xmin = 0;
-    state->xmax = (1ULL << strm->bit_per_sample) - 1;
 
     state->mode = M_NEW_BLOCK;
 
@@ -105,7 +151,7 @@ int ae_encode_init(ae_streamp strm)
     return AE_OK;
 }
 
-static inline void emit(encode_state *state, uint32_t data, int bits)
+static inline void emit(encode_state *state, int64_t data, int bits)
 {
     while(bits)
     {
@@ -127,7 +173,7 @@ static inline void emit(encode_state *state, uint32_t data, int bits)
     }
 }
 
-static inline void emitfs(encode_state *state, uint32_t fs)
+static inline void emitfs(encode_state *state, int fs)
 {
     emit(state, 0, fs);
     emit(state, 1, 1);
@@ -143,14 +189,12 @@ int ae_encode(ae_streamp strm, int flush)
     int i, j, zb;
     int k_len[strm->bit_per_sample - 2];
     int k, k_min, se_len, blk_head;
-    uint32_t d;
+    int64_t d;
     int64_t theta, Delta;
 
     encode_state *state;
 
     state = strm->state;
-    state->next_in = strm->next_in;
-    state->next_out = strm->next_out;
 
     for (;;)
     {
@@ -194,7 +238,7 @@ int ae_encode(ae_streamp strm, int flush)
                                all input there is.
                             */
                             emit(state, 0xff, state->bitp);
-                            *state->next_out++ = *state->bp_out;
+                            *strm->next_out++ = *state->bp_out;
                             strm->avail_out--;
                             strm->total_out++;
                         }
@@ -203,15 +247,13 @@ int ae_encode(ae_streamp strm, int flush)
                 }
                 else
                 {
-                    state->block_in[state->i] = *state->next_in++;
-                    strm->avail_in--;
-                    strm->total_in++;
+                    state->block_in[state->i] = state->get_sample(strm);
                 }
             }
             while (++state->i < strm->block_size);
 
             /* preprocess block if needed */
-            if (strm->pp)
+            if (strm->flags & AE_DATA_PREPROCESS)
             {
                 /* If this is the first block in a segment
                    then we need to insert a reference sample.
@@ -371,7 +413,7 @@ int ae_encode(ae_streamp strm, int flush)
                 if (strm->avail_out == 0)
                     goto req_buffer;
 
-                *state->next_out++ = state->block_out[state->i];
+                *strm->next_out++ = state->block_out[state->i];
                 strm->avail_out--;
                 strm->total_out++;
                 state->i++;
@@ -388,7 +430,7 @@ int ae_encode(ae_streamp strm, int flush)
             break;
 
         case M_ENCODE_SE:
-            emit(state, 1, state->id_len + 1);
+             emit(state, 1, state->id_len + 1);
             if (state->ref)
                 emit(state, state->block_in[0], strm->bit_per_sample);
 
@@ -418,7 +460,5 @@ int ae_encode(ae_streamp strm, int flush)
     }
 
 req_buffer:
-    strm->next_in = state->next_in;
-    strm->next_out = state->next_out;
     return AE_OK;
 }
