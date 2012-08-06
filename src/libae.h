@@ -28,9 +28,11 @@ typedef struct _ae_stream
 typedef ae_stream *ae_streamp;
 
 /* Coder flags */
-#define AE_DATA_UNSIGNED   0
-#define AE_DATA_SIGNED     1
-#define AE_DATA_PREPROCESS 2 /* Set if preprocessor should be used */
+#define AE_DATA_UNSIGNED    0
+#define AE_DATA_SIGNED      1
+#define AE_DATA_LSB         8
+#define AE_DATA_MSB        16
+#define AE_DATA_PREPROCESS 32 /* Set if preprocessor should be used */
 
 
 /* Return codes of library functions */

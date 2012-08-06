@@ -19,7 +19,7 @@ typedef struct internal_state {
     int id_len;        /* bit length of code option identification key */
     int *id_table;     /* table maps IDs to states */
     void (*put_sample)(ae_streamp, int64_t);
-    size_t ref_int;    /* reference sample is every ref_int samples */
+    int ref_int;       /* reference sample is every ref_int samples */
     int64_t last_out;  /* previous output for post-processing */
     int64_t xmin;      /* minimum integer for post-processing */
     int64_t xmax;      /* maximum integer for post-processing */
@@ -34,6 +34,7 @@ typedef struct internal_state {
     int fs;            /* last fundamental sequence in accumulator */
     int ref;           /* 1 if current block has reference sample */
     int pp;            /* 1 if postprocessor has to be used */
+    size_t samples_out;
 } decode_state;
 
 /* decoding table for the second-extension option */
@@ -64,20 +65,48 @@ enum
     M_UNCOMP_COPY,
 };
 
-#define PUTF(type) static void put_##type(ae_streamp strm, int64_t data) \
-    {                                                                   \
-        strm->avail_out--;                                              \
-        strm->total_out++;                                              \
-        *(type##_t *)strm->next_out = data;                             \
-        strm->next_out += sizeof(type##_t);                             \
-    }
+static void put_msb_32(ae_streamp strm, int64_t data)
+{
+    *strm->next_out++ = data >> 24;
+    *strm->next_out++ = data >> 16;
+    *strm->next_out++ = data >> 8;
+    *strm->next_out++ = data;
+    strm->avail_out -= 4;
+    strm->total_out += 4;
+}
 
-PUTF(uint8)
-PUTF(int8)
-PUTF(uint16)
-PUTF(int16)
-PUTF(uint32)
-PUTF(int32)
+static void put_msb_16(ae_streamp strm, int64_t data)
+{
+    *strm->next_out++ = data >> 8;
+    *strm->next_out++ = data;
+    strm->avail_out -= 2;
+    strm->total_out += 2;
+}
+
+static void put_lsb_32(ae_streamp strm, int64_t data)
+{
+    *strm->next_out++ = data;
+    *strm->next_out++ = data >> 8;
+    *strm->next_out++ = data >> 16;
+    *strm->next_out++ = data >> 24;
+    strm->avail_out -= 4;
+    strm->total_out += 4;
+}
+
+static void put_lsb_16(ae_streamp strm, int64_t data)
+{
+    *strm->next_out++ = data;
+    *strm->next_out++ = data >> 8;
+    strm->avail_out -= 2;
+    strm->total_out += 2;
+}
+
+static void put_8(ae_streamp strm, int64_t data)
+{
+    *strm->next_out++ = data;
+    strm->avail_out--;
+    strm->total_out++;
+}
 
 static inline void u_put(ae_streamp strm, int64_t sample)
 {
@@ -85,7 +114,7 @@ static inline void u_put(ae_streamp strm, int64_t sample)
     decode_state *state;
 
     state = strm->state;
-    if (state->pp && (strm->total_out % state->ref_int != 0))
+    if (state->pp && (state->samples_out % state->ref_int != 0))
     {
         d = sample;
         x = state->last_out;
@@ -115,6 +144,7 @@ static inline void u_put(ae_streamp strm, int64_t sample)
     }
     state->last_out = sample;
     state->put_sample(strm, sample);
+    state->samples_out++;
 }
 
 static inline int64_t u_get(ae_streamp strm, unsigned int n)
@@ -243,26 +273,24 @@ int ae_decode_init(ae_streamp strm)
     if (strm->bit_per_sample > 16)
     {
         state->id_len = 5;
-        if (strm->flags & AE_DATA_SIGNED)
-            state->put_sample = put_int32;
+        if (strm->flags & AE_DATA_MSB)
+            state->put_sample = put_msb_32;
         else
-            state->put_sample = put_uint32;
+            state->put_sample = put_lsb_32;
     }
     else if (strm->bit_per_sample > 8)
     {
         state->id_len = 4;
-        if (strm->flags & AE_DATA_SIGNED)
-            state->put_sample = put_int16;
+        if (strm->flags & AE_DATA_MSB)
+            state->put_sample = put_msb_16;
         else
-            state->put_sample = put_uint16;
+            state->put_sample = put_lsb_16;
     }
     else
     {
         state->id_len = 3;
-        if (strm->flags & AE_DATA_SIGNED)
-            state->put_sample = put_int8;
-        else
-            state->put_sample = put_uint8;
+        state->put_sample = put_8;
+
     }
 
     if (strm->flags & AE_DATA_SIGNED)
@@ -301,6 +329,7 @@ int ae_decode_init(ae_streamp strm)
     strm->total_in = 0;
     strm->total_out = 0;
 
+    state->samples_out = 0;
     state->bitp = 0;
     state->pp = strm->flags & AE_DATA_PREPROCESS;
     state->mode = M_ID;
@@ -365,7 +394,7 @@ int ae_decode(ae_streamp strm, int flush)
        of the states are called. Inspired by zlib.
     */
 
-    size_t zero_blocks;
+    int zero_blocks;
     int64_t gamma, beta, ms, delta1;
     int k;
     decode_state *state;
@@ -378,7 +407,7 @@ int ae_decode(ae_streamp strm, int flush)
         {
         case M_ID:
             if (state->pp
-                && (strm->total_out / strm->block_size) % strm->segment_size == 0)
+                && (state->samples_out / strm->block_size) % strm->segment_size == 0)
                 state->ref = 1;
             else
                 state->ref = 0;
@@ -461,7 +490,7 @@ int ae_decode(ae_streamp strm, int flush)
             if (zero_blocks == ROS)
             {
                 zero_blocks =  strm->segment_size - (
-                    (strm->total_out / strm->block_size)
+                    (state->samples_out / strm->block_size)
                     % strm->segment_size);
             }
 

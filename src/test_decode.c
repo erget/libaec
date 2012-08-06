@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 {
     ae_stream strm;
     uint8_t *in;
-    uint32_t *out;
+    uint8_t *out;
     int chunk_in, chunk_out, i, c, total_out, status;
     int input_avail, output_avail;
 
@@ -27,14 +27,14 @@ int main(int argc, char *argv[])
     }
 
     in = (uint8_t *)malloc(chunk_in);
-    out = (uint32_t *)malloc(chunk_out * sizeof(uint32_t));
+    out = (uint8_t *)malloc(chunk_out * sizeof(uint8_t));
     if (in == NULL || out == NULL)
         return 1;
 
-    strm.bit_per_sample = 17;
+    strm.bit_per_sample = 8;
     strm.block_size = 8;
     strm.segment_size = 2;
-    strm.flags = AE_DATA_SIGNED | AE_DATA_PREPROCESS;
+    strm.flags = AE_DATA_UNSIGNED | AE_DATA_PREPROCESS;
 
     if (ae_decode_init(&strm) != AE_OK)
         return 1;
@@ -72,6 +72,9 @@ int main(int argc, char *argv[])
             for (i=0; i < strm.total_out - total_out; i++)
             {
                 putc(out[i], stdout);
+                /* putc(out[i] >> 8, stdout); */
+                /* putc(out[i] >> 16, stdout); */
+                /* putc(out[i] >> 24, stdout); */
             }
             total_out = strm.total_out;
             output_avail = 1;

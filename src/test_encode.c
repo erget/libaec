@@ -11,7 +11,7 @@
 int main(int argc, char *argv[])
 {
     ae_stream strm;
-    uint32_t *in;
+    uint8_t *in;
     uint8_t *out;
     int chunk_in, chunk_out, i, c, total_out, status;
     int input_avail, output_avail;
@@ -28,14 +28,14 @@ int main(int argc, char *argv[])
     }
 
     out = (uint8_t *)malloc(chunk_out);
-    in = (uint32_t *)malloc(chunk_in * sizeof(uint32_t));
+    in = (uint8_t *)malloc(chunk_in * sizeof(uint8_t));
     if (in == NULL || out == NULL)
         return 1;
 
-    strm.bit_per_sample = 17;
+    strm.bit_per_sample = 8;
     strm.block_size = 8;
     strm.segment_size = 2;
-    strm.flags = AE_DATA_SIGNED | AE_DATA_PREPROCESS;
+    strm.flags = AE_DATA_UNSIGNED | AE_DATA_PREPROCESS;
 
     if (ae_encode_init(&strm) != AE_OK)
         return 1;
@@ -54,7 +54,13 @@ int main(int argc, char *argv[])
         {
             i = 0;
             while(i < chunk_in && (c = getc(stdin)) != EOF)
-                in[i++] = c;
+            {
+                in[i] = c;
+                /* in[i] |= getc(stdin) << 8; */
+                /* in[i] |= getc(stdin) << 16; */
+                /* in[i] |= getc(stdin) << 24; */
+                i++;
+            }
             strm.avail_in = i;
 
             strm.next_in = (uint8_t *)in;
