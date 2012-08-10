@@ -206,6 +206,20 @@ int ae_encode_init(ae_streamp strm)
     return AE_OK;
 }
 
+int ae_encode_end(ae_streamp strm)
+{
+    encode_state *state;
+
+    state = strm->state;
+#ifdef PROFILE
+    free(state->prof);
+#endif
+    free(state->block_in);
+    free(state->block_out);
+    free(state);
+    return AE_OK;
+}
+
 static inline void emit(encode_state *state, int64_t data, int bits)
 {
     while(bits)
@@ -595,14 +609,5 @@ int ae_encode(ae_streamp strm, int flush)
 req_buffer:
     strm->total_out = total_out;
     strm->avail_out = avail_out;
-    if (strm->avail_in == 0 && avail_out && flush == AE_FLUSH)
-    {
-#ifdef PROFILE
-        free(state->prof);
-#endif
-        free(state->block_in);
-        free(state->block_out);
-        free(strm->state);
-    }
     return AE_OK;
 }

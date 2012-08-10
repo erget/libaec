@@ -59,8 +59,10 @@ typedef ae_stream *ae_streamp;
 
 int ae_decode_init(ae_streamp strm);
 int ae_decode(ae_streamp strm, int flush);
+int ae_decode_end(ae_streamp strm);
 
 int ae_encode_init(ae_streamp strm);
 int ae_encode(ae_streamp strm, int flush);
+int ae_encode_end(ae_streamp strm);
 
 #endif /* LIBAE_H */

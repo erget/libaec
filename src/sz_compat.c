@@ -21,6 +21,9 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen, const void *source, size_
     if ((status = ae_encode(&strm, AE_FLUSH)) != AE_OK)
         return status;
 
+    if ((status = ae_encode_end(&strm)) != AE_OK)
+        return status;
+
     *destLen = strm.total_out;
     return SZ_OK;
 }
@@ -43,6 +46,9 @@ int SZ_BufftoBuffDecompress(void *dest, size_t *destLen, const void *source, siz
         return status;
 
     if ((status = ae_decode(&strm, AE_FLUSH)) != AE_OK)
+        return status;
+
+    if ((status = ae_decode_end(&strm)) != AE_OK)
         return status;
 
     *destLen = strm.total_out;

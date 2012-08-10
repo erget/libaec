@@ -326,6 +326,17 @@ int ae_decode_init(ae_streamp strm)
     return AE_OK;
 }
 
+int ae_decode_end(ae_streamp strm)
+{
+    decode_state *state;
+
+    state = strm->state;
+    free(state->block);
+    free(state->id_table);
+    free(state);
+    return AE_OK;
+}
+
 #define ASK(n)                                           \
     do {                                                 \
         while (state->bitp < (unsigned)(n))              \
@@ -426,7 +437,7 @@ int ae_decode(ae_streamp strm, int flush)
                 state->n = strm->block_size;
             }
 
-            state->i = state->n;
+            state->i = state->n - 1;
             state->mode = M_SPLIT_FS;
 
         case M_SPLIT_FS:
@@ -436,9 +447,9 @@ int ae_decode(ae_streamp strm, int flush)
                 state->block[state->i] = GETFS();
                 DROPFS();
             }
-            while(--state->i);
+            while(state->i--);
 
-            state->i = state->n;
+            state->i = state->n - 1;
             state->mode = M_SPLIT_OUTPUT;
 
         case M_SPLIT_OUTPUT:
@@ -449,7 +460,7 @@ int ae_decode(ae_streamp strm, int flush)
                 PUT((state->block[state->i] << k) + GET(k));
                 DROP(k);
             }
-            while(--state->i);
+            while(state->i--);
 
             state->mode = M_ID;
             break;

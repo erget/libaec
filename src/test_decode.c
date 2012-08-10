@@ -88,5 +88,8 @@ int main(int argc, char *argv[])
 
     }
 
+    ae_decode_end(&strm);
+    free(in);
+    free(out);
     return 0;
 }

@@ -105,5 +105,8 @@ int main(int argc, char *argv[])
             putc(out[i], stdout);
         }
     }
+    ae_encode_end(&strm);
+    free(in);
+    free(out);
     return 0;
 }
