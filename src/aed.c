@@ -9,6 +9,8 @@
 
 #include "libae.h"
 
+#define MIN(a, b) (((a) < (b))? (a): (b))
+
 #define SAFE (strm->avail_in >= state->in_blklen        \
               && strm->avail_out >= strm->block_size)
 
@@ -118,15 +120,7 @@ static inline void u_put(ae_streamp strm, int64_t sample)
     {
         d = sample;
         x = state->last_out;
-
-        if ((x - state->xmin) < (state->xmax - x))
-        {
-            th = x - state->xmin;
-        }
-        else
-        {
-            th = state->xmax - x;
-        }
+        th = MIN(x - state->xmin, state->xmax - x);
 
         if (d <= 2*th)
         {
@@ -195,14 +189,10 @@ static inline void fast_split(ae_streamp strm)
     k = state->id - 1;
 
     if (state->ref)
-    {
         u_put(strm, u_get(strm, strm->bit_per_sample));
-    }
 
     for (i = state->ref; i < strm->block_size; i++)
-    {
         state->block[i] = u_get_fs(strm) << k;
-    }
 
     for (i = state->ref; i < strm->block_size; i++)
     {

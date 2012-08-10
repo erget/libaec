@@ -2,8 +2,8 @@
 /* CCSDS 121.0-B-1 and CCSDS 120.0-G-2 */
 
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <inttypes.h>
 #include <string.h>
 
@@ -57,13 +57,14 @@ static int64_t get_lsb_32(ae_streamp strm)
 {
     int64_t data;
 
-    data = *strm->next_in++;
-    data |= *strm->next_in++ << 8;
-    data |= *strm->next_in++ << 16;
-    data |= *strm->next_in++ << 24;
+    data = (strm->next_in[3] << 24)
+        | (strm->next_in[2] << 16)
+        | (strm->next_in[1] << 8)
+        | strm->next_in[0];
 
-    strm->avail_in -= 4;
+    strm->next_in += 4;
     strm->total_in += 4;
+    strm->avail_in -= 4;
     return data;
 }
 
@@ -71,11 +72,11 @@ static int64_t get_lsb_16(ae_streamp strm)
 {
     int64_t data;
 
-    data = *strm->next_in++;
-    data |= *strm->next_in++ << 8;
+    data = (strm->next_in[1] << 8) | strm->next_in[0];
 
-    strm->avail_in -= 2;
+    strm->next_in += 2;
     strm->total_in += 2;
+    strm->avail_in -= 2;
     return data;
 }
 
@@ -83,13 +84,14 @@ static int64_t get_msb_32(ae_streamp strm)
 {
     int64_t data;
 
-    data = *strm->next_in++ << 24;
-    data |= *strm->next_in++ << 16;
-    data |= *strm->next_in++ << 8;
-    data |= *strm->next_in++;
+    data = (strm->next_in[0] << 24)
+        | (strm->next_in[1] << 16)
+        | (strm->next_in[2] << 8)
+        | strm->next_in[3];
 
-    strm->avail_in -= 4;
+    strm->next_in += 4;
     strm->total_in += 4;
+    strm->avail_in -= 4;
     return data;
 }
 
@@ -97,11 +99,11 @@ static int64_t get_msb_16(ae_streamp strm)
 {
     int64_t data;
 
-    data = *strm->next_in++ << 8;
-    data |= *strm->next_in++;
+    data = (strm->next_in[0] << 8) | strm->next_in[1];
 
-    strm->avail_in -= 2;
+    strm->next_in += 2;
     strm->total_in += 2;
+    strm->avail_in -= 2;
     return data;
 }
 
@@ -180,7 +182,7 @@ int ae_encode_init(ae_streamp strm)
     }
 
     blklen = (strm->block_size * strm->bit_per_sample
-              + state->id_len) / 8 + 1;
+              + state->id_len) / 8 + 2;
 
     state->block_out = (uint8_t *)malloc(blklen);
     if (state->block_out == NULL)
@@ -197,6 +199,7 @@ int ae_encode_init(ae_streamp strm)
 
     state->total_blocks = 0;
     state->block_deferred = 0;
+    state->zero_blocks = 0;
     state->zero_ref = 0;
     state->ref = 0;
 
@@ -210,15 +213,14 @@ static inline void emit(encode_state *state, int64_t data, int bits)
         data &= ((1ULL << bits) - 1);
         if (bits <= state->bitp)
         {
-            data <<= state->bitp - bits;
-            *state->bp_out += data;
             state->bitp -= bits;
+            *state->bp_out += data << state->bitp;
             bits = 0;
         }
         else
         {
-            *state->bp_out += data >> (bits - state->bitp);
             bits -= state->bitp;
+            *state->bp_out += data >> bits;
             *++state->bp_out = 0;
             state->bitp = 8;
         }
@@ -227,8 +229,7 @@ static inline void emit(encode_state *state, int64_t data, int bits)
 
 static inline void emitfs(encode_state *state, int fs)
 {
-    emit(state, 0, fs);
-    emit(state, 1, 1);
+    emit(state, 1, fs + 1);
 }
 
 #ifdef PROFILE
@@ -263,15 +264,18 @@ int ae_encode(ae_streamp strm, int flush)
        encoder.
     */
 
-    int i, j, k, zb;
-    int64_t k_len[strm->bit_per_sample - 2];
-    int64_t k_len_min, se_len, blk_head;
+    int i, j, k, zb, this_bs;
+    int64_t split_len;
+    int64_t split_len_min, se_len, fs_len;
     int64_t d;
     int64_t theta, Delta;
+    size_t avail_out, total_out;
 
     encode_state *state;
 
     state = strm->state;
+    total_out = strm->total_out;
+    avail_out = strm->avail_out;
 
     for (;;)
     {
@@ -304,10 +308,9 @@ int ae_encode(ae_streamp strm, int flush)
                     {
                         if (state->i > 0)
                         {
-                            /* pad block with zeros if we have
+                            /* pad block with last sample if we have
                                a partial block */
                             state->block_in[state->i] = state->block_in[state->i - 1];
-                            fprintf(stderr, "padding %lx\n", state->block_in[state->i]);
                         }
                         else
                         {
@@ -317,8 +320,8 @@ int ae_encode(ae_streamp strm, int flush)
                             */
                             emit(state, 0xff, state->bitp);
                             *strm->next_out++ = *state->bp_out;
-                            strm->avail_out--;
-                            strm->total_out++;
+                            avail_out--;
+                            total_out++;
 #ifdef PROFILE
                             profile_print(strm);
 #endif
@@ -337,13 +340,15 @@ int ae_encode(ae_streamp strm, int flush)
             }
             while (++state->i < strm->block_size);
 
+            state->total_blocks++;
+
             /* preprocess block if needed */
             if (strm->flags & AE_DATA_PREPROCESS)
             {
                 /* If this is the first block in a segment
                    then we need to insert a reference sample.
                 */
-                if(state->total_blocks % strm->segment_size == 0)
+                if(state->total_blocks % strm->segment_size == 1)
                 {
                     state->ref = 1;
                     state->last_in = state->block_in[0];
@@ -358,18 +363,23 @@ int ae_encode(ae_streamp strm, int flush)
                     theta = MIN(state->last_in - state->xmin,
                                 state->xmax - state->last_in);
                     Delta = state->block_in[i] - state->last_in;
-                    if (0 <= Delta && Delta <= theta)
-                        d = 2 * Delta;
-                    else if (-theta <= Delta && Delta < 0)
-                        d = 2 * llabs(Delta) - 1;
-                    else
-                        d = theta + llabs(Delta);
-
                     state->last_in = state->block_in[i];
-                    state->block_in[i] = d;
+                    if (0 <= Delta && Delta <= theta)
+                    {
+                        state->block_in[i] = 2 * Delta;
+                    }
+                    else if (-theta <= Delta && Delta < 0)
+                    {
+                        d = Delta < 0 ? -(uint64_t)Delta : Delta;
+                        state->block_in[i] = 2 * d - 1;
+                    }
+                    else
+                    {
+                        state->block_in[i] = theta +
+                            (Delta < 0 ? -(uint64_t)Delta : Delta);
+                    }
                 }
             }
-            state->total_blocks++;
             state->mode = M_CHECK_ZERO_BLOCK;
 
         case M_CHECK_ZERO_BLOCK:
@@ -388,8 +398,7 @@ int ae_encode(ae_streamp strm, int flush)
 
                 state->zero_blocks++;
 
-                if ((strm->total_in / strm->block_size)
-                    % strm->segment_size == 0)
+                if (state->total_blocks % strm->segment_size == 0)
                 {
                     if (state->zero_blocks > ROS)
                         state->zero_blocks = ROS;
@@ -422,50 +431,63 @@ int ae_encode(ae_streamp strm, int flush)
             /* If zero block isn't an option then count length of
                sample splitting options */
 
-            /* Encoded block always starts with ID and possibly a
-               reference sample. */
-            if (state->ref)
-                blk_head = state->id_len + strm->bit_per_sample;
-            else
-                blk_head = state->id_len;
-
-            for (j = 0; j < strm->bit_per_sample - 2; j++)
-                k_len[j] = blk_head;
-
-            /* Count bits for sample splitting options */
-            for (i = state->ref; i < strm->block_size; i++)
-                for (j = 0; j < strm->bit_per_sample - 2; j++)
-                    k_len[j] += (state->block_in[i] >> j) + 1 + j;
-
             /* Baseline is the size of an uncompressed block */
-            k_len_min = state->id_len + strm->block_size * strm->bit_per_sample;
+            split_len_min = (strm->block_size - state->ref) * strm->bit_per_sample;
             k = strm->bit_per_sample;
 
-            /* See if splitting option is better */
+            /* Length of this block minus reference sample if present */
+            this_bs = strm->block_size - state->ref;
+
+            /* Add FS encoded to unencoded parts */
             for (j = 0; j < strm->bit_per_sample - 2; j++)
             {
-                if (k_len[j] < k_len_min)
+#ifdef UNROLL_BLOCK_8
+                fs_len = (state->block_in[1] >> j)
+                    + (state->block_in[2] >> j)
+                    + (state->block_in[3] >> j)
+                    + (state->block_in[4] >> j)
+                    + (state->block_in[5] >> j)
+                    + (state->block_in[6] >> j)
+                    + (state->block_in[7] >> j);
+                if (state->ref == 0)
+                    fs_len += (state->block_in[0] >> j);
+#else
+                fs_len = 0;
+                for (i = state->ref; i < strm->block_size; i++)
+                    fs_len += state->block_in[i] >> j;
+#endif
+                split_len = fs_len + this_bs * (j + 1);
+                if (split_len < split_len_min)
                 {
+                    split_len_min = split_len;
                     k = j;
-                    k_len_min = k_len[j];
+
+                    if (fs_len < this_bs)
+                    {
+                        /* Next can't get better because what we lose
+                           by additional uncompressed bits isn't
+                           compensated by a smaller FS part. */
+                        break;
+                    }
                 }
+                else
+                    break;
             }
 
             /* Count bits for 2nd extension */
-            se_len = blk_head + 1;
-
-            for (i = 0; i < strm->block_size && k_len_min > se_len; i+= 2)
+            se_len = 1;
+            for (i = 0; i < strm->block_size && split_len_min > se_len; i+= 2)
             {
                 d = state->block_in[i] + state->block_in[i + 1];
                 /* we have to worry about overflow here */
-                if (d > k_len_min)
+                if (d > split_len_min)
                     se_len = d;
                 else
                     se_len += d * (d + 1) / 2 + state->block_in[i + 1];
             }
 
             /* Decide which option to use */
-            if (k_len_min <= se_len)
+            if (split_len_min <= se_len)
             {
                 if (k == strm->bit_per_sample)
                 {
@@ -492,7 +514,6 @@ int ae_encode(ae_streamp strm, int flush)
                 break;
             }
 
-        case M_ENCODE_SPLIT:
             emit(state, k + 1, state->id_len);
             if (state->ref)
                 emit(state, state->block_in[0], strm->bit_per_sample);
@@ -510,9 +531,6 @@ int ae_encode(ae_streamp strm, int flush)
             {
                 /* pad last byte with 1 bits */
                 emit(state, 0xff, state->bitp);
-#ifdef PROFILE
-                profile_print(strm);
-#endif
             }
             state->i = 0;
             state->mode = M_FLUSH_BLOCK_LOOP;
@@ -520,7 +538,7 @@ int ae_encode(ae_streamp strm, int flush)
         case M_FLUSH_BLOCK_LOOP:
             while(state->block_out + state->i < state->bp_out)
             {
-                if (strm->avail_out == 0)
+                if (avail_out == 0)
                 {
 #ifdef PROFILE
                     profile_print(strm);
@@ -529,8 +547,8 @@ int ae_encode(ae_streamp strm, int flush)
                 }
 
                 *strm->next_out++ = state->block_out[state->i];
-                strm->avail_out--;
-                strm->total_out++;
+                avail_out--;
+                total_out++;
                 state->i++;
             }
             state->mode = M_NEW_BLOCK;
@@ -575,5 +593,16 @@ int ae_encode(ae_streamp strm, int flush)
     }
 
 req_buffer:
+    strm->total_out = total_out;
+    strm->avail_out = avail_out;
+    if (strm->avail_in == 0 && avail_out && flush == AE_FLUSH)
+    {
+#ifdef PROFILE
+        free(state->prof);
+#endif
+        free(state->block_in);
+        free(state->block_out);
+        free(strm->state);
+    }
     return AE_OK;
 }
