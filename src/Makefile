@@ -1,7 +1,7 @@
 CC = gcc
 #CFLAGS = -g -pg -lc -O2 -Wall -fprofile-arcs -ftest-coverage -DPROFILE
 #CFLAGS = -g -pg -lc -O2 -Wall -fprofile-arcs -ftest-coverage -DUNROLL_BLOCK_8
-CFLAGS = -g -O3 -Wall -DUNROLL_BLOCK_8
+CFLAGS = -g -O0 -Wall -DUNROLL_BLOCK_8
 
 OBJS = aee.o aed.o sz_compat.o
 

@@ -182,7 +182,7 @@ int ae_encode_init(ae_streamp strm)
     }
 
     blklen = (strm->block_size * strm->bit_per_sample
-              + state->id_len) / 8 + 2;
+              + state->id_len) / 8 + 16;
 
     state->block_out = (uint8_t *)malloc(blklen);
     if (state->block_out == NULL)

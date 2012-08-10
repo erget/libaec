@@ -12,7 +12,7 @@
 #define MIN(a, b) (((a) < (b))? (a): (b))
 
 #define SAFE (strm->avail_in >= state->in_blklen        \
-              && strm->avail_out >= strm->block_size)
+              && strm->avail_out >= state->out_blklen)
 
 #define ROS 5
 
@@ -28,6 +28,7 @@ typedef struct internal_state {
     int mode;          /* current mode of FSM */
     int in_blklen;     /* length of uncompressed input block
                           should be the longest possible block */
+    int out_blklen;    /* length of output block in bytes */
     int n, i;          /* counter for samples */
     int64_t *block;    /* block buffer for split-sample options */
     int se;            /* set if second extension option is selected */
@@ -263,6 +264,7 @@ int ae_decode_init(ae_streamp strm)
     if (strm->bit_per_sample > 16)
     {
         state->id_len = 5;
+        state->out_blklen = strm->block_size * 4;
         if (strm->flags & AE_DATA_MSB)
             state->put_sample = put_msb_32;
         else
@@ -271,6 +273,7 @@ int ae_decode_init(ae_streamp strm)
     else if (strm->bit_per_sample > 8)
     {
         state->id_len = 4;
+        state->out_blklen = strm->block_size * 2;
         if (strm->flags & AE_DATA_MSB)
             state->put_sample = put_msb_16;
         else
@@ -279,6 +282,7 @@ int ae_decode_init(ae_streamp strm)
     else
     {
         state->id_len = 3;
+        state->out_blklen = strm->block_size;
         state->put_sample = put_8;
 
     }
