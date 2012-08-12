@@ -1,7 +1,7 @@
 CC = gcc
 #CFLAGS = -g -pg -lc -O2 -Wall -fprofile-arcs -ftest-coverage -DPROFILE
 #CFLAGS = -g -pg -lc -O2 -Wall -fprofile-arcs -ftest-coverage -DUNROLL_BLOCK_8
-CFLAGS = -g -O0 -Wall -DUNROLL_BLOCK_8
+CFLAGS = -g -O3 -Wall
 
 OBJS = aee.o aed.o sz_compat.o
 
@@ -46,5 +46,6 @@ check: test_encode test_decode test_szcomp
 	./test_decode 101 101 < ../data/test.ae > ../data/test
 	diff ../data/test ../data/example_data
 	 ./test_szcomp 65536 < ../data/example_data_16 > ../data/test
-	 diff ../data/test ../data/example_data_16
-
+	diff ../data/test ../data/example_data_16
+	./test_szcomp 2097257 < ../data/zero_test > ../data/test
+	diff ../data/test ../data/zero_test

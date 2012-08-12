@@ -9,9 +9,10 @@
 
 #include "libae.h"
 
-#define ROS 5
+#define ROS -1
 
 #define MIN(a, b) (((a) < (b))? (a): (b))
+#define MAX(a, b) (((a) > (b))? (a): (b))
 
 enum
 {
@@ -38,7 +39,7 @@ typedef struct internal_state {
     int64_t *block_in;      /* input block buffer */
     uint8_t *block_out;     /* output block buffer */
     uint8_t *bp_out;        /* pointer to current output */
-    size_t total_blocks;
+    int64_t total_blocks;
     int bitp;               /* bit pointer to the next unused bit in accumulator */
     int block_deferred;     /* there is a block in the input buffer
                                but we first have to emit a zero block */
@@ -181,9 +182,11 @@ int ae_encode_init(ae_streamp strm)
         return AE_MEM_ERROR;
     }
 
-    blklen = (strm->block_size * strm->bit_per_sample
-              + state->id_len) / 8 + 16;
-
+    /* Zero blocks can span a segment and thus need up to segment_size
+       bits in encoded block */
+    blklen = MAX(strm->block_size * strm->bit_per_sample,
+                 strm->segment_size + 10);
+    blklen = (blklen + state->id_len) / 8 + 3;
     state->block_out = (uint8_t *)malloc(blklen);
     if (state->block_out == NULL)
     {
@@ -414,11 +417,11 @@ int ae_encode(ae_streamp strm, int flush)
 
                 if (state->total_blocks % strm->segment_size == 0)
                 {
-                    if (state->zero_blocks > ROS)
-                        state->zero_blocks = ROS;
 #ifdef PROFILE
                     state->prof[0] += state->zero_blocks;
 #endif
+                    if (state->zero_blocks > 4)
+                        state->zero_blocks = ROS;
                     state->mode = M_ENCODE_ZERO;
                     break;
                 }
@@ -476,6 +479,7 @@ int ae_encode(ae_streamp strm, int flush)
                     split_len_min = split_len;
                     k = j;
 
+#if 0
                     if (fs_len < this_bs)
                     {
                         /* Next can't get better because what we lose
@@ -486,6 +490,9 @@ int ae_encode(ae_streamp strm, int flush)
                 }
                 else
                     break;
+#else
+            }
+#endif
             }
 
             /* Count bits for 2nd extension */
@@ -596,7 +603,14 @@ int ae_encode(ae_streamp strm, int flush)
             {
                 emit(state, state->zero_ref_sample, strm->bit_per_sample);
             }
-            emitfs(state, state->zero_blocks - 1);
+            if (state->zero_blocks == ROS)
+            {
+                emitfs(state, 4);
+            }
+            else if (state->zero_blocks >= 5)
+                emitfs(state, state->zero_blocks);
+            else
+                emitfs(state, state->zero_blocks - 1);
             state->zero_blocks = 0;
             state->mode = M_FLUSH_BLOCK;
             break;

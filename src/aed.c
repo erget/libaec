@@ -37,6 +37,7 @@ typedef struct internal_state {
     int fs;            /* last fundamental sequence in accumulator */
     int ref;           /* 1 if current block has reference sample */
     int pp;            /* 1 if postprocessor has to be used */
+    int byte_per_sample;
     size_t samples_out;
 } decode_state;
 
@@ -263,6 +264,7 @@ int ae_decode_init(ae_streamp strm)
 
     if (strm->bit_per_sample > 16)
     {
+        state->byte_per_sample = 4;
         state->id_len = 5;
         state->out_blklen = strm->block_size * 4;
         if (strm->flags & AE_DATA_MSB)
@@ -272,6 +274,7 @@ int ae_decode_init(ae_streamp strm)
     }
     else if (strm->bit_per_sample > 8)
     {
+        state->byte_per_sample = 2;
         state->id_len = 4;
         state->out_blklen = strm->block_size * 2;
         if (strm->flags & AE_DATA_MSB)
@@ -281,6 +284,7 @@ int ae_decode_init(ae_streamp strm)
     }
     else
     {
+        state->byte_per_sample = 1;
         state->id_len = 3;
         state->out_blklen = strm->block_size;
         state->put_sample = put_8;
@@ -498,6 +502,10 @@ int ae_decode(ae_streamp strm, int flush)
                     (state->samples_out / strm->block_size)
                     % strm->segment_size);
             }
+            else if (zero_blocks > ROS)
+            {
+                zero_blocks--;
+            }
 
 
             if (state->ref)
@@ -505,7 +513,7 @@ int ae_decode(ae_streamp strm, int flush)
             else
                 state->i = zero_blocks * strm->block_size;
 
-            if (strm->avail_out >= state->i)
+            if (strm->avail_out >= state->i * state->byte_per_sample)
             {
                 fast_zero(strm);
                 state->mode = M_ID;
