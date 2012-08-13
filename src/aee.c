@@ -331,6 +331,12 @@ int ae_encode(ae_streamp strm, int flush)
                         }
                         else
                         {
+                            if (state->zero_blocks)
+                            {
+                                /* Output any remaining zero blocks */
+                                state->mode=M_ENCODE_ZERO;
+                                break;
+                            }
                             /* Pad last output byte with 1 bits
                                if user wants to flush, i.e. we got
                                all input there is.
@@ -548,11 +554,6 @@ int ae_encode(ae_streamp strm, int flush)
             state->mode = M_FLUSH_BLOCK;
 
         case M_FLUSH_BLOCK:
-            if (strm->avail_in == 0 && flush == AE_FLUSH)
-            {
-                /* pad last byte with 1 bits */
-                emit(state, 0xff, state->bitp);
-            }
             state->i = 0;
             state->mode = M_FLUSH_BLOCK_LOOP;
 
