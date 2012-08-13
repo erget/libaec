@@ -9,10 +9,10 @@ OBJS = aee.o aed.o sz_compat.o
 
 all: libae.a
 
-test_encode: test_encode.o libae.a
+encode: encode.o libae.a
 	$(CC) $(CFLAGS) -o $@ $< -L. -lae
 
-test_decode: test_decode.o libae.a
+decode: decode.o libae.a
 	$(CC) $(CFLAGS) -o $@ $< -L. -lae
 
 test_szcomp: test_szcomp.o libae.a
@@ -32,20 +32,19 @@ install: libae.a
 	ln -sfT ../src/libae.a ../lib/libsz.a
 
 clean:
-	rm -f $(OBJS) test_encode.o test_decode.o \
-	test_encode test_decode libae.a \
+	rm -f $(OBJS) encode.o decode.o \
+	encode decode libae.a \
 	test_szcomp test_szcomp.o \
 	../data/test.ae ../data/test \
 	*.gcno *.gcda *.gcov gmon.out
 
-check: test_encode test_decode test_szcomp
-	./test_encode 1 1 < ../data/example_data > ../data/test.ae
-	./test_decode 1 1 < ../data/test.ae > ../data/test
-	diff ../data/test ../data/example_data
-	./test_encode 99 99 < ../data/example_data > ../data/test.ae
-	./test_decode 101 101 < ../data/test.ae > ../data/test
-	diff ../data/test ../data/example_data
-	 ./test_szcomp 65536 < ../data/example_data_16 > ../data/test
-	diff ../data/test ../data/example_data_16
-	./test_szcomp 2097257 < ../data/zero_test > ../data/test
-	diff ../data/test ../data/zero_test
+check: encode decode test_szcomp
+	 ./encode -cb1 ../data/example_data > ../data/test.aee 
+	 ./decode -b1 ../data/test.aee
+	 diff ../data/test ../data/example_data
+	 ./encode -cb1024 ../data/example_data > ../data/test.aee 
+	 ./decode -b1024 ../data/test.aee
+	 diff ../data/test ../data/example_data
+	 ./test_szcomp 65536 ../data/example_data_16
+
+

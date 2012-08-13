@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <string.h>
 #include "szlib.h"
 
 #define OPTIONS_MASK        (SZ_RAW_OPTION_MASK | SZ_MSB_OPTION_MASK | SZ_NN_OPTION_MASK)
@@ -10,15 +11,15 @@
 
 int main(int argc, char *argv[])
 {
-    int status, c;
+    int status;
     SZ_com_t sz_param;
-    unsigned char *dest;
-    uint16_t *source;
-    size_t destLen, sourceLen, n;
+    unsigned char *source, *dest, *dest1;
+    size_t destLen, dest1Len, sourceLen;
+    FILE *fp;
 
-    if (argc < 2)
+    if (argc < 3)
     {
-        fprintf(stderr, "Input size missing!\n");
+        fprintf(stderr, "Usage: %s buffer_size file\n", argv[0]);
         return 1;
     }
     sz_param.options_mask = OPTIONS_MASK;
@@ -28,41 +29,35 @@ int main(int argc, char *argv[])
 
     sourceLen = destLen = atoi(argv[1]);
 
-    source = (uint16_t *)malloc(sourceLen * sizeof(uint16_t));
+    source = (unsigned char *)malloc(sourceLen);
     dest = (unsigned char *)malloc(destLen);
+    dest1 = (unsigned char *)malloc(destLen);
 
-    if (source == NULL || dest == NULL)
+    if (source == NULL || dest == NULL || dest1 == NULL)
         return 1;
 
-    n = 0;
-    while((c = getc(stdin)) != EOF)
+    if ((fp = fopen(argv[2], "r")) == NULL)
     {
-        source[n] = c;
-        source[n] |= getc(stdin) << 8;
-        n++;
+        fprintf(stderr, "Can't open %s\n", argv[2]);
+        exit(-1);
     }
-    sourceLen = n * sizeof(uint16_t);
 
-    fprintf(stderr, "Uncompressed size is %li\n", sourceLen);
+    sourceLen = fread(source, 1, sourceLen, fp);
 
     status = SZ_BufftoBuffCompress(dest, &destLen, source, sourceLen, &sz_param);
     if (status != SZ_OK)
         return status;
 
-    fprintf(stderr, "Compressed size is %li\n", destLen);
-
-    status = SZ_BufftoBuffDecompress(source, &sourceLen, dest, destLen, &sz_param);
+    dest1Len = sourceLen;
+    status = SZ_BufftoBuffDecompress(dest1, &dest1Len, dest, destLen, &sz_param);
     if (status != SZ_OK)
         return status;
 
-    fprintf(stderr, "Uncompressed size is %li again\n", sourceLen);
+    if (memcmp(source, dest1, sourceLen) != 0)
+        fprintf(stderr, "File %s Buffers differ\n", argv[2]);
 
-    for(c = 0; c < sourceLen / sizeof(uint16_t); c++)
-    {
-        putc(source[c], stdout);
-        putc(source[c] >> 8, stdout);
-    }
     free(source);
     free(dest);
+    free(dest1);
     return 0;
 }
