@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 
     strm.bit_per_sample = 16;
     strm.block_size = 8;
-    strm.segment_size = 8;
+    strm.segment_size = 128;
     strm.flags = AE_DATA_MSB | AE_DATA_PREPROCESS;
 
     if (ae_encode_init(&strm) != AE_OK)

@@ -223,7 +223,7 @@ int ae_encode_end(ae_streamp strm)
     return AE_OK;
 }
 
-static inline void emit(encode_state *state, int64_t data, int bits)
+static inline void emit(encode_state *state, uint64_t data, int bits)
 {
     while(bits)
     {
@@ -246,7 +246,15 @@ static inline void emit(encode_state *state, int64_t data, int bits)
 
 static inline void emitfs(encode_state *state, int fs)
 {
-    emit(state, 1, fs + 1);
+    if (fs < 63)
+    {
+        emit(state, 1, fs + 1);
+    }
+    else
+    {
+        emit(state, 0, fs);
+        emit(state, 1, 1);
+    }
 }
 
 #ifdef PROFILE
@@ -337,11 +345,11 @@ int ae_encode(ae_streamp strm, int flush)
                                 state->mode=M_ENCODE_ZERO;
                                 break;
                             }
-                            /* Pad last output byte with 1 bits
+                            /* Pad last output byte with 0 bits
                                if user wants to flush, i.e. we got
                                all input there is.
                             */
-                            emit(state, 0xff, state->bitp);
+                            emit(state, 0, state->bitp);
                             *strm->next_out++ = *state->bp_out;
                             avail_out--;
                             total_out++;
@@ -485,20 +493,16 @@ int ae_encode(ae_streamp strm, int flush)
                     split_len_min = split_len;
                     k = j;
 
-#if 0
-                    if (fs_len < this_bs)
-                    {
-                        /* Next can't get better because what we lose
-                           by additional uncompressed bits isn't
-                           compensated by a smaller FS part. */
-                        break;
-                    }
+                    /* if (fs_len < this_bs) */
+                    /* { */
+                    /*     /\* Next can't get better because what we lose */
+                    /*        by additional uncompressed bits isn't */
+                    /*        compensated by a smaller FS part. *\/ */
+                    /*     break; */
+                    /* } */
                 }
-                else
-                    break;
-#else
-            }
-#endif
+                /* else */
+                /*     break; */
             }
 
             /* Count bits for 2nd extension */

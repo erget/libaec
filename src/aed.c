@@ -366,17 +366,18 @@ int ae_decode_end(ae_streamp strm)
 #define ASKFS()                          \
     do {                                 \
         ASK(1);                          \
-        state->fs = 0;                   \
-        while (GET(state->fs + 1) == 0)  \
+        while (GET(1) == 0)              \
         {                                \
             state->fs++;                 \
-            ASK(state->fs + 1);          \
+            DROP(1);                     \
+            ASK(1);                      \
         }                                \
+        DROP(1);                         \
     } while(0)
 
 #define GETFS() state->fs
 
-#define DROPFS() DROP(state->fs + 1)
+#define DROPFS() state->fs = 0;
 
 #define PUT(sample)                                \
     do {                                           \
