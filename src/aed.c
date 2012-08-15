@@ -329,6 +329,7 @@ int ae_decode_init(ae_streamp strm)
 
     state->samples_out = 0;
     state->bitp = 0;
+    state->fs = 0;
     state->pp = strm->flags & AE_DATA_PREPROCESS;
     state->mode = M_ID;
     return AE_OK;
@@ -363,21 +364,34 @@ int ae_decode_end(ae_streamp strm)
 
 #define DROP(n) state->bitp -= (unsigned)(n)
 
-#define ASKFS()                          \
-    do {                                 \
-        ASK(1);                          \
-        while (GET(1) == 0)              \
-        {                                \
-            state->fs++;                 \
-            DROP(1);                     \
-            ASK(1);                      \
-        }                                \
-        DROP(1);                         \
-    } while(0)
+#define ASKFS()                                                 \
+    do {                                                        \
+        ASK(1);                                                 \
+        while ((state->acc & (1ULL << (state->bitp - 1))) == 0) \
+        {                                                       \
+            if (state->bitp == 1)                               \
+            {                                                   \
+                if (strm->avail_in == 0) goto req_buffer;       \
+                strm->avail_in--;                               \
+                strm->total_in++;                               \
+                state->acc <<= 8;                               \
+                state->acc |= *strm->next_in++;                 \
+                state->bitp += 8;                               \
+            }                                                   \
+            state->fs++;                                        \
+            state->bitp--;                                      \
+        }                                                       \
+    } while (0)
 
 #define GETFS() state->fs
 
-#define DROPFS() state->fs = 0;
+#define DROPFS()                                \
+    do {                                        \
+        state->fs = 0;                          \
+        /* Needs to be here for                 \
+           ASK/GET/PUT/DROP interleaving. */    \
+        state->bitp--;                          \
+    } while (0)
 
 #define PUT(sample)                                \
     do {                                           \

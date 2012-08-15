@@ -193,6 +193,7 @@ int ae_encode_init(ae_streamp strm)
         return AE_MEM_ERROR;
     }
     state->bp_out = state->block_out;
+    *state->bp_out = 0;
     state->bitp = 8;
 
     strm->total_in = 0;
