@@ -20,13 +20,23 @@ int main(int argc, char *argv[])
     int cflag = 0;
 
     chunk = CHUNK;
+    strm.bit_per_sample = 8;
+    strm.block_size = 8;
+    strm.segment_size = 2;
+    strm.flags = AE_DATA_MSB | AE_DATA_PREPROCESS;
     opterr = 0;
 
-    while ((c = getopt (argc, argv, "cb:")) != -1)
+    while ((c = getopt (argc, argv, "cb:B:S:")) != -1)
         switch (c)
         {
         case 'b':
             chunk = 2 * atoi(optarg);
+            break;
+        case 'B':
+            strm.bit_per_sample = atoi(optarg);
+            break;
+        case 'S':
+            strm.segment_size = atoi(optarg);
             break;
         case 'c':
             cflag = 1;
@@ -61,11 +71,6 @@ int main(int argc, char *argv[])
 
     if (in == NULL || out == NULL)
         exit(-1);
-
-    strm.bit_per_sample = 16;
-    strm.block_size = 8;
-    strm.segment_size = 128;
-    strm.flags = AE_DATA_MSB | AE_DATA_PREPROCESS;
 
     if (ae_encode_init(&strm) != AE_OK)
         return 1;
