@@ -2,6 +2,7 @@
 #define LIBAE_H
 
 #include <inttypes.h>
+#include <stddef.h>
 
 struct internal_state;
 
@@ -21,7 +22,7 @@ typedef struct _ae_stream
     uint32_t rsi;            /* Reference sample interval, the number of
                                 blocks between consecutive reference
                                 samples. */
-    uint32_t flags; 
+    uint32_t flags;
 
     struct internal_state *state;
 } ae_stream;

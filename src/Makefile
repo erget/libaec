@@ -1,9 +1,8 @@
 CC = gcc
-#CFLAGS = -g -pg -lc -O2 -Wall -fprofile-arcs -ftest-coverage -DPROFILE
-#CFLAGS = -g -pg -lc -O2 -Wall -fprofile-arcs -ftest-coverage -DUNROLL_BLOCK_8
-CFLAGS = -g -O3 -Wall
+#CFLAGS = -g -pg -lc -O0 -Wall -fprofile-arcs -ftest-coverage
+CFLAGS = -g -O3 -Wall -std=c99
 
-OBJS = aee.o aed.o sz_compat.o
+OBJS = aee.o aee_mutators.o aed.o sz_compat.o
 
 .PHONY : all clean check
 
@@ -23,7 +22,9 @@ libae.a: $(OBJS)
 	-@ ($(RANLIB) $@ || true) >/dev/null 2>&1
 
 aed.o: libae.h
-aee.o: libae.h
+aee.o: aee_mutators.h aee.h libae.h
+aee_mutators.o: aee.h libae.h
+sz_compat.o: libae.h
 
 install: libae.a
 	mkdir -p ../lib ../include

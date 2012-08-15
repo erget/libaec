@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <string.h>
+#include <getopt.h>
 #include "libae.h"
 
 #define CHUNK 1024
