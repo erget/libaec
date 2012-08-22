@@ -8,7 +8,7 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen, const void *source, size_
 
     strm.bit_per_sample = param->bits_per_pixel;
     strm.block_size = param->pixels_per_block;
-    strm.segment_size = param->pixels_per_scanline / param->pixels_per_block;
+    strm.rsi = param->pixels_per_scanline / param->pixels_per_block;
     strm.flags = param->options_mask;
     strm.avail_in = sourceLen;
     strm.avail_out = *destLen;
@@ -36,7 +36,7 @@ int SZ_BufftoBuffDecompress(void *dest, size_t *destLen, const void *source, siz
 
     strm.bit_per_sample = param->bits_per_pixel;
     strm.block_size = param->pixels_per_block;
-    strm.segment_size = param->pixels_per_scanline / param->pixels_per_block;
+    strm.rsi = param->pixels_per_scanline / param->pixels_per_block;
     strm.flags = param->options_mask;
     strm.avail_in = sourceLen;
     strm.avail_out = *destLen;

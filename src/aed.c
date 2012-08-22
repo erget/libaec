@@ -302,7 +302,7 @@ int ae_decode_init(ae_streamp strm)
         state->xmax = (1ULL << strm->bit_per_sample) - 1;
     }
 
-    state->ref_int = strm->block_size * strm->segment_size;
+    state->ref_int = strm->block_size * strm->rsi;
     state->in_blklen = (strm->block_size * strm->bit_per_sample
                         + state->id_len) / 8 + 1;
 
@@ -431,7 +431,7 @@ int ae_decode(ae_streamp strm, int flush)
         {
         case M_ID:
             if (state->pp
-                && (state->samples_out / strm->block_size) % strm->segment_size == 0)
+                && (state->samples_out / strm->block_size) % strm->rsi == 0)
                 state->ref = 1;
             else
                 state->ref = 0;
@@ -513,9 +513,9 @@ int ae_decode(ae_streamp strm, int flush)
 
             if (zero_blocks == ROS)
             {
-                zero_blocks =  strm->segment_size - (
+                zero_blocks =  64 - (
                     (state->samples_out / strm->block_size)
-                    % strm->segment_size);
+                    % strm->rsi % 64);
             }
             else if (zero_blocks > ROS)
             {

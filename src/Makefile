@@ -39,11 +39,11 @@ clean:
 	*.gcno *.gcda *.gcov gmon.out
 
 check: encode decode test_szcomp
-	 ./encode -c -b1 -B8 -S128 ../data/example_data > ../data/test.aee
-	 ./decode -b1 -B8 -S128 ../data/test.aee
+	 ./encode -c -b1 -B8 -R128 ../data/example_data > ../data/test.aee
+	 ./decode -b1 -B8 -R128 ../data/test.aee
 	 diff ../data/test ../data/example_data
-	 ./encode -c -b1024 -B8 -S128 ../data/example_data > ../data/test.aee
-	 ./decode -b1024 -B8 -S128 ../data/test.aee
+	 ./encode -c -b1024 -B8 -R128 ../data/example_data > ../data/test.aee
+	 ./decode -b1024 -B8 -R128 ../data/test.aee
 	 diff ../data/test ../data/example_data
 	 ./test_szcomp 65536 ../data/example_data_16
 

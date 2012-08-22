@@ -22,11 +22,11 @@ int main(int argc, char *argv[])
     chunk = CHUNK;
     strm.bit_per_sample = 8;
     strm.block_size = 8;
-    strm.segment_size = 2;
+    strm.rsi = 2;
     strm.flags = AE_DATA_MSB | AE_DATA_PREPROCESS;
     opterr = 0;
 
-    while ((c = getopt (argc, argv, "cb:B:S:")) != -1)
+    while ((c = getopt (argc, argv, "cb:B:R:")) != -1)
         switch (c)
         {
         case 'b':
@@ -35,8 +35,8 @@ int main(int argc, char *argv[])
         case 'B':
             strm.bit_per_sample = atoi(optarg);
             break;
-        case 'S':
-            strm.segment_size = atoi(optarg);
+        case 'R':
+            strm.rsi = atoi(optarg);
             break;
         case 'c':
             cflag = 1;

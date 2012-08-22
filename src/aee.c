@@ -182,11 +182,8 @@ int ae_encode_init(ae_streamp strm)
         return AE_MEM_ERROR;
     }
 
-    /* Zero blocks can span a segment and thus need up to segment_size
-       bits in encoded block */
-    blklen = MAX(strm->block_size * strm->bit_per_sample,
-                 strm->segment_size + 10);
-    blklen = (blklen + state->id_len) / 8 + 3;
+    /* Largest possible block according to specs */
+    blklen = (5 + 16 * 32) / 8 + 3;
     state->block_out = (uint8_t *)malloc(blklen);
     if (state->block_out == NULL)
     {
@@ -380,7 +377,7 @@ int ae_encode(ae_streamp strm, int flush)
                 /* If this is the first block in a segment
                    then we need to insert a reference sample.
                 */
-                if(state->total_blocks % strm->segment_size == 1)
+                if(state->total_blocks % strm->rsi == 1)
                 {
                     state->ref = 1;
                     state->last_in = state->block_in[0];
@@ -430,7 +427,7 @@ int ae_encode(ae_streamp strm, int flush)
 
                 state->zero_blocks++;
 
-                if (state->total_blocks % strm->segment_size == 0)
+                if (state->total_blocks % strm->rsi % 64 == 0)
                 {
 #ifdef PROFILE
                     state->prof[0] += state->zero_blocks;
