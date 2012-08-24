@@ -30,12 +30,15 @@ typedef struct _ae_stream
 typedef ae_stream *ae_streamp;
 
 /* Coder flags */
-#define AE_DATA_UNSIGNED    0
-#define AE_DATA_SIGNED      1
-#define AE_DATA_LSB         8
-#define AE_DATA_MSB        16
-#define AE_DATA_PREPROCESS 32 /* Set if preprocessor should be used */
-
+#define AE_DATA_UNSIGNED     0
+#define AE_DATA_SIGNED       1
+#define AE_DATA_LSB          8
+#define AE_DATA_MSB         16
+#define AE_DATA_PREPROCESS  32  /* Set if preprocessor should be used */
+#define AE_DATA_SZ_COMPAT  256  /* Set this if you want szip to decode
+                                 * our output. Increases output
+                                 * slightly.
+                                 */
 
 /* Return codes of library functions */
 #define AE_OK            0
@@ -49,7 +52,8 @@ typedef ae_stream *ae_streamp;
 #define AE_NO_FLUSH      0 /* Do not enforce output flushing. More
                             * input may be provided with later
                             * calls. So far only relevant for
-                            * encoding. */
+                            * encoding.
+                            */
 #define AE_FLUSH         1 /* Flush output and end encoding. The last
                             * call to ae_encode() must set AE_FLUSH to
                             * drain all output.
@@ -57,7 +61,8 @@ typedef ae_stream *ae_streamp;
                             * It is not possible to continue encoding
                             * of the same stream after it has been
                             * flushed because the last byte may be
-                            * padded with fill bits. */
+                            * padded with fill bits.
+                            */
 
 int ae_decode_init(ae_streamp strm);
 int ae_decode(ae_streamp strm, int flush);

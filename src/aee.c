@@ -22,7 +22,6 @@
 #define ROS -1
 
 #define MIN(a, b) (((a) < (b))? (a): (b))
-#define MAX(a, b) (((a) > (b))? (a): (b))
 
 static int m_get_block(ae_streamp strm);
 static int m_get_block_cautious(ae_streamp strm);
@@ -94,9 +93,9 @@ static inline void preprocess(ae_streamp strm)
     int64_t theta, d, Delta;
     encode_state *state = strm->state;
 
-    /* If this is the first block between reference 
-       samples then we need to insert one.
-    */
+    /* Insert reference samples into first block of Reference Sample
+     * Interval.
+     */
     if(state->in_total_blocks % strm->rsi == 0)
     {
         state->ref = 1;
@@ -187,6 +186,7 @@ static int m_get_block(ae_streamp strm)
 
 static int m_get_block_cautious(ae_streamp strm)
 {
+    int pad;
     encode_state *state = strm->state;
 
     do
@@ -197,8 +197,9 @@ static int m_get_block_cautious(ae_streamp strm)
             {
                 if (state->i > 0)
                 {
-                    /* pad block with last sample if we have
-                       a partial block */
+                    /* Pad block with last sample if we have a partial
+                     * block.
+                     */
                     state->in_block[state->i] = state->in_block[state->i - 1];
                 }
                 else
@@ -209,15 +210,30 @@ static int m_get_block_cautious(ae_streamp strm)
                         state->mode = m_encode_zero;
                         return M_CONTINUE;
                     }
-                    /* Pad last output byte with 0 bits
-                       if user wants to flush, i.e. we got
-                       all input there is.
-                    */
+
+                    if ((strm->flags & AE_DATA_SZ_COMPAT)
+                        && (state->in_total_blocks % strm->rsi != 0))
+                    {
+                        /* If user wants szip copatibility then we
+                         * have to pad until but not including the
+                         * next reference sample.
+                         */
+                        pad = 64 - (state->in_total_blocks % strm->rsi % 64);
+                        state->in_total_blocks += pad;
+                        state->zero_blocks = (pad > 4)? ROS: pad;
+                        state->mode = m_encode_zero;
+                        return M_CONTINUE;
+                    }
+
+                    /* Pad last output byte with 0 bits if user wants
+                     * to flush, i.e. we got all input there is.
+                     */
                     emit(state, 0, state->bitp);
                     if (state->out_direct == 0)
                         *strm->next_out++ = *state->out_bp;
                     strm->avail_out--;
                     strm->total_out++;
+
                     return M_EXIT;
                 }
             }
@@ -272,10 +288,10 @@ static inline int m_check_zero_block(ae_streamp strm)
     }
     else if (state->zero_blocks)
     {
-        /* The current block isn't zero but we have to
-           emit a previous zero block first. The
-           current block will be handled later.
-        */
+        /* The current block isn't zero but we have to emit a previous
+         * zero block first. The current block will be handled
+         * later.
+         */
         state->block_deferred = 1;
         state->mode = m_encode_zero;
         return M_CONTINUE;
@@ -299,8 +315,9 @@ static inline int m_select_code_option(ae_streamp strm)
     direction = 1;
     looked_bothways = 0;
 
-    /* Starting with splitting position of last block look left
-       and possibly right to find new minimum.*/
+    /* Starting with splitting position of last block look left and
+     * possibly right to find new minimum.
+     */
     for (;;)
     {
         fs_len = (state->in_block[1] >> i)
@@ -331,7 +348,8 @@ static inline int m_select_code_option(ae_streamp strm)
             if (split_len_min < INT64_MAX)
             {
                 /* We are moving towards the minimum so it cant be in
-                   the other direction.*/
+                 * the other direction.
+                 */
                 looked_bothways = 1;
             }
             split_len_min = split_len;
@@ -342,9 +360,10 @@ static inline int m_select_code_option(ae_streamp strm)
                 if (fs_len < this_bs)
                 {
                     /* Next can't get better because what we lose by
-                       additional uncompressed bits isn't compensated by a
-                       smaller FS part. Vice versa if we are coming from
-                       the other direction.*/
+                     * additional uncompressed bits isn't compensated
+                     * by a smaller FS part. Vice versa if we are
+                     * coming from the other direction.
+                     */
                     if (looked_bothways)
                     {
                         break;
@@ -368,14 +387,16 @@ static inline int m_select_code_option(ae_streamp strm)
             else if (fs_len > this_bs)
             {
                 /* Since we started looking the other way there is no
-                   need to turn back.*/
+                 * need to turn back.
+                 */
                 break;
             }
         }
         else
         {
-            /* Stop looking for better option if we
-               don't see any improvement. */
+            /* Stop looking for better option if we don't see any
+             * improvement.
+             */
                 if (looked_bothways)
                 {
                     break;
@@ -644,7 +665,6 @@ int ae_encode_init(ae_streamp strm)
 
     /* Largest possible block according to specs */
     state->out_blklen = (5 + 16 * 32) / 8 + 3;
-    /* Output buffer */
     state->out_block = (uint8_t *)malloc(state->out_blklen);
     if (state->out_block == NULL)
     {

@@ -522,7 +522,6 @@ int ae_decode(ae_streamp strm, int flush)
                 zero_blocks--;
             }
 
-
             if (state->ref)
                 state->i = zero_blocks * strm->block_size - 1;
             else

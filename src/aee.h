@@ -35,10 +35,7 @@ typedef struct internal_state {
     int64_t zero_ref_sample;/* reference sample of zero block */
     int zero_blocks;        /* number of contiguous zero blocks */
     int k;                  /* splitting position */
-    int flush;
-#ifdef PROFILE
-    int *prof;
-#endif
+    int flush;              /* flush option copied from argument */
 } encode_state;
 
 #endif
