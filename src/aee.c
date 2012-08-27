@@ -42,22 +42,24 @@ static int m_encode_zero(ae_streamp strm);
 
 static inline void emit(encode_state *state, uint64_t data, int bits)
 {
-    for(;;)
+    if (bits <= state->bitp)
     {
-        data &= ((1ULL << bits) - 1);
-        if (bits <= state->bitp)
+        state->bitp -= bits;
+        *state->out_bp += data << state->bitp;
+    }
+    else
+    {
+        bits -= state->bitp;
+        *state->out_bp++ += data >> bits;
+
+        while (bits & ~7)
         {
-            state->bitp -= bits;
-            *state->out_bp += data << state->bitp;
-            break;
+            bits -= 8;
+            *state->out_bp++ = data >> bits;
         }
-        else
-        {
-            bits -= state->bitp;
-            *state->out_bp += data >> bits;
-            *++state->out_bp = 0;
-            state->bitp = 8;
-        }
+
+        state->bitp = 8 - bits;
+        *state->out_bp = data << state->bitp;
     }
 }
 
@@ -69,12 +71,11 @@ static inline void emitfs(encode_state *state, int fs)
        fs zero bits followed by one 1 bit.
      */
 
-    fs++;
     for(;;)
     {
-        if (fs <= state->bitp)
+        if (fs < state->bitp)
         {
-            state->bitp -= fs;
+            state->bitp -= fs + 1;
             *state->out_bp += 1 << state->bitp;
             break;
         }
@@ -483,7 +484,7 @@ static inline int m_encode_splitting(ae_streamp strm)
         emitfs(state, state->in_block[i] >> k);
 
     for (i = state->ref; i < strm->block_size; i++)
-        emit(state, state->in_block[i], k);
+        emit(state, state->in_block[i] & ((1ULL << k) - 1), k);
 
     return m_flush_block(strm);
 }
@@ -493,7 +494,7 @@ static inline int m_encode_uncomp(ae_streamp strm)
     int i;
     encode_state *state = strm->state;
 
-    emit(state, 0x1f, state->id_len);
+    emit(state, (1 << state->id_len) - 1, state->id_len);
     for (i = 0; i < strm->block_size; i++)
         emit(state, state->in_block[i], strm->bit_per_sample);
 
