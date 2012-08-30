@@ -70,7 +70,7 @@
          height="36.719337"
          width="90.958969"
          id="rect2985-2"
-         style="fill:#327ebe;fill-opacity:1;stroke:none" />
+         style="fill:#155196;fill-opacity:1;stroke:none" />
     </g>
     <g
        id="g160152"
@@ -97,34 +97,33 @@
          style="fill:#ffffff;fill-opacity:1;stroke:none" />
     </g>
     <g
-       id="g4242"
-       transform="translate(3.3928571,4.083362)">
+       id="g160172">
       <text
          sodipodi:linespacing="130%"
          id="text3773"
-         y="79.464249"
-         x="403.05551"
-         style="font-size:84px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:129.99999523%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#327ebe;fill-opacity:1;stroke:none;font-family:DejaVu Sans;-inkscape-font-specification:DejaVu Sans Bold Oblique"
+         y="83.547607"
+         x="406.44836"
+         style="font-size:84px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:129.99999522999999613%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#155196;fill-opacity:1;stroke:none;font-family:DejaVu Sans;-inkscape-font-specification:DejaVu Sans Bold Oblique"
          xml:space="preserve"><tspan
-           y="79.464249"
-           x="403.05551"
+           y="83.547607"
+           x="406.44836"
            id="tspan3775"
            sodipodi:role="line">C</tspan></text>
       <text
          sodipodi:linespacing="130%"
          id="text3773-7"
-         y="78.047256"
-         x="276.70319"
+         y="82.130615"
+         x="280.09604"
          style="font-size:84px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:129.99999523%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none;font-family:DejaVu Sans;-inkscape-font-specification:DejaVu Sans Bold Oblique"
          xml:space="preserve"><tspan
-           y="78.047256"
-           x="276.70319"
+           y="82.130615"
+           x="280.09604"
            id="tspan3775-2"
            sodipodi:role="line">AE</tspan></text>
     </g>
     <text
        xml:space="preserve"
-       style="font-size:10px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:semi-condensed;text-align:start;line-height:129.99999523%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#327ebe;fill-opacity:1;stroke:none;font-family:DejaVu Sans;-inkscape-font-specification:DejaVu Sans Bold Oblique Semi-Condensed"
+       style="font-size:10px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:semi-condensed;text-align:start;line-height:129.99999522999999613%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#155196;fill-opacity:1;stroke:none;font-family:DejaVu Sans;-inkscape-font-specification:DejaVu Sans Bold Oblique Semi-Condensed"
        x="282.77985"
        y="105.91817"
        id="text4165"
