@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="303.71143"
+   height="115.32906"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.3.1 r9886"
+   sodipodi:docname="logo.svgz">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="2.8"
+     inkscape:cx="127.76228"
+     inkscape:cy="55.437661"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     showguides="true"
+     inkscape:guide-bbox="true"
+     inkscape:window-width="1855"
+     inkscape:window-height="1176"
+     inkscape:window-x="65"
+     inkscape:window-y="24"
+     inkscape:window-maximized="1"
+     fit-margin-top="5"
+     fit-margin-left="5"
+     fit-margin-right="5"
+     fit-margin-bottom="5" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-187.23653,3.5772031)">
+    <g
+       id="g4237"
+       transform="matrix(1,0,0.03638289,1,0.36330363,1.8720765)">
+      <g
+         transform="matrix(2.7990139,0,0,2.6372135,-338.41102,-166.19593)"
+         id="g4169">
+        <rect
+           style="fill:#327ebe;fill-opacity:1;stroke:none"
+           id="rect2985-2"
+           width="100.48642"
+           height="36.719337"
+           x="207.35785"
+           y="64.112465"
+           transform="matrix(1,0,-0.1975368,0.98029547,0,0)"
+           ry="5.2073698"
+           rx="5.4646072" />
+      </g>
+      <rect
+         rx="15.295511"
+         ry="10.629254"
+         transform="matrix(1,0,-0.20914082,0.97788553,0,0)"
+         y="3.5579751"
+         x="407.46194"
+         height="89.04055"
+         width="71.011032"
+         id="rect2985-2-9"
+         style="fill:#ffffff;fill-opacity:1;stroke:none" />
+    </g>
+    <g
+       id="g4242"
+       transform="translate(0,0.15478688)">
+      <text
+         sodipodi:linespacing="130%"
+         id="text3773"
+         y="79.464249"
+         x="403.05551"
+         style="font-size:84px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:129.99999523%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#327ebe;fill-opacity:1;stroke:none;font-family:DejaVu Sans;-inkscape-font-specification:DejaVu Sans Bold Oblique"
+         xml:space="preserve"><tspan
+           y="79.464249"
+           x="403.05551"
+           id="tspan3775"
+           sodipodi:role="line">C</tspan></text>
+      <text
+         sodipodi:linespacing="130%"
+         id="text3773-7"
+         y="78.047256"
+         x="276.70319"
+         style="font-size:84px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:129.99999523%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none;font-family:DejaVu Sans;-inkscape-font-specification:DejaVu Sans Bold Oblique"
+         xml:space="preserve"><tspan
+           y="78.047256"
+           x="276.70319"
+           id="tspan3775-2"
+           sodipodi:role="line">AE</tspan></text>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-size:8px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:semi-condensed;text-align:start;line-height:129.99999523%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#327ebe;fill-opacity:1;stroke:none;font-family:DejaVu Sans;-inkscape-font-specification:DejaVu Sans Bold Oblique Semi-Condensed"
+       x="320.27985"
+       y="105.0253"
+       id="text4165"
+       sodipodi:linespacing="130%"><tspan
+         sodipodi:role="line"
+         id="tspan4167"
+         x="320.27985"
+         y="105.0253">Golomb Rice Adaptive Entropy Coder</tspan></text>
+  </g>
+</svg>
