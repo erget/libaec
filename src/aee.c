@@ -88,6 +88,39 @@ static inline void emitfs(encode_state *state, int fs)
     }
 }
 
+static inline void emitblock(ae_streamp strm, int k, int skip)
+{
+    int i;
+    uint64_t acc;
+    encode_state *state = strm->state;
+    int64_t *in = state->in_block + skip;
+    int64_t *in_end = state->in_block + strm->block_size;
+    int64_t mask = (1ULL << k) - 1;
+    uint8_t *out = state->out_bp;
+
+    acc = *out;
+
+    while(in < in_end)
+    {
+        acc <<= 56;
+        state->bitp = (state->bitp % 8) + 56;
+
+        while (state->bitp > k && in < in_end)
+        {
+            state->bitp -= k;
+            acc += (*in++ & mask) << state->bitp;
+        }
+
+        for (i = 56; i > (state->bitp & ~7); i -= 8)
+            *out++ = acc >> i;
+        acc >>= i;
+    }
+
+    *out = acc;
+    state->out_bp = out;
+    state->bitp %= 8;
+}
+
 static inline void preprocess(ae_streamp strm)
 {
     int i;
@@ -483,20 +516,18 @@ static inline int m_encode_splitting(ae_streamp strm)
     for (i = state->ref; i < strm->block_size; i++)
         emitfs(state, state->in_block[i] >> k);
 
-    for (i = state->ref; i < strm->block_size; i++)
-        emit(state, state->in_block[i] & ((1ULL << k) - 1), k);
+    if (k)
+        emitblock(strm, k, state->ref);
 
     return m_flush_block(strm);
 }
 
 static inline int m_encode_uncomp(ae_streamp strm)
 {
-    int i;
     encode_state *state = strm->state;
 
     emit(state, (1 << state->id_len) - 1, state->id_len);
-    for (i = 0; i < strm->block_size; i++)
-        emit(state, state->in_block[i], strm->bit_per_sample);
+    emitblock(strm, strm->bit_per_sample, 0);
 
     return m_flush_block(strm);
 }
