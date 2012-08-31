@@ -336,7 +336,7 @@ static inline int m_check_zero_block(ae_streamp strm)
 
 static inline int m_select_code_option(ae_streamp strm)
 {
-    int i, k, this_bs, looked_bothways, direction;
+    int i, j, k, this_bs, looked_bothways, direction;
     int64_t d, split_len, uncomp_len;
     int64_t split_len_min, se_len, fs_len;
     encode_state *state = strm->state;
@@ -365,15 +365,9 @@ static inline int m_select_code_option(ae_streamp strm)
         if (state->ref == 0)
             fs_len += (state->in_block[0] >> i);
 
-        if (strm->block_size == 16)
-            fs_len += (state->in_block[8] >> i)
-                + (state->in_block[9] >> i)
-                + (state->in_block[10] >> i)
-                + (state->in_block[11] >> i)
-                + (state->in_block[12] >> i)
-                + (state->in_block[13] >> i)
-                + (state->in_block[14] >> i)
-                + (state->in_block[15] >> i);
+        if (strm->block_size > 8)
+            for (j = 8; j < strm->block_size; j++)
+                fs_len += state->in_block[j] >> i;
 
         split_len = fs_len + this_bs * (i + 1);
 
@@ -480,7 +474,7 @@ static inline int m_select_code_option(ae_streamp strm)
     /* Decide which option to use */
     if (split_len_min < uncomp_len)
     {
-        if (split_len_min <= se_len)
+        if (split_len_min < se_len)
         {
             /* Splitting won - the most common case. */
             return m_encode_splitting(strm);
@@ -622,9 +616,16 @@ int ae_encode_init(ae_streamp strm)
 
     /* Some sanity checks */
     if (strm->bit_per_sample > 32 || strm->bit_per_sample == 0)
-    {
         return AE_ERRNO;
-    }
+
+    if (strm->block_size != 8
+        && strm->block_size != 16
+        && strm->block_size != 32
+        && strm->block_size != 64)
+        return AE_ERRNO;
+
+    if (strm->rsi > 4096)
+        return AE_ERRNO;
 
     /* Internal state for encoder */
     state = (encode_state *) malloc(sizeof(encode_state));
@@ -642,7 +643,10 @@ int ae_encode_init(ae_streamp strm)
         state->in_blklen = 4 * strm->block_size;
 
         if (strm->flags & AE_DATA_MSB)
+        {
             state->get_sample = get_msb_32;
+            state->get_block = get_block_msb_32;
+        }
         else
             state->get_sample = get_lsb_32;
     }
@@ -659,7 +663,7 @@ int ae_encode_init(ae_streamp strm)
             if (strm->block_size == 8)
                 state->get_block = get_block_msb_16_bs_8;
             else
-                state->get_block = get_block_msb_16_bs_16;
+                state->get_block = get_block_msb_16;
         }
         else
             state->get_sample = get_lsb_16;
@@ -675,7 +679,7 @@ int ae_encode_init(ae_streamp strm)
         if (strm->block_size == 8)
             state->get_block = get_block_8_bs_8;
         else
-            state->get_block = get_block_8_bs_16;
+            state->get_block = get_block_8;
     }
 
     if (strm->flags & AE_DATA_SIGNED)
@@ -696,7 +700,7 @@ int ae_encode_init(ae_streamp strm)
     }
 
     /* Largest possible block according to specs */
-    state->out_blklen = (5 + 16 * 32) / 8 + 3;
+    state->out_blklen = (5 + 64 * 32) / 8 + 3;
     state->out_block = (uint8_t *)malloc(state->out_blklen);
     if (state->out_block == NULL)
     {

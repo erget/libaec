@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     strm.flags = AE_DATA_MSB | AE_DATA_PREPROCESS;
     opterr = 0;
 
-    while ((c = getopt (argc, argv, "cb:B:R:")) != -1)
+    while ((c = getopt (argc, argv, "cb:B:R:J:")) != -1)
         switch (c)
         {
         case 'b':
@@ -35,6 +35,9 @@ int main(int argc, char *argv[])
             break;
         case 'B':
             strm.bit_per_sample = atoi(optarg);
+            break;
+        case 'J':
+            strm.block_size = atoi(optarg);
             break;
         case 'R':
             strm.rsi = atoi(optarg);
