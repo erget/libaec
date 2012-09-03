@@ -170,7 +170,7 @@ static inline int64_t u_get(ae_streamp strm, unsigned int n)
     return (state->acc >> state->bitp) & ((1ULL << n) - 1);
 }
 
-static inline int u_get_fs(ae_streamp strm)
+static inline int64_t u_get_fs(ae_streamp strm)
 {
     /**
        Interpret a Fundamental Sequence from the input buffer.
@@ -179,7 +179,7 @@ static inline int u_get_fs(ae_streamp strm)
        1 is encountered. TODO: faster version.
      */
 
-    int fs = 0;
+    int64_t fs = 0;
 
     while(u_get(strm, 1) == 0)
         fs++;

@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
         switch (c)
         {
         case 'b':
-            chunk = 2 * atoi(optarg);
+            chunk = atoi(optarg);
             break;
         case 'B':
             strm.bit_per_sample = atoi(optarg);
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
     }
 
     in = (uint8_t *)malloc(chunk);
-    out = (uint8_t *)malloc(chunk * sizeof(uint8_t));
+    out = (uint8_t *)malloc(chunk);
     if (in == NULL || out == NULL)
         return 1;
 

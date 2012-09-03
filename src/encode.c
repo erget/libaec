@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
         switch (c)
         {
         case 'b':
-            chunk = 2 * atoi(optarg);
+            chunk = atoi(optarg);
             break;
         case 'B':
             strm.bit_per_sample = atoi(optarg);
