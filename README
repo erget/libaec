@@ -1,1 +1,23 @@
-eszip - Earth System ZIP
+libae - Adaptive entropy encoding library
+----------------------------------------------------------------------------------------------
+Copyright 2012 
+
+Mathis Rosenhauer, Moritz Hanke, Jörg Behrens             Luis Kornblueh
+
+Deutsches Klimarechenzentrum GmbH                         Max Planck Institute for Meteorology 
+Bundesstr. 45a                                            Bundesstr. 53
+D-20146 Hamburg                                           D-20146 Hamburg               
+Germany                                                   Germany
+----------------------------------------------------------------------------------------------
+
+The implementation is based on:
+
+Lossless Data Compression. Recommendation for Space Data System
+Standards, CCSDS 121.0-B-2. Blue Book. Issue 2. Washington, D.C.:
+CCSDS, May 2012.
+
+A copy is made available, with some additional documents in the docs directory.
+Additional, in doc/license.txt a clarification on eventually applying intellectual
+property rights is given.
+
+----------------------------------------------------------------------------------------------
