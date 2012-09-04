@@ -42,24 +42,24 @@ static int m_encode_zero(ae_streamp strm);
 
 static inline void emit(encode_state *state, uint64_t data, int bits)
 {
-    if (bits <= state->bitp)
+    if (bits <= state->bit_p)
     {
-        state->bitp -= bits;
-        *state->out_bp += data << state->bitp;
+        state->bit_p -= bits;
+        *state->cds_p += data << state->bit_p;
     }
     else
     {
-        bits -= state->bitp;
-        *state->out_bp++ += data >> bits;
+        bits -= state->bit_p;
+        *state->cds_p++ += data >> bits;
 
         while (bits & ~7)
         {
             bits -= 8;
-            *state->out_bp++ = data >> bits;
+            *state->cds_p++ = data >> bits;
         }
 
-        state->bitp = 8 - bits;
-        *state->out_bp = data << state->bitp;
+        state->bit_p = 8 - bits;
+        *state->cds_p = data << state->bit_p;
     }
 }
 
@@ -73,17 +73,17 @@ static inline void emitfs(encode_state *state, int fs)
 
     for(;;)
     {
-        if (fs < state->bitp)
+        if (fs < state->bit_p)
         {
-            state->bitp -= fs + 1;
-            *state->out_bp += 1 << state->bitp;
+            state->bit_p -= fs + 1;
+            *state->cds_p += 1 << state->bit_p;
             break;
         }
         else
         {
-            fs -= state->bitp;
-            *++state->out_bp = 0;
-            state->bitp = 8;
+            fs -= state->bit_p;
+            *++state->cds_p = 0;
+            state->bit_p = 8;
         }
     }
 }
@@ -93,72 +93,64 @@ static inline void emitblock(ae_streamp strm, int k, int skip)
     int i;
     uint64_t acc;
     encode_state *state = strm->state;
-    int64_t *in = state->in_block + skip;
-    int64_t *in_end = state->in_block + strm->block_size;
+    int64_t *in = state->block_p + skip;
+    int64_t *in_end = state->block_p + strm->block_size;
     int64_t mask = (1ULL << k) - 1;
-    uint8_t *out = state->out_bp;
+    uint8_t *out = state->cds_p;
 
     acc = *out;
 
     while(in < in_end)
     {
         acc <<= 56;
-        state->bitp = (state->bitp % 8) + 56;
+        state->bit_p = (state->bit_p % 8) + 56;
 
-        while (state->bitp > k && in < in_end)
+        while (state->bit_p > k && in < in_end)
         {
-            state->bitp -= k;
-            acc += (*in++ & mask) << state->bitp;
+            state->bit_p -= k;
+            acc += (*in++ & mask) << state->bit_p;
         }
 
-        for (i = 56; i > (state->bitp & ~7); i -= 8)
+        for (i = 56; i > (state->bit_p & ~7); i -= 8)
             *out++ = acc >> i;
         acc >>= i;
     }
 
     *out = acc;
-    state->out_bp = out;
-    state->bitp %= 8;
+    state->cds_p = out;
+    state->bit_p %= 8;
 }
 
 static inline void preprocess(ae_streamp strm)
 {
     int i;
-    int64_t theta, d, Delta;
+    int64_t theta, Delta, last_in;
     encode_state *state = strm->state;
 
     /* Insert reference samples into first block of Reference Sample
      * Interval.
      */
-    if(state->in_total_blocks % strm->rsi == 0)
-    {
-        state->ref = 1;
-        state->last_in = state->in_block[0];
-    }
-    else
-    {
-        state->ref = 0;
-    }
+    last_in = state->block_buf[0];
 
-    for (i = state->ref; i < strm->block_size; i++)
+    for (i = 1; i < strm->rsi * strm->block_size; i++)
     {
-        theta = MIN(state->last_in - state->xmin,
-                    state->xmax - state->last_in);
-        Delta = state->in_block[i] - state->last_in;
-        state->last_in = state->in_block[i];
+        theta = MIN(last_in - state->xmin,
+                    state->xmax - last_in);
+        Delta = state->block_buf[i] - last_in;
+        last_in = state->block_buf[i];
         if (0 <= Delta && Delta <= theta)
         {
-            state->in_block[i] = 2 * Delta;
+            state->block_buf[i] = 2 * Delta;
         }
         else if (-theta <= Delta && Delta < 0)
         {
-            d = Delta < 0 ? -(uint64_t)Delta : Delta;
-            state->in_block[i] = 2 * d - 1;
+            state->block_buf[i] = 2
+                * (Delta < 0 ? -(uint64_t)Delta : Delta) - 1;
         }
         else
         {
-            state->in_block[i] = theta +
-                (Delta < 0 ? -(uint64_t)Delta : Delta);
+            state->block_buf[i] = theta
+                + (Delta < 0 ? -(uint64_t)Delta : Delta);
         }
     }
 }
@@ -173,59 +165,69 @@ static int m_get_block(ae_streamp strm)
 {
     encode_state *state = strm->state;
 
-    if (strm->avail_out > state->out_blklen)
+    if (strm->avail_out > state->cds_len)
     {
-        if (!state->out_direct)
+        if (!state->direct_out)
         {
-            state->out_direct = 1;
-            *strm->next_out = *state->out_bp;
-            state->out_bp = strm->next_out;
+            state->direct_out = 1;
+            *strm->next_out = *state->cds_p;
+            state->cds_p = strm->next_out;
         }
     }
     else
     {
-        if (state->zero_blocks == 0 || state->out_direct)
+        if (state->zero_blocks == 0 || state->direct_out)
         {
             /* copy leftover from last block */
-            *state->out_block = *state->out_bp;
-            state->out_bp = state->out_block;
+            *state->cds_buf = *state->cds_p;
+            state->cds_p = state->cds_buf;
         }
-        state->out_direct = 0;
+        state->direct_out = 0;
     }
 
-    if(state->block_deferred)
+    if (state->blocks_avail == 0)
     {
-        state->block_deferred = 0;
-        state->mode = m_select_code_option;
-        return M_CONTINUE;
-    }
+        state->ref = 1;
+        state->blocks_avail = strm->rsi - 1;
+        state->block_p = state->block_buf;
 
-    if (strm->avail_in >= state->in_blklen)
-    {
-        state->get_block(strm);
+        if (strm->avail_in >= state->block_len * strm->rsi)
+        {
+            state->get_block(strm);
 
-        if (strm->flags & AE_DATA_PREPROCESS)
-            preprocess(strm);
+            if (strm->flags & AE_DATA_PREPROCESS)
+                preprocess(strm);
 
-        state->in_total_blocks++;
-        return m_check_zero_block(strm);
+            return m_check_zero_block(strm);
+        }
+        else
+        {
+            state->i = 0;
+            state->mode = m_get_block_cautious;
+        }
     }
     else
     {
-        state->i = 0;
-        state->mode = m_get_block_cautious;
+        state->ref = 0;
+        state->block_p += strm->block_size;
+        state->blocks_avail--;
+        return m_check_zero_block(strm);
     }
     return M_CONTINUE;
 }
 
 static int m_get_block_cautious(ae_streamp strm)
 {
-    int pad;
+    int j;
     encode_state *state = strm->state;
 
     do
     {
-        if (strm->avail_in == 0)
+        if (strm->avail_in > 0)
+        {
+            state->block_buf[state->i] = state->get_sample(strm);
+        }
+        else
         {
             if (state->flush == AE_FLUSH)
             {
@@ -234,7 +236,9 @@ static int m_get_block_cautious(ae_streamp strm)
                     /* Pad block with last sample if we have a partial
                      * block.
                      */
-                    state->in_block[state->i] = state->in_block[state->i - 1];
+                    for (j = state->i; j < strm->rsi * strm->block_size; j++)
+                        state->block_buf[j] = state->block_buf[state->i - 1];
+                    state->i = strm->rsi * strm->block_size;
                 }
                 else
                 {
@@ -245,26 +249,12 @@ static int m_get_block_cautious(ae_streamp strm)
                         return M_CONTINUE;
                     }
 
-                    if ((strm->flags & AE_DATA_SZ_COMPAT)
-                        && (state->in_total_blocks % strm->rsi != 0))
-                    {
-                        /* If user wants szip copatibility then we
-                         * have to pad until but not including the
-                         * next reference sample.
-                         */
-                        pad = 64 - (state->in_total_blocks % strm->rsi % 64);
-                        state->in_total_blocks += pad;
-                        state->zero_blocks = (pad > 4)? ROS: pad;
-                        state->mode = m_encode_zero;
-                        return M_CONTINUE;
-                    }
-
                     /* Pad last output byte with 0 bits if user wants
                      * to flush, i.e. we got all input there is.
                      */
-                    emit(state, 0, state->bitp);
-                    if (state->out_direct == 0)
-                        *strm->next_out++ = *state->out_bp;
+                    emit(state, 0, state->bit_p);
+                    if (state->direct_out == 0)
+                        *strm->next_out++ = *state->cds_p;
                     strm->avail_out--;
                     strm->total_out++;
 
@@ -276,17 +266,12 @@ static int m_get_block_cautious(ae_streamp strm)
                 return M_EXIT;
             }
         }
-        else
-        {
-            state->in_block[state->i] = state->get_sample(strm);
-        }
     }
-    while (++state->i < strm->block_size);
+    while (++state->i < strm->rsi * strm->block_size);
 
     if (strm->flags & AE_DATA_PREPROCESS)
         preprocess(strm);
 
-    state->in_total_blocks++;
     return m_check_zero_block(strm);
 }
 
@@ -296,7 +281,7 @@ static inline int m_check_zero_block(ae_streamp strm)
     encode_state *state = strm->state;
 
     i = state->ref;
-    while(i < strm->block_size && state->in_block[i] == 0)
+    while(i < strm->block_size && state->block_p[i] == 0)
         i++;
 
     if (i == strm->block_size)
@@ -305,12 +290,12 @@ static inline int m_check_zero_block(ae_streamp strm)
         if (state->zero_blocks == 0)
         {
             state->zero_ref = state->ref;
-            state->zero_ref_sample = state->in_block[0];
+            state->zero_ref_sample = state->block_p[0];
         }
 
         state->zero_blocks++;
 
-        if (state->in_total_blocks % strm->rsi % 64 == 0)
+        if ((strm->rsi - state->blocks_avail) % 64 == 0)
         {
             if (state->zero_blocks > 4)
                 state->zero_blocks = ROS;
@@ -326,7 +311,8 @@ static inline int m_check_zero_block(ae_streamp strm)
          * zero block first. The current block will be handled
          * later.
          */
-        state->block_deferred = 1;
+        state->block_p -= strm->block_size;
+        state->blocks_avail++;
         state->mode = m_encode_zero;
         return M_CONTINUE;
     }
@@ -354,20 +340,20 @@ static inline int m_select_code_option(ae_streamp strm)
      */
     for (;;)
     {
-        fs_len = (state->in_block[1] >> i)
-            + (state->in_block[2] >> i)
-            + (state->in_block[3] >> i)
-            + (state->in_block[4] >> i)
-            + (state->in_block[5] >> i)
-            + (state->in_block[6] >> i)
-            + (state->in_block[7] >> i);
+        fs_len = (state->block_p[1] >> i)
+            + (state->block_p[2] >> i)
+            + (state->block_p[3] >> i)
+            + (state->block_p[4] >> i)
+            + (state->block_p[5] >> i)
+            + (state->block_p[6] >> i)
+            + (state->block_p[7] >> i);
 
         if (state->ref == 0)
-            fs_len += (state->in_block[0] >> i);
+            fs_len += (state->block_p[0] >> i);
 
         if (strm->block_size > 8)
             for (j = 8; j < strm->block_size; j++)
-                fs_len += state->in_block[j] >> i;
+                fs_len += state->block_p[j] >> i;
 
         split_len = fs_len + this_bs * (i + 1);
 
@@ -455,7 +441,7 @@ static inline int m_select_code_option(ae_streamp strm)
     se_len = 1;
     for (i = 0; i < strm->block_size; i+= 2)
     {
-        d = state->in_block[i] + state->in_block[i + 1];
+        d = state->block_p[i] + state->block_p[i + 1];
         /* we have to worry about overflow here */
         if (d > split_len_min)
         {
@@ -464,7 +450,7 @@ static inline int m_select_code_option(ae_streamp strm)
         }
         else
         {
-            se_len += d * (d + 1) / 2 + state->in_block[i + 1];
+            se_len += d * (d + 1) / 2 + state->block_p[i + 1];
         }
     }
 
@@ -504,11 +490,12 @@ static inline int m_encode_splitting(ae_streamp strm)
     int k = state->k;
 
     emit(state, k + 1, state->id_len);
+
     if (state->ref)
-        emit(state, state->in_block[0], strm->bit_per_sample);
+        emit(state, state->block_p[0], strm->bit_per_sample);
 
     for (i = state->ref; i < strm->block_size; i++)
-        emitfs(state, state->in_block[i] >> k);
+        emitfs(state, state->block_p[i] >> k);
 
     if (k)
         emitblock(strm, k, state->ref);
@@ -534,12 +521,12 @@ static inline int m_encode_se(ae_streamp strm)
 
     emit(state, 1, state->id_len + 1);
     if (state->ref)
-        emit(state, state->in_block[0], strm->bit_per_sample);
+        emit(state, state->block_p[0], strm->bit_per_sample);
 
     for (i = 0; i < strm->block_size; i+= 2)
     {
-        d = state->in_block[i] + state->in_block[i + 1];
-        emitfs(state, d * (d + 1) / 2 + state->in_block[i + 1]);
+        d = state->block_p[i] + state->block_p[i + 1];
+        emitfs(state, d * (d + 1) / 2 + state->block_p[i + 1]);
     }
 
     return m_flush_block(strm);
@@ -570,9 +557,9 @@ static inline int m_flush_block(ae_streamp strm)
     int n;
     encode_state *state = strm->state;
 
-    if (state->out_direct)
+    if (state->direct_out)
     {
-        n = state->out_bp - strm->next_out;
+        n = state->cds_p - strm->next_out;
         strm->next_out += n;
         strm->avail_out -= n;
         strm->total_out += n;
@@ -590,12 +577,12 @@ static inline int m_flush_block_cautious(ae_streamp strm)
     encode_state *state = strm->state;
 
     /* Slow restartable flushing */
-    while(state->out_block + state->i < state->out_bp)
+    while(state->cds_buf + state->i < state->cds_p)
     {
         if (strm->avail_out == 0)
             return M_EXIT;
 
-        *strm->next_out++ = state->out_block[state->i];
+        *strm->next_out++ = state->cds_buf[state->i];
         strm->avail_out--;
         strm->total_out++;
         state->i++;
@@ -640,7 +627,7 @@ int ae_encode_init(ae_streamp strm)
     {
         /* 32 bit settings */
         state->id_len = 5;
-        state->in_blklen = 4 * strm->block_size;
+        state->block_len = 4 * strm->block_size;
 
         if (strm->flags & AE_DATA_MSB)
         {
@@ -654,7 +641,7 @@ int ae_encode_init(ae_streamp strm)
     {
         /* 16 bit settings */
         state->id_len = 4;
-        state->in_blklen = 2 * strm->block_size;
+        state->block_len = 2 * strm->block_size;
 
         if (strm->flags & AE_DATA_MSB)
         {
@@ -671,7 +658,7 @@ int ae_encode_init(ae_streamp strm)
     else
     {
         /* 8 bit settings */
-        state->in_blklen = strm->block_size;
+        state->block_len = strm->block_size;
         state->id_len = 3;
 
         state->get_sample = get_8;
@@ -693,16 +680,17 @@ int ae_encode_init(ae_streamp strm)
         state->xmax = (1ULL << strm->bit_per_sample) - 1;
     }
 
-    state->in_block = (int64_t *)malloc(strm->block_size * sizeof(int64_t));
-    if (state->in_block == NULL)
+    state->block_buf = (int64_t *)malloc(strm->rsi * strm->block_size * sizeof(int64_t));
+    if (state->block_buf == NULL)
     {
         return AE_MEM_ERROR;
     }
+    state->block_p = state->block_buf;
 
     /* Largest possible block according to specs */
-    state->out_blklen = (5 + 64 * 32) / 8 + 3;
-    state->out_block = (uint8_t *)malloc(state->out_blklen);
-    if (state->out_block == NULL)
+    state->cds_len = (5 + 64 * 32) / 8 + 3;
+    state->cds_buf = (uint8_t *)malloc(state->cds_len);
+    if (state->cds_buf == NULL)
     {
         return AE_MEM_ERROR;
     }
@@ -710,9 +698,9 @@ int ae_encode_init(ae_streamp strm)
     strm->total_in = 0;
     strm->total_out = 0;
 
-    state->out_bp = state->out_block;
-    *state->out_bp = 0;
-    state->bitp = 8;
+    state->cds_p = state->cds_buf;
+    *state->cds_p = 0;
+    state->bit_p = 8;
     state->mode = m_get_block;
 
     return AE_OK;
@@ -724,19 +712,23 @@ int ae_encode(ae_streamp strm, int flush)
        Finite-state machine implementation of the adaptive entropy
        encoder.
     */
-
+    int n;
     encode_state *state;
     state = strm->state;
     state->flush = flush;
 
     while (state->mode(strm) == M_CONTINUE);
 
-    if (state->out_direct)
+    if (state->direct_out)
     {
-        m_flush_block(strm);
-        *state->out_block = *state->out_bp;
-        state->out_bp = state->out_block;
-        state->out_direct = 0;
+        n = state->cds_p - strm->next_out;
+        strm->next_out += n;
+        strm->avail_out -= n;
+        strm->total_out += n;
+
+        *state->cds_buf = *state->cds_p;
+        state->cds_p = state->cds_buf;
+        state->direct_out = 0;
     }
     return AE_OK;
 }
@@ -745,8 +737,8 @@ int ae_encode_end(ae_streamp strm)
 {
     encode_state *state = strm->state;
 
-    free(state->in_block);
-    free(state->out_block);
+    free(state->block_buf);
+    free(state->cds_buf);
     free(state);
     return AE_OK;
 }

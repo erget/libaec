@@ -35,10 +35,6 @@ typedef ae_stream *ae_streamp;
 #define AE_DATA_LSB          8
 #define AE_DATA_MSB         16
 #define AE_DATA_PREPROCESS  32  /* Set if preprocessor should be used */
-#define AE_DATA_SZ_COMPAT  256  /* Set this if you want szip to decode
-                                 * our output. Increases output
-                                 * slightly.
-                                 */
 
 /* Return codes of library functions */
 #define AE_OK            0

@@ -43,7 +43,7 @@ check: encode decode test_szcomp
 	 ./encode -c -b1 -B8 -R128 -J8 ../data/example_data > ../data/test.aee
 	 ./decode -b1 -B8 -R128 -J8 ../data/test.aee
 	 diff ../data/test ../data/example_data
-	 ./encode -c -b1024 -B32 -R128 -J64 ../data/example_data > ../data/test.aee
-	 ./decode -b1024 -B32 -R128 -J64 ../data/test.aee
+	 ./encode -c -b 512 -B8 -R128 -J8 ../data/example_data > ../data/test.aee
+	 ./decode -b 512 -B8 -R128 -J8 ../data/test.aee
 	 diff ../data/test ../data/example_data
 	 ./test_szcomp 65536 ../data/example_data_16

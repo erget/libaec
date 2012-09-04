@@ -13,21 +13,19 @@ typedef struct internal_state {
     int64_t (*get_sample)(ae_streamp);
 
     int id_len;             /* bit length of code option identification key */
-    int64_t last_in;        /* previous input for preprocessing */
     int64_t xmin;           /* minimum integer for preprocessing */
     int64_t xmax;           /* maximum integer for preprocessing */
-    int i;                  /* counter for samples */
-    int64_t *in_block;      /* input block buffer */
-    int in_blklen;          /* input block length in byte */
-    int64_t in_total_blocks;/* total blocks in */
-    uint8_t *out_block;     /* output block buffer */
-    int out_blklen;         /* output block length in byte */
-    uint8_t *out_bp;        /* pointer to current output */
-    int out_direct;         /* output to strm->next_out (1)
-                               or out_block (0) */
-    int bitp;               /* bit pointer to the next unused bit in accumulator */
-    int block_deferred;     /* there is a block in the input buffer
-                               but we first have to emit a zero block */
+    int i;                  /* counter */
+    int64_t *block_buf;     /* RSI blocks of input */
+    int blocks_avail;       /* remaining blocks in buffer */
+    int64_t *block_p;       /* pointer to current block */
+    int block_len;          /* input block length in byte */
+    uint8_t *cds_buf;       /* Buffer for one Coded Data Set */
+    int cds_len;            /* max cds length in byte */
+    uint8_t *cds_p;         /* pointer to current output */
+    int direct_out;         /* output to strm->next_out (1)
+                               or cds_buf (0) */
+    int bit_p;              /* bit pointer to the next unused bit in accumulator */
     int ref;                /* length of reference sample in current block
                                i.e. 0 or 1 depending on whether the block has
                                a reference sample or not */
