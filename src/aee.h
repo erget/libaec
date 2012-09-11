@@ -10,15 +10,15 @@
 typedef struct internal_state {
     int (*mode)(ae_streamp);
     void (*get_block)(ae_streamp);
-    int64_t (*get_sample)(ae_streamp);
+    uint32_t (*get_sample)(ae_streamp);
 
     int id_len;             /* bit length of code option identification key */
     int64_t xmin;           /* minimum integer for preprocessing */
     int64_t xmax;           /* maximum integer for preprocessing */
     int i;                  /* counter */
-    int64_t *block_buf;     /* RSI blocks of input */
+    uint32_t *block_buf;     /* RSI blocks of input */
     int blocks_avail;       /* remaining blocks in buffer */
-    int64_t *block_p;       /* pointer to current block */
+    uint32_t *block_p;       /* pointer to current block */
     int block_len;          /* input block length in byte */
     uint8_t *cds_buf;       /* Buffer for one Coded Data Set */
     int cds_len;            /* max cds length in byte */

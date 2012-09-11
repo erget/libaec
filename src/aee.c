@@ -40,7 +40,7 @@ static int m_encode_zero(ae_streamp strm);
  *
  */
 
-static inline void emit(encode_state *state, uint64_t data, int bits)
+static inline void emit(encode_state *state, uint32_t data, int bits)
 {
     if (bits <= state->bit_p)
     {
@@ -50,7 +50,7 @@ static inline void emit(encode_state *state, uint64_t data, int bits)
     else
     {
         bits -= state->bit_p;
-        *state->cds_p++ += data >> bits;
+        *state->cds_p++ += (uint64_t)data >> bits;
 
         while (bits & ~7)
         {
@@ -93,9 +93,9 @@ static inline void emitblock(ae_streamp strm, int k, int skip)
     int i;
     uint64_t acc;
     encode_state *state = strm->state;
-    int64_t *in = state->block_p + skip;
-    int64_t *in_end = state->block_p + strm->block_size;
-    int64_t mask = (1ULL << k) - 1;
+    uint32_t *in = state->block_p + skip;
+    uint32_t *in_end = state->block_p + strm->block_size;
+    uint64_t mask = (1ULL << k) - 1;
     uint8_t *out = state->cds_p;
 
     acc = *out;
@@ -108,7 +108,7 @@ static inline void emitblock(ae_streamp strm, int k, int skip)
         while (state->bit_p > k && in < in_end)
         {
             state->bit_p -= k;
-            acc += (*in++ & mask) << state->bit_p;
+            acc += ((uint64_t)(*in++) & mask) << state->bit_p;
         }
 
         for (i = 56; i > (state->bit_p & ~7); i -= 8)
@@ -136,7 +136,7 @@ static inline void preprocess(ae_streamp strm)
     {
         theta = MIN(last_in - state->xmin,
                     state->xmax - last_in);
-        Delta = state->block_buf[i] - last_in;
+        Delta = (int64_t)state->block_buf[i] - last_in;
         last_in = state->block_buf[i];
         if (0 <= Delta && Delta <= theta)
         {
@@ -323,8 +323,9 @@ static inline int m_check_zero_block(ae_streamp strm)
 static inline int m_select_code_option(ae_streamp strm)
 {
     int i, j, k, this_bs, looked_bothways, direction;
-    int64_t d, split_len, uncomp_len;
-    int64_t split_len_min, se_len, fs_len;
+    int64_t split_len, uncomp_len;
+    int64_t split_len_min, fs_len;
+    int64_t d, se_len;
     encode_state *state = strm->state;
 
     /* Length of this block minus reference sample (if present) */
@@ -340,20 +341,20 @@ static inline int m_select_code_option(ae_streamp strm)
      */
     for (;;)
     {
-        fs_len = (state->block_p[1] >> i)
-            + (state->block_p[2] >> i)
-            + (state->block_p[3] >> i)
-            + (state->block_p[4] >> i)
-            + (state->block_p[5] >> i)
-            + (state->block_p[6] >> i)
-            + (state->block_p[7] >> i);
+        fs_len = (int64_t)(state->block_p[1] >> i)
+            + (int64_t)(state->block_p[2] >> i)
+            + (int64_t)(state->block_p[3] >> i)
+            + (int64_t)(state->block_p[4] >> i)
+            + (int64_t)(state->block_p[5] >> i)
+            + (int64_t)(state->block_p[6] >> i)
+            + (int64_t)(state->block_p[7] >> i);
 
         if (state->ref == 0)
-            fs_len += (state->block_p[0] >> i);
+            fs_len += (int64_t)(state->block_p[0] >> i);
 
         if (strm->block_size > 8)
             for (j = 8; j < strm->block_size; j++)
-                fs_len += state->block_p[j] >> i;
+                fs_len += (int64_t)(state->block_p[j] >> i);
 
         split_len = fs_len + this_bs * (i + 1);
 
@@ -441,16 +442,16 @@ static inline int m_select_code_option(ae_streamp strm)
     se_len = 1;
     for (i = 0; i < strm->block_size; i+= 2)
     {
-        d = state->block_p[i] + state->block_p[i + 1];
+        d = (int64_t)state->block_p[i] + (int64_t)state->block_p[i + 1];
         /* we have to worry about overflow here */
         if (d > split_len_min)
         {
-            se_len = d;
+            se_len = INT64_MAX;
             break;
         }
         else
         {
-            se_len += d * (d + 1) / 2 + state->block_p[i + 1];
+            se_len += d * (d + 1) / 2 + (int64_t)state->block_p[i + 1];
         }
     }
 
@@ -516,7 +517,7 @@ static inline int m_encode_uncomp(ae_streamp strm)
 static inline int m_encode_se(ae_streamp strm)
 {
     int i;
-    int64_t d;
+    uint32_t d;
     encode_state *state = strm->state;
 
     emit(state, 1, state->id_len + 1);
@@ -680,7 +681,9 @@ int ae_encode_init(ae_streamp strm)
         state->xmax = (1ULL << strm->bit_per_sample) - 1;
     }
 
-    state->block_buf = (int64_t *)malloc(strm->rsi * strm->block_size * sizeof(int64_t));
+    state->block_buf = (uint32_t *)malloc(strm->rsi
+                                         * strm->block_size
+                                         * sizeof(uint32_t));
     if (state->block_buf == NULL)
     {
         return AE_MEM_ERROR;
