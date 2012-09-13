@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     strm.flags = AE_DATA_MSB | AE_DATA_PREPROCESS;
     opterr = 0;
 
-    while ((c = getopt (argc, argv, "cb:B:J:R:")) != -1)
+    while ((c = getopt (argc, argv, "scb:B:J:R:")) != -1)
         switch (c)
         {
         case 'b':
@@ -44,6 +44,9 @@ int main(int argc, char *argv[])
             break;
         case 'c':
             cflag = 1;
+            break;
+        case 's':
+            strm.flags |= AE_DATA_SIGNED;
             break;
         case '?':
             if (optopt == 'b')

@@ -11,6 +11,7 @@ typedef struct internal_state {
     int (*mode)(ae_streamp);
     void (*get_block)(ae_streamp);
     uint32_t (*get_sample)(ae_streamp);
+    void (*preprocess)(ae_streamp);
 
     int id_len;             /* bit length of code option identification key */
     int64_t xmin;           /* minimum integer for preprocessing */

@@ -119,29 +119,38 @@ static void put_8(ae_streamp strm, int64_t data)
 
 static inline void u_put(ae_streamp strm, int64_t sample)
 {
-    int64_t x, d, th, D;
-    decode_state *state;
+    int64_t x, d, th, D, lower;
+    decode_state *state = strm->state;
 
-    state = strm->state;
     if (state->pp && (state->samples_out % state->ref_int != 0))
     {
         d = sample;
         x = state->last_out;
-        th = MIN(x - state->xmin, state->xmax - x);
+        lower = x - state->xmin;
+        th = MIN(lower, state->xmax - x);
 
-        if (d <= 2*th)
+        if (d <= 2 * th)
         {
             if (d & 1)
                 D = - (d + 1) / 2;
             else
                 D = d / 2;
         } else {
-            if (th == x)
+            if (th == lower)
                 D = d - th;
             else
                 D = th - d;
         }
         sample = x + D;
+    }
+    else
+    {
+        if (strm->flags & AE_DATA_SIGNED)
+        {
+            int m = 64 - strm->bit_per_sample;
+            /* Reference samples have to be sign extended */
+            sample = (sample << m) >> m;
+        }
     }
     state->last_out = sample;
     state->put_sample(strm, sample);
