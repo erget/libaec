@@ -1,6 +1,7 @@
 CC = gcc
 #CFLAGS = -g -pg -lc -O0 -Wall -fprofile-arcs -ftest-coverage
 CFLAGS = -g -O3 -Wall -std=c99
+CXXFLAGS = -O3 -Wall
 
 OBJS = aee.o aee_mutators.o aed.o sz_compat.o
 
@@ -16,6 +17,9 @@ decode: decode.o libae.a
 
 test_szcomp: test_szcomp.o libae.a
 	$(CC) $(CFLAGS) -o $@ $< -L. -lae
+
+pnoise: pnoise.o
+	$(CXX) -o $@ $< -lnoise
 
 libae.a: $(OBJS)
 	$(AR) $(ARFLAGS) $@ $(OBJS)
@@ -37,7 +41,8 @@ clean:
 	encode decode libae.a \
 	test_szcomp test_szcomp.o \
 	../data/test.ae ../data/test \
-	*.gcno *.gcda *.gcov gmon.out
+	*.gcno *.gcda *.gcov gmon.out \
+	pnoise.o pnoise
 
 check: encode decode test_szcomp
 	 ./encode -c -b4 -B32 -R128 -J8 ../data/example_data > ../data/test.aee
