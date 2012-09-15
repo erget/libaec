@@ -265,7 +265,7 @@ int ae_decode_init(ae_streamp strm)
     /* Some sanity checks */
     if (strm->bit_per_sample > 32 || strm->bit_per_sample == 0)
     {
-        return AE_ERRNO;
+        return AE_CONF_ERROR;
     }
 
     /* Internal state for decoder */

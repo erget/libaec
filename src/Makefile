@@ -3,7 +3,7 @@ CC = gcc
 CFLAGS = -g -O3 -Wall -std=c99
 CXXFLAGS = -O3 -Wall
 
-OBJS = aee.o aee_mutators.o aed.o sz_compat.o
+OBJS = aee.o aee_accessors.o aed.o sz_compat.o
 
 .PHONY : all clean check
 
@@ -26,8 +26,8 @@ libae.a: $(OBJS)
 	-@ ($(RANLIB) $@ || true) >/dev/null 2>&1
 
 aed.o: libae.h
-aee.o: aee_mutators.h aee.h libae.h
-aee_mutators.o: aee.h libae.h
+aee.o: aee_accessors.h aee.h libae.h
+aee_accessors.o: aee.h libae.h
 sz_compat.o: libae.h
 
 install: libae.a

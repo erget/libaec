@@ -32,14 +32,14 @@ typedef ae_stream *ae_streamp;
 /* Coder flags */
 #define AE_DATA_UNSIGNED     0
 #define AE_DATA_SIGNED       1
-#define AE_DATA_LSB          8
+#define AE_DATA_3BYTE        2  /* 24 bit samples coded in 3 bytes */
+#define AE_DATA_LSB          0
 #define AE_DATA_MSB         16
 #define AE_DATA_PREPROCESS  32  /* Set if preprocessor should be used */
 
 /* Return codes of library functions */
 #define AE_OK            0
-#define AE_STREAM_END    1
-#define AE_ERRNO        (-1)
+#define AE_CONF_ERROR   (-1)
 #define AE_STREAM_ERROR (-2)
 #define AE_DATA_ERROR   (-3)
 #define AE_MEM_ERROR    (-4)

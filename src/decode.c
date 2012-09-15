@@ -24,10 +24,10 @@ int main(int argc, char *argv[])
     strm.bit_per_sample = 8;
     strm.block_size = 8;
     strm.rsi = 2;
-    strm.flags = AE_DATA_MSB | AE_DATA_PREPROCESS;
+    strm.flags = AE_DATA_PREPROCESS;
     opterr = 0;
 
-    while ((c = getopt (argc, argv, "scb:B:J:R:")) != -1)
+    while ((c = getopt (argc, argv, "Mscb:B:J:R:")) != -1)
         switch (c)
         {
         case 'b':
@@ -47,6 +47,9 @@ int main(int argc, char *argv[])
             break;
         case 's':
             strm.flags |= AE_DATA_SIGNED;
+            break;
+        case 'M':
+            strm.flags |= AE_DATA_MSB;
             break;
         case '?':
             if (optopt == 'b')

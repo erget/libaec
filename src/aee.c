@@ -4,7 +4,7 @@
  * @section DESCRIPTION
  *
  * Adaptive Entropy Encoder
- * Based on CCSDS documents 121.0-B-1 and 120.0-G-2
+ * Based on CCSDS documents 121.0-B-2 and 120.0-G-2
  *
  */
 
@@ -16,7 +16,7 @@
 
 #include "libae.h"
 #include "aee.h"
-#include "aee_mutators.h"
+#include "aee_accessors.h"
 
 /* Marker for Remainder Of Segment condition in zero block encoding */
 #define ROS -1
@@ -377,7 +377,7 @@ static inline int m_select_code_option(ae_streamp strm)
     direction = 1;
     looked_bothways = 0;
 
-    /* Starting with splitting position of last block look left and
+    /* Starting with splitting position of last block. Look left and
      * possibly right to find new minimum.
      */
     for (;;)
@@ -390,12 +390,20 @@ static inline int m_select_code_option(ae_streamp strm)
             + (uint64_t)(state->block_p[6] >> i)
             + (uint64_t)(state->block_p[7] >> i);
 
+        if (strm->block_size > 8)
+            for (j = 1; j < strm->block_size / 8; j++)
+                fs_len +=
+                    (uint64_t)(state->block_p[j * 8 + 0] >> i)
+                    + (uint64_t)(state->block_p[j * 8 + 1] >> i)
+                    + (uint64_t)(state->block_p[j * 8 + 2] >> i)
+                    + (uint64_t)(state->block_p[j * 8 + 3] >> i)
+                    + (uint64_t)(state->block_p[j * 8 + 4] >> i)
+                    + (uint64_t)(state->block_p[j * 8 + 5] >> i)
+                    + (uint64_t)(state->block_p[j * 8 + 6] >> i)
+                    + (uint64_t)(state->block_p[j * 8 + 7] >> i);
+
         if (state->ref == 0)
             fs_len += (uint64_t)(state->block_p[0] >> i);
-
-        if (strm->block_size > 8)
-            for (j = 8; j < strm->block_size; j++)
-                fs_len += (uint64_t)(state->block_p[j] >> i);
 
         split_len = fs_len + this_bs * (i + 1);
 
@@ -647,20 +655,21 @@ static inline int m_flush_block_cautious(ae_streamp strm)
 
 int ae_encode_init(ae_streamp strm)
 {
+    int bs, bsi;
     encode_state *state;
 
     /* Some sanity checks */
     if (strm->bit_per_sample > 32 || strm->bit_per_sample == 0)
-        return AE_ERRNO;
+        return AE_CONF_ERROR;
 
     if (strm->block_size != 8
         && strm->block_size != 16
         && strm->block_size != 32
         && strm->block_size != 64)
-        return AE_ERRNO;
+        return AE_CONF_ERROR;
 
     if (strm->rsi > 4096)
-        return AE_ERRNO;
+        return AE_CONF_ERROR;
 
     /* Internal state for encoder */
     state = (encode_state *) malloc(sizeof(encode_state));
@@ -671,6 +680,11 @@ int ae_encode_init(ae_streamp strm)
     memset(state, 0, sizeof(encode_state));
     strm->state = state;
 
+    bs = strm->block_size >> 3;
+    bsi = 0;
+    while (bs >>= 1)
+        bsi++;
+
     if (strm->bit_per_sample > 16)
     {
         /* 32 bit settings */
@@ -679,11 +693,32 @@ int ae_encode_init(ae_streamp strm)
 
         if (strm->flags & AE_DATA_MSB)
         {
-            state->get_sample = get_msb_32;
-            state->get_block = get_block_msb_32;
+            if (strm->bit_per_sample == 24
+                && strm->flags & AE_DATA_3BYTE)
+            {
+                state->get_sample = get_msb_24;
+                state->get_block = get_block_funcs_msb_24[bsi];
+            }
+            else
+            {
+                state->get_sample = get_msb_32;
+                state->get_block = get_block_funcs_msb_32[bsi];
+            }
         }
         else
-            state->get_sample = get_lsb_32;
+        {
+            if (strm->bit_per_sample == 24
+                && strm->flags & AE_DATA_3BYTE)
+            {
+                state->get_sample = get_lsb_24;
+                state->get_block = get_block_funcs_lsb_24[bsi];
+            }
+            else
+            {
+                state->get_sample = get_lsb_32;
+                state->get_block = get_block_funcs_lsb_32[bsi];
+            }
+        }
     }
     else if (strm->bit_per_sample > 8)
     {
@@ -694,27 +729,22 @@ int ae_encode_init(ae_streamp strm)
         if (strm->flags & AE_DATA_MSB)
         {
             state->get_sample = get_msb_16;
-
-            if (strm->block_size == 8)
-                state->get_block = get_block_msb_16_bs_8;
-            else
-                state->get_block = get_block_msb_16;
+            state->get_block = get_block_funcs_msb_16[bsi];
         }
         else
+        {
             state->get_sample = get_lsb_16;
+            state->get_block = get_block_funcs_lsb_16[bsi];
+        }
     }
     else
     {
         /* 8 bit settings */
-        state->block_len = strm->block_size;
         state->id_len = 3;
+        state->block_len = strm->block_size;
 
         state->get_sample = get_8;
-
-        if (strm->block_size == 8)
-            state->get_block = get_block_8_bs_8;
-        else
-            state->get_block = get_block_8;
+        state->get_block = get_block_funcs_8[bsi];
     }
 
     if (strm->flags & AE_DATA_SIGNED)
