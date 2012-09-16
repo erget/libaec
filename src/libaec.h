@@ -1,12 +1,12 @@
-#ifndef LIBAE_H
-#define LIBAE_H
+#ifndef LIBAEC_H
+#define LIBAEC_H
 
 #include <inttypes.h>
 #include <stddef.h>
 
 struct internal_state;
 
-typedef struct _ae_stream
+typedef struct _aec_stream
 {
     const uint8_t *next_in;
     size_t avail_in;         /* number of bytes available at
@@ -25,33 +25,33 @@ typedef struct _ae_stream
     uint32_t flags;
 
     struct internal_state *state;
-} ae_stream;
+} aec_stream;
 
-typedef ae_stream *ae_streamp;
+typedef aec_stream *aec_streamp;
 
 /* Coder flags */
-#define AE_DATA_UNSIGNED     0
-#define AE_DATA_SIGNED       1
-#define AE_DATA_3BYTE        2  /* 24 bit samples coded in 3 bytes */
-#define AE_DATA_LSB          0
-#define AE_DATA_MSB         16
-#define AE_DATA_PREPROCESS  32  /* Set if preprocessor should be used */
+#define AEC_DATA_UNSIGNED     0
+#define AEC_DATA_SIGNED       1
+#define AEC_DATA_3BYTE        2  /* 24 bit samples coded in 3 bytes */
+#define AEC_DATA_LSB          0
+#define AEC_DATA_MSB         16
+#define AEC_DATA_PREPROCESS  32  /* Set if preprocessor should be used */
 
 /* Return codes of library functions */
-#define AE_OK            0
-#define AE_CONF_ERROR   (-1)
-#define AE_STREAM_ERROR (-2)
-#define AE_DATA_ERROR   (-3)
-#define AE_MEM_ERROR    (-4)
+#define AEC_OK            0
+#define AEC_CONF_ERROR   (-1)
+#define AEC_STREAM_ERROR (-2)
+#define AEC_DATA_ERROR   (-3)
+#define AEC_MEM_ERROR    (-4)
 
 /* Options for flushing */
-#define AE_NO_FLUSH      0 /* Do not enforce output flushing. More
+#define AEC_NO_FLUSH      0 /* Do not enforce output flushing. More
                             * input may be provided with later
                             * calls. So far only relevant for
                             * encoding.
                             */
-#define AE_FLUSH         1 /* Flush output and end encoding. The last
-                            * call to ae_encode() must set AE_FLUSH to
+#define AEC_FLUSH         1 /* Flush output and end encoding. The last
+                            * call to aec_encode() must set AEC_FLUSH to
                             * drain all output.
                             *
                             * It is not possible to continue encoding
@@ -60,12 +60,12 @@ typedef ae_stream *ae_streamp;
                             * padded with fill bits.
                             */
 
-int ae_decode_init(ae_streamp strm);
-int ae_decode(ae_streamp strm, int flush);
-int ae_decode_end(ae_streamp strm);
+int aec_decode_init(aec_streamp strm);
+int aec_decode(aec_streamp strm, int flush);
+int aec_decode_end(aec_streamp strm);
 
-int ae_encode_init(ae_streamp strm);
-int ae_encode(ae_streamp strm, int flush);
-int ae_encode_end(ae_streamp strm);
+int aec_encode_init(aec_streamp strm);
+int aec_encode(aec_streamp strm, int flush);
+int aec_encode_end(aec_streamp strm);
 
-#endif /* LIBAE_H */
+#endif /* LIBAEC_H */

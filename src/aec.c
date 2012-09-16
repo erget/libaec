@@ -5,13 +5,13 @@
 #include <inttypes.h>
 #include <string.h>
 #include <getopt.h>
-#include "libae.h"
+#include "libaec.h"
 
 #define CHUNK 1024
 
 int main(int argc, char *argv[])
 {
-    ae_stream strm;
+    aec_stream strm;
     uint8_t *in;
     uint8_t *out;
     int chunk, total_out, status, c;
@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     strm.bit_per_sample = 8;
     strm.block_size = 8;
     strm.rsi = 2;
-    strm.flags = AE_DATA_PREPROCESS;
+    strm.flags = AEC_DATA_PREPROCESS;
     opterr = 0;
 
     while ((c = getopt (argc, argv, "d3Mscb:B:R:J:")) != -1)
@@ -50,13 +50,13 @@ int main(int argc, char *argv[])
             cflag = 1;
             break;
         case 's':
-            strm.flags |= AE_DATA_SIGNED;
+            strm.flags |= AEC_DATA_SIGNED;
             break;
         case 'M':
-            strm.flags |= AE_DATA_MSB;
+            strm.flags |= AEC_DATA_MSB;
             break;
         case '3':
-            strm.flags |= AE_DATA_3BYTE;
+            strm.flags |= AEC_DATA_3BYTE;
             break;
         case '?':
             if (optopt == 'b')
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 
     if (strm.bit_per_sample > 16)
     {
-        if (strm.bit_per_sample <= 24 && strm.flags & AE_DATA_3BYTE)
+        if (strm.bit_per_sample <= 24 && strm.flags & AEC_DATA_3BYTE)
             chunk *= 3;
         else
             chunk *= 4;
@@ -124,16 +124,16 @@ int main(int argc, char *argv[])
 
         if (dflag)
         {
-            if ((ext = strstr(infn, ".aee")) == NULL)
+            if ((ext = strstr(infn, ".aec")) == NULL)
             {
-                fprintf(stderr, "Error: input file needs to end with .aee\n");
+                fprintf(stderr, "Error: input file needs to end with .aec\n");
                 exit(-1);
             }
             strncpy(outfn, infn, ext - infn);
         }
         else
         {
-            sprintf(outfn, "%s.aee", infn);
+            sprintf(outfn, "%s.aec", infn);
         }
 
         if ((outfp = fopen(outfn, "w")) == NULL)
@@ -142,12 +142,12 @@ int main(int argc, char *argv[])
 
     if (dflag)
     {
-        if (ae_decode_init(&strm) != AE_OK)
+        if (aec_decode_init(&strm) != AEC_OK)
             return 1;
     }
     else
     {
-        if (ae_encode_init(&strm) != AE_OK)
+        if (aec_encode_init(&strm) != AEC_OK)
             return 1;
     }
 
@@ -162,11 +162,11 @@ int main(int argc, char *argv[])
         }
 
         if (dflag)
-            status = ae_decode(&strm, AE_NO_FLUSH);
+            status = aec_decode(&strm, AEC_NO_FLUSH);
         else
-            status = ae_encode(&strm, AE_NO_FLUSH);
+            status = aec_encode(&strm, AEC_NO_FLUSH);
 
-        if (status != AE_OK)
+        if (status != AEC_OK)
         {
             fprintf(stderr, "error is %i\n", status);
             return 1;
@@ -189,11 +189,11 @@ int main(int argc, char *argv[])
 
     if (dflag)
     {
-        ae_decode_end(&strm);
+        aec_decode_end(&strm);
     }
     else
     {
-        if ((status = ae_encode(&strm, AE_FLUSH)) != AE_OK)
+        if ((status = aec_encode(&strm, AEC_FLUSH)) != AEC_OK)
         {
             fprintf(stderr, "error is %i\n", status);
             return 1;
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
             fwrite(out, strm.total_out - total_out, 1, outfp);
         }
 
-        ae_encode_end(&strm);
+        aec_encode_end(&strm);
     }
 
     fclose(infp);

@@ -1,5 +1,5 @@
 /**
- * @file aee.c
+ * @file encode.c
  * @author Mathis Rosenhauer, Deutsches Klimarechenzentrum
  * @section DESCRIPTION
  *
@@ -14,25 +14,25 @@
 #include <inttypes.h>
 #include <string.h>
 
-#include "libae.h"
-#include "aee.h"
-#include "aee_accessors.h"
+#include "libaec.h"
+#include "encode.h"
+#include "encode_accessors.h"
 
 /* Marker for Remainder Of Segment condition in zero block encoding */
 #define ROS -1
 
 #define MIN(a, b) (((a) < (b))? (a): (b))
 
-static int m_get_block(ae_streamp strm);
-static int m_get_block_cautious(ae_streamp strm);
-static int m_check_zero_block(ae_streamp strm);
-static int m_select_code_option(ae_streamp strm);
-static int m_flush_block(ae_streamp strm);
-static int m_flush_block_cautious(ae_streamp strm);
-static int m_encode_splitting(ae_streamp strm);
-static int m_encode_uncomp(ae_streamp strm);
-static int m_encode_se(ae_streamp strm);
-static int m_encode_zero(ae_streamp strm);
+static int m_get_block(aec_streamp strm);
+static int m_get_block_cautious(aec_streamp strm);
+static int m_check_zero_block(aec_streamp strm);
+static int m_select_code_option(aec_streamp strm);
+static int m_flush_block(aec_streamp strm);
+static int m_flush_block_cautious(aec_streamp strm);
+static int m_encode_splitting(aec_streamp strm);
+static int m_encode_uncomp(aec_streamp strm);
+static int m_encode_se(aec_streamp strm);
+static int m_encode_zero(aec_streamp strm);
 
 /*
  *
@@ -89,7 +89,7 @@ static inline void emitfs(encode_state *state, int fs)
 }
 
 #define EMITBLOCK(ref)                                          \
-    static inline void emitblock_##ref(ae_streamp strm, int k)  \
+    static inline void emitblock_##ref(aec_streamp strm, int k) \
     {                                                           \
         int b;                                                  \
         uint64_t a;                                             \
@@ -126,7 +126,7 @@ static inline void emitfs(encode_state *state, int fs)
 EMITBLOCK(0);
 EMITBLOCK(1);
 
-static void preprocess_unsigned(ae_streamp strm)
+static void preprocess_unsigned(aec_streamp strm)
 {
     int i;
     int64_t theta, Delta, prev;
@@ -160,7 +160,7 @@ static void preprocess_unsigned(ae_streamp strm)
     }
 }
 
-static void preprocess_signed(ae_streamp strm)
+static void preprocess_signed(aec_streamp strm)
 {
     int i, m;
     int64_t theta, Delta, prev, sample;
@@ -202,7 +202,7 @@ static void preprocess_signed(ae_streamp strm)
  *
  */
 
-static int m_get_block(ae_streamp strm)
+static int m_get_block(aec_streamp strm)
 {
     encode_state *state = strm->state;
 
@@ -236,7 +236,7 @@ static int m_get_block(ae_streamp strm)
         {
             state->get_block(strm);
 
-            if (strm->flags & AE_DATA_PREPROCESS)
+            if (strm->flags & AEC_DATA_PREPROCESS)
                 state->preprocess(strm);
 
             return m_check_zero_block(strm);
@@ -257,7 +257,7 @@ static int m_get_block(ae_streamp strm)
     return M_CONTINUE;
 }
 
-static int m_get_block_cautious(ae_streamp strm)
+static int m_get_block_cautious(aec_streamp strm)
 {
     int j;
     encode_state *state = strm->state;
@@ -270,7 +270,7 @@ static int m_get_block_cautious(ae_streamp strm)
         }
         else
         {
-            if (state->flush == AE_FLUSH)
+            if (state->flush == AEC_FLUSH)
             {
                 if (state->i > 0)
                 {
@@ -310,13 +310,13 @@ static int m_get_block_cautious(ae_streamp strm)
     }
     while (++state->i < strm->rsi * strm->block_size);
 
-    if (strm->flags & AE_DATA_PREPROCESS)
+    if (strm->flags & AEC_DATA_PREPROCESS)
         state->preprocess(strm);
 
     return m_check_zero_block(strm);
 }
 
-static inline int m_check_zero_block(ae_streamp strm)
+static inline int m_check_zero_block(aec_streamp strm)
 {
     int i;
     encode_state *state = strm->state;
@@ -361,7 +361,7 @@ static inline int m_check_zero_block(ae_streamp strm)
     return M_CONTINUE;
 }
 
-static inline int m_select_code_option(ae_streamp strm)
+static inline int m_select_code_option(aec_streamp strm)
 {
     int i, j, k, this_bs, looked_bothways, direction;
     uint64_t split_len, uncomp_len;
@@ -534,7 +534,7 @@ static inline int m_select_code_option(ae_streamp strm)
     }
 }
 
-static inline int m_encode_splitting(ae_streamp strm)
+static inline int m_encode_splitting(aec_streamp strm)
 {
     int i;
     encode_state *state = strm->state;
@@ -559,7 +559,7 @@ static inline int m_encode_splitting(ae_streamp strm)
     return m_flush_block(strm);
 }
 
-static inline int m_encode_uncomp(ae_streamp strm)
+static inline int m_encode_uncomp(aec_streamp strm)
 {
     encode_state *state = strm->state;
 
@@ -569,7 +569,7 @@ static inline int m_encode_uncomp(ae_streamp strm)
     return m_flush_block(strm);
 }
 
-static inline int m_encode_se(ae_streamp strm)
+static inline int m_encode_se(aec_streamp strm)
 {
     int i;
     uint32_t d;
@@ -588,7 +588,7 @@ static inline int m_encode_se(ae_streamp strm)
     return m_flush_block(strm);
 }
 
-static inline int m_encode_zero(ae_streamp strm)
+static inline int m_encode_zero(aec_streamp strm)
 {
     encode_state *state = strm->state;
 
@@ -608,7 +608,7 @@ static inline int m_encode_zero(ae_streamp strm)
     return m_flush_block(strm);
 }
 
-static inline int m_flush_block(ae_streamp strm)
+static inline int m_flush_block(aec_streamp strm)
 {
     int n;
     encode_state *state = strm->state;
@@ -628,7 +628,7 @@ static inline int m_flush_block(ae_streamp strm)
     return M_CONTINUE;
 }
 
-static inline int m_flush_block_cautious(ae_streamp strm)
+static inline int m_flush_block_cautious(aec_streamp strm)
 {
     encode_state *state = strm->state;
 
@@ -653,29 +653,29 @@ static inline int m_flush_block_cautious(ae_streamp strm)
  *
  */
 
-int ae_encode_init(ae_streamp strm)
+int aec_encode_init(aec_streamp strm)
 {
     int bs, bsi;
     encode_state *state;
 
     /* Some sanity checks */
     if (strm->bit_per_sample > 32 || strm->bit_per_sample == 0)
-        return AE_CONF_ERROR;
+        return AEC_CONF_ERROR;
 
     if (strm->block_size != 8
         && strm->block_size != 16
         && strm->block_size != 32
         && strm->block_size != 64)
-        return AE_CONF_ERROR;
+        return AEC_CONF_ERROR;
 
     if (strm->rsi > 4096)
-        return AE_CONF_ERROR;
+        return AEC_CONF_ERROR;
 
     /* Internal state for encoder */
     state = (encode_state *) malloc(sizeof(encode_state));
     if (state == NULL)
     {
-        return AE_MEM_ERROR;
+        return AEC_MEM_ERROR;
     }
     memset(state, 0, sizeof(encode_state));
     strm->state = state;
@@ -690,10 +690,10 @@ int ae_encode_init(ae_streamp strm)
         /* 24/32 input bit settings */
         state->id_len = 5;
 
-        if (strm->bit_per_sample <= 24 && strm->flags & AE_DATA_3BYTE)
+        if (strm->bit_per_sample <= 24 && strm->flags & AEC_DATA_3BYTE)
         {
             state->block_len = 3 * strm->block_size;
-            if (strm->flags & AE_DATA_MSB)
+            if (strm->flags & AEC_DATA_MSB)
             {
                 state->get_sample = get_msb_24;
                 state->get_block = get_block_funcs_msb_24[bsi];
@@ -707,7 +707,7 @@ int ae_encode_init(ae_streamp strm)
         else
         {
             state->block_len = 4 * strm->block_size;
-            if (strm->flags & AE_DATA_MSB)
+            if (strm->flags & AEC_DATA_MSB)
             {
                 state->get_sample = get_msb_32;
                 state->get_block = get_block_funcs_msb_32[bsi];
@@ -725,7 +725,7 @@ int ae_encode_init(ae_streamp strm)
         state->id_len = 4;
         state->block_len = 2 * strm->block_size;
 
-        if (strm->flags & AE_DATA_MSB)
+        if (strm->flags & AEC_DATA_MSB)
         {
             state->get_sample = get_msb_16;
             state->get_block = get_block_funcs_msb_16[bsi];
@@ -746,7 +746,7 @@ int ae_encode_init(ae_streamp strm)
         state->get_block = get_block_funcs_8[bsi];
     }
 
-    if (strm->flags & AE_DATA_SIGNED)
+    if (strm->flags & AEC_DATA_SIGNED)
     {
         state->xmin = -(1ULL << (strm->bit_per_sample - 1));
         state->xmax = (1ULL << (strm->bit_per_sample - 1)) - 1;
@@ -764,7 +764,7 @@ int ae_encode_init(ae_streamp strm)
                                          * sizeof(uint32_t));
     if (state->block_buf == NULL)
     {
-        return AE_MEM_ERROR;
+        return AEC_MEM_ERROR;
     }
     state->block_p = state->block_buf;
 
@@ -773,7 +773,7 @@ int ae_encode_init(ae_streamp strm)
     state->cds_buf = (uint8_t *)malloc(state->cds_len);
     if (state->cds_buf == NULL)
     {
-        return AE_MEM_ERROR;
+        return AEC_MEM_ERROR;
     }
 
     strm->total_in = 0;
@@ -784,10 +784,10 @@ int ae_encode_init(ae_streamp strm)
     state->bit_p = 8;
     state->mode = m_get_block;
 
-    return AE_OK;
+    return AEC_OK;
 }
 
-int ae_encode(ae_streamp strm, int flush)
+int aec_encode(aec_streamp strm, int flush)
 {
     /**
        Finite-state machine implementation of the adaptive entropy
@@ -811,15 +811,15 @@ int ae_encode(ae_streamp strm, int flush)
         state->cds_p = state->cds_buf;
         state->direct_out = 0;
     }
-    return AE_OK;
+    return AEC_OK;
 }
 
-int ae_encode_end(ae_streamp strm)
+int aec_encode_end(aec_streamp strm)
 {
     encode_state *state = strm->state;
 
     free(state->block_buf);
     free(state->cds_buf);
     free(state);
-    return AE_OK;
+    return AEC_OK;
 }

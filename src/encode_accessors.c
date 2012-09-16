@@ -1,17 +1,17 @@
 #include <inttypes.h>
 #include <string.h>
-#include "libae.h"
-#include "aee.h"
-#include "aee_accessors.h"
+#include "libaec.h"
+#include "encode.h"
+#include "encode_accessors.h"
 
-uint32_t get_8(ae_streamp strm)
+uint32_t get_8(aec_streamp strm)
 {
     strm->avail_in--;
     strm->total_in++;
     return *strm->next_in++;
 }
 
-uint32_t get_lsb_24(ae_streamp strm)
+uint32_t get_lsb_24(aec_streamp strm)
 {
     uint32_t data;
 
@@ -25,7 +25,7 @@ uint32_t get_lsb_24(ae_streamp strm)
     return data;
 }
 
-uint32_t get_msb_24(ae_streamp strm)
+uint32_t get_msb_24(aec_streamp strm)
 {
     uint32_t data;
 
@@ -41,7 +41,7 @@ uint32_t get_msb_24(ae_streamp strm)
 
 #ifdef WORDS_BIGENDIAN
 
-uint32_t get_lsb_16(ae_streamp strm)
+uint32_t get_lsb_16(aec_streamp strm)
 {
     uint32_t data;
 
@@ -54,7 +54,7 @@ uint32_t get_lsb_16(ae_streamp strm)
     return data;
 }
 
-uint32_t get_msb_16(ae_streamp strm)
+uint32_t get_msb_16(aec_streamp strm)
 {
     uint32_t data;
 
@@ -65,7 +65,7 @@ uint32_t get_msb_16(ae_streamp strm)
     return data;
 }
 
-uint32_t get_lsb_32(ae_streamp strm)
+uint32_t get_lsb_32(aec_streamp strm)
 {
     uint32_t data;
 
@@ -80,7 +80,7 @@ uint32_t get_lsb_32(ae_streamp strm)
     return data;
 }
 
-uint32_t get_msb_32(ae_streamp strm)
+uint32_t get_msb_32(aec_streamp strm)
 {
     uint32_t data;
 
@@ -90,9 +90,9 @@ uint32_t get_msb_32(ae_streamp strm)
     strm->avail_in -= 4;
     return data;
 }
-#else /* LITTLEENDIAN */
+#else /* not WORDS_BIGENDIAN */
 
-uint32_t get_lsb_16(ae_streamp strm)
+uint32_t get_lsb_16(aec_streamp strm)
 {
     uint32_t data;
 
@@ -103,7 +103,7 @@ uint32_t get_lsb_16(ae_streamp strm)
     return data;
 }
 
-uint32_t get_msb_16(ae_streamp strm)
+uint32_t get_msb_16(aec_streamp strm)
 {
     uint32_t data;
 
@@ -116,7 +116,7 @@ uint32_t get_msb_16(ae_streamp strm)
     return data;
 }
 
-uint32_t get_lsb_32(ae_streamp strm)
+uint32_t get_lsb_32(aec_streamp strm)
 {
     uint32_t data;
 
@@ -127,7 +127,7 @@ uint32_t get_lsb_32(ae_streamp strm)
     return data;
 }
 
-uint32_t get_msb_32(ae_streamp strm)
+uint32_t get_msb_32(aec_streamp strm)
 {
     uint32_t data;
 
@@ -141,10 +141,10 @@ uint32_t get_msb_32(ae_streamp strm)
     strm->avail_in -= 4;
     return data;
 }
-#endif
+#endif /* not WORDS_BIGENDIAN */
 
 #define GET_BLOCK_8(BS)                                              \
-    static void get_block_8_bs_##BS(ae_streamp strm)                 \
+    static void get_block_8_bs_##BS(aec_streamp strm)                \
     {                                                                \
         int i, j;                                                    \
         uint32_t *block = strm->state->block_buf;                    \
@@ -159,7 +159,7 @@ uint32_t get_msb_32(ae_streamp strm)
     }
 
 #define GET_BLOCK_NATIVE_16(BS)                                      \
-    static void get_block_native_16_bs_##BS(ae_streamp strm)         \
+    static void get_block_native_16_bs_##BS(aec_streamp strm)        \
     {                                                                \
         int i, j;                                                    \
         uint32_t *block = strm->state->block_buf;                    \
@@ -175,7 +175,7 @@ uint32_t get_msb_32(ae_streamp strm)
     }
 
 #define GET_BLOCK_LSB_16(BS)                                         \
-    static void get_block_lsb_16_bs_##BS(ae_streamp strm)            \
+    static void get_block_lsb_16_bs_##BS(aec_streamp strm)           \
     {                                                                \
         int i, j;                                                    \
         uint32_t *block = strm->state->block_buf;                    \
@@ -193,7 +193,7 @@ uint32_t get_msb_32(ae_streamp strm)
     }
 
 #define GET_BLOCK_MSB_16(BS)                                         \
-    static void get_block_msb_16_bs_##BS(ae_streamp strm)            \
+    static void get_block_msb_16_bs_##BS(aec_streamp strm)           \
     {                                                                \
         int i, j;                                                    \
         uint32_t *block = strm->state->block_buf;                    \
@@ -210,7 +210,7 @@ uint32_t get_msb_32(ae_streamp strm)
     }
 
 #define GET_BLOCK_LSB_24(BS)                                         \
-    static void get_block_lsb_24_bs_##BS(ae_streamp strm)            \
+    static void get_block_lsb_24_bs_##BS(aec_streamp strm)           \
     {                                                                \
         int i, j;                                                    \
         uint32_t *block = strm->state->block_buf;                    \
@@ -230,7 +230,7 @@ uint32_t get_msb_32(ae_streamp strm)
     }
 
 #define GET_BLOCK_MSB_24(BS)                                         \
-    static void get_block_msb_24_bs_##BS(ae_streamp strm)            \
+    static void get_block_msb_24_bs_##BS(aec_streamp strm)           \
     {                                                                \
         int i, j;                                                    \
         uint32_t *block = strm->state->block_buf;                    \
@@ -250,7 +250,7 @@ uint32_t get_msb_32(ae_streamp strm)
     }
 
 #define GET_BLOCK_NATIVE_32(BS)                                      \
-    static void get_block_native_32_bs_##BS(ae_streamp strm)         \
+    static void get_block_native_32_bs_##BS(aec_streamp strm)        \
     {                                                                \
         memcpy(strm->state->block_buf,                               \
                strm->next_in,                                        \
@@ -262,7 +262,7 @@ uint32_t get_msb_32(ae_streamp strm)
     }
 
 #define GET_BLOCK_LSB_32(BS)                                         \
-    static void get_block_lsb_32_bs_##BS(ae_streamp strm)            \
+    static void get_block_lsb_32_bs_##BS(aec_streamp strm)           \
     {                                                                \
         int i, j;                                                    \
         uint32_t *block = strm->state->block_buf;                    \
@@ -284,7 +284,7 @@ uint32_t get_msb_32(ae_streamp strm)
     }
 
 #define GET_BLOCK_MSB_32(BS)                                         \
-    static void get_block_msb_32_bs_##BS(ae_streamp strm)            \
+    static void get_block_msb_32_bs_##BS(aec_streamp strm)           \
     {                                                                \
         int i, j;                                                    \
         uint32_t *block = strm->state->block_buf;                    \
@@ -306,7 +306,7 @@ uint32_t get_msb_32(ae_streamp strm)
     }
 
 #define GET_BLOCK_FUNCS(A, B)                           \
-    void (*get_block_funcs_##A[])(ae_streamp) = {       \
+    void (*get_block_funcs_##A[])(aec_streamp) = {      \
         get_block_##B##_bs_8,                           \
         get_block_##B##_bs_16,                          \
         get_block_##B##_bs_32,                          \
@@ -361,7 +361,7 @@ GET_BLOCK_FUNCS(msb_16, native_16);
 GET_BLOCK_FUNCS(lsb_32, lsb_32);
 GET_BLOCK_FUNCS(msb_32, native_32);
 
-#else /* LITTLEENDIAN */
+#else /* not WORDS_BIGENDIAN */
 
 GET_BLOCK_MSB_16(8);
 GET_BLOCK_MSB_16(16);
@@ -378,4 +378,4 @@ GET_BLOCK_FUNCS(msb_16, msb_16);
 GET_BLOCK_FUNCS(lsb_32, native_32);
 GET_BLOCK_FUNCS(msb_32, msb_32);
 
-#endif
+#endif /* not WORDS_BIGENDIAN */
