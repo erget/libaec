@@ -687,31 +687,30 @@ int ae_encode_init(ae_streamp strm)
 
     if (strm->bit_per_sample > 16)
     {
-        /* 32 bit settings */
+        /* 24/32 input bit settings */
         state->id_len = 5;
-        state->block_len = 4 * strm->block_size;
 
-        if (strm->flags & AE_DATA_MSB)
+        if (strm->bit_per_sample <= 24 && strm->flags & AE_DATA_3BYTE)
         {
-            if (strm->bit_per_sample == 24
-                && strm->flags & AE_DATA_3BYTE)
+            state->block_len = 3 * strm->block_size;
+            if (strm->flags & AE_DATA_MSB)
             {
                 state->get_sample = get_msb_24;
                 state->get_block = get_block_funcs_msb_24[bsi];
             }
             else
             {
-                state->get_sample = get_msb_32;
-                state->get_block = get_block_funcs_msb_32[bsi];
+                state->get_sample = get_lsb_24;
+                state->get_block = get_block_funcs_lsb_24[bsi];
             }
         }
         else
         {
-            if (strm->bit_per_sample == 24
-                && strm->flags & AE_DATA_3BYTE)
+            state->block_len = 4 * strm->block_size;
+            if (strm->flags & AE_DATA_MSB)
             {
-                state->get_sample = get_lsb_24;
-                state->get_block = get_block_funcs_lsb_24[bsi];
+                state->get_sample = get_msb_32;
+                state->get_block = get_block_funcs_msb_32[bsi];
             }
             else
             {

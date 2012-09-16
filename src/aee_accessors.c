@@ -218,10 +218,10 @@ uint32_t get_msb_32(ae_streamp strm)
         for (i = 0; i < strm->rsi; i++)                              \
             for (j = 0; j < BS; j++)                                 \
                 block[i * BS + j] =                                  \
-                    (uint32_t)strm->next_in[4 * (i * BS + j)]        \
-                    | ((uint32_t)strm->next_in[4 * (i * BS + j) + 1] \
+                    (uint32_t)strm->next_in[3 * (i * BS + j)]        \
+                    | ((uint32_t)strm->next_in[3 * (i * BS + j) + 1] \
                        << 8)                                         \
-                    | ((uint32_t)strm->next_in[4 * (i * BS + j) + 2] \
+                    | ((uint32_t)strm->next_in[3 * (i * BS + j) + 2] \
                        << 16);                                       \
                                                                      \
         strm->next_in += 3 * BS * strm->rsi;                         \
@@ -238,11 +238,11 @@ uint32_t get_msb_32(ae_streamp strm)
         for (i = 0; i < strm->rsi; i++)                              \
             for (j = 0; j < BS; j++)                                 \
                 block[i * BS + j] =                                  \
-                    ((uint32_t)strm->next_in[4 * (i * BS + j)]       \
+                    ((uint32_t)strm->next_in[3 * (i * BS + j)]       \
                        << 16)                                        \
-                    | ((uint32_t)strm->next_in[4 * (i * BS + j) + 1] \
+                    | ((uint32_t)strm->next_in[3 * (i * BS + j) + 1] \
                        << 8)                                         \
-                    | (uint32_t)strm->next_in[4 * (i * BS + j) + 2]; \
+                    | (uint32_t)strm->next_in[3 * (i * BS + j) + 2]; \
                                                                      \
         strm->next_in += 3 * BS * strm->rsi;                         \
         strm->total_in += 3 * BS * strm->rsi;                        \

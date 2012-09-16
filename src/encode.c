@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     strm.flags = AE_DATA_PREPROCESS;
     opterr = 0;
 
-    while ((c = getopt (argc, argv, "Mscb:B:R:J:")) != -1)
+    while ((c = getopt (argc, argv, "3Mscb:B:R:J:")) != -1)
         switch (c)
         {
         case 'b':
@@ -51,6 +51,9 @@ int main(int argc, char *argv[])
         case 'M':
             strm.flags |= AE_DATA_MSB;
             break;
+        case '3':
+            strm.flags |= AE_DATA_3BYTE;
+            break;
         case '?':
             if (optopt == 'b')
                 fprintf (stderr, "Option -%c requires an argument.\n", optopt);
@@ -73,6 +76,18 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, "Usage: %s [ -c ] [ -b chunksize ] name\n", argv[0]);
         exit(-1);
+    }
+
+    if (strm.bit_per_sample > 16)
+    {
+        if (strm.bit_per_sample <= 24 && strm.flags & AE_DATA_3BYTE)
+            chunk *= 3;
+        else
+            chunk *= 4;
+    }
+    else if (strm.bit_per_sample > 8)
+    {
+        chunk *= 2;
     }
 
     out = (uint8_t *)malloc(chunk);

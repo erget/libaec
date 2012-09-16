@@ -84,6 +84,15 @@ static void put_msb_32(ae_streamp strm, int64_t data)
     strm->total_out += 4;
 }
 
+static void put_msb_24(ae_streamp strm, int64_t data)
+{
+    *strm->next_out++ = data >> 16;
+    *strm->next_out++ = data >> 8;
+    *strm->next_out++ = data;
+    strm->avail_out -= 3;
+    strm->total_out += 3;
+}
+
 static void put_msb_16(ae_streamp strm, int64_t data)
 {
     *strm->next_out++ = data >> 8;
@@ -100,6 +109,15 @@ static void put_lsb_32(ae_streamp strm, int64_t data)
     *strm->next_out++ = data >> 24;
     strm->avail_out -= 4;
     strm->total_out += 4;
+}
+
+static void put_lsb_24(ae_streamp strm, int64_t data)
+{
+    *strm->next_out++ = data;
+    *strm->next_out++ = data >> 8;
+    *strm->next_out++ = data >> 16;
+    strm->avail_out -= 3;
+    strm->total_out += 3;
 }
 
 static void put_lsb_16(ae_streamp strm, int64_t data)
@@ -278,13 +296,26 @@ int ae_decode_init(ae_streamp strm)
 
     if (strm->bit_per_sample > 16)
     {
-        state->byte_per_sample = 4;
         state->id_len = 5;
-        state->out_blklen = strm->block_size * 4;
-        if (strm->flags & AE_DATA_MSB)
-            state->put_sample = put_msb_32;
+
+        if (strm->bit_per_sample <= 24 && strm->flags & AE_DATA_3BYTE)
+        {
+            state->byte_per_sample = 3;
+            if (strm->flags & AE_DATA_MSB)
+                state->put_sample = put_msb_24;
+            else
+                state->put_sample = put_lsb_24;
+        }
         else
-            state->put_sample = put_lsb_32;
+        {
+            state->byte_per_sample = 4;
+            if (strm->flags & AE_DATA_MSB)
+                state->put_sample = put_msb_32;
+            else
+                state->put_sample = put_lsb_32;
+        }
+        state->out_blklen = strm->block_size
+            * state->byte_per_sample;
     }
     else if (strm->bit_per_sample > 8)
     {
