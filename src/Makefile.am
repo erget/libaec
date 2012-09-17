@@ -1,5 +1,5 @@
 lib_LTLIBRARIES = libae-0.0.la
-libae_0_0_la_SOURCES = aee.c aee_accessors.c aed.c sz_compat.c
+libae_0_0_la_SOURCES = aee.c aee_accessors.c aed.c aee.h sz_compat.c
 libae_0_0_la_LDFLAGS = -version-info 0:0
 include_HEADERS = libae.h
 
