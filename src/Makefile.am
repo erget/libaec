@@ -1,12 +1,14 @@
-noinst_LIBRARIES = libae.a
-libae_a_SOURCES = aee.c aee_mutators.c aed.c sz_compat.c
+ACLOCAL_AMFLAGS = -I m4 --install
+lib_LTLIBRARIES = libae-0.0.la
+libae_0_0_la_SOURCES = aee.c aee_mutators.c aed.c sz_compat.c
+libae_0_0_la_LDFLAGS = -version-info 0:0:2
 include_HEADERS = libae.h
 
 bin_PROGRAMS = encode decode test_szcomp
 
-encode_LDADD = libae.a
-decode_LDADD = libae.a
-test_szcomp_LDADD = libae.a
+encode_LDADD = $(lib_LTLIBRARIES)
+decode_LDADD = $(lib_LTLIBRARIES)
+test_szcomp_LDADD = $(lib_LTLIBRARIES)
 
 encode_SOURCES = encode.c
 decode_SOURCES = decode.c

@@ -1,18 +1,20 @@
 AC_PREREQ([2.69])
 AC_INIT([libaes], [0.0.2], [rosenhauer@dkrz.de])
+
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_SRCDIR([src/libae.h])
 AC_CONFIG_HEADERS(config/config.h)
-AM_INIT_AUTOMAKE
 
+LT_INIT
+
+AM_INIT_AUTOMAKE
 
 # Checks for programs.
 AC_PROG_CC
-AC_PROG_RANLIB
 AC_PROG_LN_S
 
 # Checks for libraries.
-# FIXME: Replace `main' with a function in `-lae':
 AC_CHECK_LIB([ae], [ae_decode])
 
 # Checks for header files.
