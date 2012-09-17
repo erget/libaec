@@ -98,7 +98,7 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" \
 	"$(DESTDIR)$(includedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libae_0_0_la_LIBADD =
-am_libae_0_0_la_OBJECTS = aee.lo aee_mutators.lo aed.lo sz_compat.lo
+am_libae_0_0_la_OBJECTS = aee.lo aee_accessors.lo aed.lo sz_compat.lo
 libae_0_0_la_OBJECTS = $(am_libae_0_0_la_OBJECTS)
 libae_0_0_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -151,6 +151,10 @@ CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
+CXX = @CXX@
+CXXCPP = @CXXCPP@
+CXXDEPMODE = @CXXDEPMODE@
+CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
@@ -206,6 +210,7 @@ abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
+ac_ct_CXX = @ac_ct_CXX@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
@@ -252,10 +257,9 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-ACLOCAL_AMFLAGS = -I m4 --install
 lib_LTLIBRARIES = libae-0.0.la
-libae_0_0_la_SOURCES = aee.c aee_mutators.c aed.c sz_compat.c
-libae_0_0_la_LDFLAGS = -version-info 0:0:2
+libae_0_0_la_SOURCES = aee.c aee_accessors.c aed.c sz_compat.c
+libae_0_0_la_LDFLAGS = -version-info 0:0
 include_HEADERS = libae.h
 encode_LDADD = $(lib_LTLIBRARIES)
 decode_LDADD = $(lib_LTLIBRARIES)
@@ -397,7 +401,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/aed.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/aee.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/aee_mutators.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/aee_accessors.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/decode.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/encode.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sz_compat.Plo@am__quote@

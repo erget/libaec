@@ -1,7 +1,6 @@
-ACLOCAL_AMFLAGS = -I m4 --install
 lib_LTLIBRARIES = libae-0.0.la
-libae_0_0_la_SOURCES = aee.c aee_mutators.c aed.c sz_compat.c
-libae_0_0_la_LDFLAGS = -version-info 0:0:2
+libae_0_0_la_SOURCES = aee.c aee_accessors.c aed.c sz_compat.c
+libae_0_0_la_LDFLAGS = -version-info 0:0
 include_HEADERS = libae.h
 
 bin_PROGRAMS = encode decode test_szcomp

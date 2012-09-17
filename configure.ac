@@ -12,7 +12,7 @@ AM_INIT_AUTOMAKE
 
 # Checks for programs.
 AC_PROG_CC
-AC_PROG_LN_S
+AC_PROG_CXX
 
 # Checks for libraries.
 AC_CHECK_LIB([ae], [ae_decode])
