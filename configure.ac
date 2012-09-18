@@ -1,9 +1,9 @@
-AC_PREREQ([2.69])
-AC_INIT([libaes], [0.0.2], [rosenhauer@dkrz.de])
+AC_PREREQ([2.68])
+AC_INIT([libaec], [0.0.2], [rosenhauer@dkrz.de])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([config])
-AC_CONFIG_SRCDIR([src/libae.h])
+AC_CONFIG_SRCDIR([src/libaec.h])
 AC_CONFIG_HEADERS(config/config.h)
 
 LT_INIT
@@ -15,7 +15,7 @@ AC_PROG_CC
 AC_PROG_CXX
 
 # Checks for libraries.
-AC_CHECK_LIB([ae], [ae_decode])
+AC_CHECK_LIB([aec], [aec_decode])
 
 # Checks for header files.
 AC_CHECK_HEADERS([inttypes.h stddef.h stdlib.h string.h unistd.h])
@@ -35,3 +35,6 @@ AC_CHECK_FUNCS([memset strstr])
 AC_CONFIG_FILES([Makefile
                  src/Makefile])
 AC_OUTPUT
+
+# Checks compilers and preprocessors
+AC_C_BIGENDIAN
