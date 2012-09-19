@@ -1,3 +1,4 @@
+#include <config.h>
 #include <inttypes.h>
 #include <string.h>
 #include "libaec.h"
