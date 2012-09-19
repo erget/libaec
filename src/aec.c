@@ -11,7 +11,7 @@
 
 int main(int argc, char *argv[])
 {
-    aec_stream strm;
+    struct aec_stream strm;
     uint8_t *in;
     uint8_t *out;
     int chunk, total_out, status, c;

@@ -7,11 +7,11 @@
 #define M_CONTINUE 1
 #define M_EXIT 0
 
-typedef struct internal_state {
-    int (*mode)(aec_streamp);
-    void (*get_block)(aec_streamp);
-    uint32_t (*get_sample)(aec_streamp);
-    void (*preprocess)(aec_streamp);
+struct internal_state {
+    int (*mode)(struct aec_stream *);
+    void (*get_block)(struct aec_stream *);
+    uint32_t (*get_sample)(struct aec_stream *);
+    void (*preprocess)(struct aec_stream *);
 
     int id_len;             /* bit length of code option identification key */
     int64_t xmin;           /* minimum integer for preprocessing */
@@ -35,6 +35,6 @@ typedef struct internal_state {
     int zero_blocks;        /* number of contiguous zero blocks */
     int k;                  /* splitting position */
     int flush;              /* flush option copied from argument */
-} encode_state;
+};
 
 #endif /* ENCODE_H */

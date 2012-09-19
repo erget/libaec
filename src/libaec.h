@@ -6,8 +6,7 @@
 
 struct internal_state;
 
-typedef struct _aec_stream
-{
+struct aec_stream {
     const uint8_t *next_in;
     size_t avail_in;         /* number of bytes available at
                               * next_in */
@@ -25,9 +24,7 @@ typedef struct _aec_stream
     uint32_t flags;
 
     struct internal_state *state;
-} aec_stream;
-
-typedef aec_stream *aec_streamp;
+};
 
 /* Coder flags */
 #define AEC_DATA_UNSIGNED     0
@@ -60,12 +57,12 @@ typedef aec_stream *aec_streamp;
                             * padded with fill bits.
                             */
 
-int aec_decode_init(aec_streamp strm);
-int aec_decode(aec_streamp strm, int flush);
-int aec_decode_end(aec_streamp strm);
+int aec_decode_init(struct aec_stream *strm);
+int aec_decode(struct aec_stream *strm, int flush);
+int aec_decode_end(struct aec_stream *strm);
 
-int aec_encode_init(aec_streamp strm);
-int aec_encode(aec_streamp strm, int flush);
-int aec_encode_end(aec_streamp strm);
+int aec_encode_init(struct aec_stream *strm);
+int aec_encode(struct aec_stream *strm, int flush);
+int aec_encode_end(struct aec_stream *strm);
 
 #endif /* LIBAEC_H */

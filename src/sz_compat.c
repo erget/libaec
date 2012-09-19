@@ -5,7 +5,7 @@
 int SZ_BufftoBuffCompress(void *dest, size_t *destLen, const void *source, size_t sourceLen, SZ_com_t *param)
 {
     int status;
-    aec_stream strm;
+    struct aec_stream strm;
 
     strm.bit_per_sample = param->bits_per_pixel;
     strm.block_size = param->pixels_per_block;
@@ -33,7 +33,7 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen, const void *source, size_
 int SZ_BufftoBuffDecompress(void *dest, size_t *destLen, const void *source, size_t sourceLen, SZ_com_t *param)
 {
     int status;
-    aec_stream strm;
+    struct aec_stream strm;
 
     strm.bit_per_sample = param->bits_per_pixel;
     strm.block_size = param->pixels_per_block;
