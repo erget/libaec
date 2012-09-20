@@ -195,11 +195,11 @@ static int m_get_block(struct aec_stream *strm)
 
     if (state->blocks_avail == 0) {
         state->ref = 1;
-        state->blocks_avail = strm->rsi - 1;
         state->block_p = state->block_buf;
 
         if (strm->avail_in >= state->block_len * strm->rsi) {
             state->get_block(strm);
+            state->blocks_avail = strm->rsi - 1;
 
             if (strm->flags & AEC_DATA_PREPROCESS)
                 state->preprocess(strm);
@@ -258,6 +258,7 @@ static int m_get_block_cautious(struct aec_stream *strm)
             return input_empty(strm);
     } while (++state->i < strm->rsi * strm->block_size);
 
+    state->blocks_avail = strm->rsi - 1;
     if (strm->flags & AEC_DATA_PREPROCESS)
         state->preprocess(strm);
 
