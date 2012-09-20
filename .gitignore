@@ -1,9 +1,9 @@
 Makefile
 Makefile.in
 aclocal.m4
-config/
-src/.libs/
-src/.deps/
+config
+.libs
+.deps
 src/aec
 src/test_szcomp
 *.o
@@ -13,5 +13,6 @@ config.log
 config.status
 configure
 libtool
-autom4te.cache/
-m4/
+autom4te.cache
+m4
+
