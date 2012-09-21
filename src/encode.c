@@ -8,10 +8,15 @@
  *
  */
 
+#include <config.h>
+
+#if HAVE_STDINT_H
+# include <stdint.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <inttypes.h>
 #include <string.h>
 
 #include "libaec.h"

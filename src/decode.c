@@ -1,10 +1,15 @@
 /* Adaptive Entropy Decoder            */
 /* CCSDS 121.0-B-1 and CCSDS 120.0-G-2 */
 
+#include <config.h>
+
+#if HAVE_STDINT_H
+# include <stdint.h>
+#endif
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <inttypes.h>
 #include <string.h>
 
 #include "libaec.h"

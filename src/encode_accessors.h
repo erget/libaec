@@ -1,7 +1,12 @@
 #ifndef ENCODE_ACCESSORS_H
 #define ENCODE_ACCESSORS_H
 
-#include <inttypes.h>
+#include <config.h>
+
+#if HAVE_STDINT_H
+# include <stdint.h>
+#endif
+
 #include "libaec.h"
 
 uint32_t get_8(struct aec_stream *strm);

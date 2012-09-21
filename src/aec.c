@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <inttypes.h>
 #include <string.h>
 #include <getopt.h>
 #include "libaec.h"
@@ -12,8 +11,8 @@
 int main(int argc, char *argv[])
 {
     struct aec_stream strm;
-    uint8_t *in;
-    uint8_t *out;
+    unsigned char *in;
+    unsigned char *out;
     int chunk, total_out, status, c;
     int input_avail, output_avail;
     char *outfn, *infn, *ext;
@@ -94,8 +93,8 @@ int main(int argc, char *argv[])
         chunk *= 2;
     }
 
-    out = (uint8_t *)malloc(chunk);
-    in = (uint8_t *)malloc(chunk);
+    out = (unsigned char *)malloc(chunk);
+    in = (unsigned char *)malloc(chunk);
 
 
     if (in == NULL || out == NULL)
@@ -158,7 +157,7 @@ int main(int argc, char *argv[])
             strm.avail_in = fread(in, 1, chunk, infp);
             if (strm.avail_in != chunk)
                 input_avail = 0;
-            strm.next_in = (uint8_t *)in;
+            strm.next_in = in;
         }
 
         if (dflag)

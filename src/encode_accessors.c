@@ -1,5 +1,9 @@
 #include <config.h>
-#include <inttypes.h>
+
+#if HAVE_STDINT_H
+# include <stdint.h>
+#endif
+
 #include <string.h>
 #include "libaec.h"
 #include "encode.h"
