@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <inttypes.h>
 #include <string.h>
 #include "libaec.h"
 
@@ -10,15 +9,17 @@
 struct test_state {
     int id_len;
     int byte_per_sample;
-    uint8_t *ubuf;
-    uint8_t *cbuf;
-    uint8_t *obuf;
+    unsigned char *ubuf;
+    unsigned char *cbuf;
+    unsigned char *obuf;
     size_t buf_len;
     size_t cbuf_len;
-    void (*out)(uint8_t *dest, uint32_t val, int size);
+    long long int xmax;
+    long long int xmin;
+    void (*out)(unsigned char *dest, unsigned int val, int size);
 };
 
-static void out_lsb(uint8_t *dest, uint32_t val, int size)
+static void out_lsb(unsigned char *dest, unsigned int val, int size)
 {
     int i;
 
@@ -26,7 +27,7 @@ static void out_lsb(uint8_t *dest, uint32_t val, int size)
         dest[i] = val >> (8 * i);
 }
 
-static void out_msb(uint8_t *dest, uint32_t val, int size)
+static void out_msb(unsigned char *dest, unsigned int val, int size)
 {
     int i;
 
@@ -57,6 +58,14 @@ static int update_state(struct aec_stream *strm, struct test_state *state)
         state->out = out_msb;
     else
         state->out = out_lsb;
+
+    if (strm->flags & AEC_DATA_SIGNED) {
+        state->xmin = -(1ULL << (strm->bit_per_sample - 1));
+        state->xmax = (1ULL << (strm->bit_per_sample - 1)) - 1;
+    } else {
+        state->xmin = 0;
+        state->xmax = (1ULL << strm->bit_per_sample) - 1;
+    }
 
     return 0;
 }
@@ -130,15 +139,13 @@ int encode_decode(struct aec_stream *strm, struct test_state *state)
     return 0;
 }
 
-int check_zero(struct aec_stream *strm, struct test_state *state)
+int check_block_sizes(struct aec_stream *strm,
+                      struct test_state *state,
+                      int id)
 {
     int bs, status;
 
-    printf("Checking zero blocks with bit per sample %i ... ",
-           strm->bit_per_sample);
-
     for (bs = 8; bs <= 64; bs *= 2) {
-        memset(state->ubuf, 0x55, state->buf_len);
         strm->block_size = bs;
         strm->rsi = state->buf_len / (bs * state->byte_per_sample);
 
@@ -146,93 +153,228 @@ int check_zero(struct aec_stream *strm, struct test_state *state)
         if (status)
             return status;
 
-        if ((state->cbuf[0] >> (8 - state->id_len)) != 0) {
-            printf("FAIL: Unexpected block created.\n");
+        if ((state->cbuf[0] >> (8 - state->id_len)) != id) {
+            printf("FAIL: Unexpected block of size %i created %x.\n",
+                   bs, state->cbuf[0] >> (8 - state->id_len));
             return 99;
         }
     }
+    return 0;
+}
+
+int check_zero(struct aec_stream *strm, struct test_state *state)
+{
+    int status;
+
+    memset(state->ubuf, 0x55, state->buf_len);
+
+    printf("Checking zero blocks ... ");
+    status = check_block_sizes(strm, state, 0);
+    if (status)
+        return status;
+
     printf ("OK\n");
     return 0;
 }
 
 int check_splitting(struct aec_stream *strm, struct test_state *state, int k)
 {
-    int bs, status;
-    uint8_t *tmp;
-    size_t size;
+    int status, size;
+    unsigned char *tmp;
 
     size = state->byte_per_sample;
 
     for (tmp = state->ubuf;
          tmp < state->ubuf + state->buf_len;
          tmp += 4 * state->byte_per_sample) {
-        state->out(tmp, (1ULL << (k - 1)) - 1, size);
-        state->out(tmp + size, 0, size);
-        state->out(tmp + 2 * size, (1ULL << (k + 1)) - 1, size);
-        state->out(tmp + 3 * size, 0, size);
+        state->out(tmp, state->xmin + (1ULL << (k - 1)) - 1, size);
+        state->out(tmp + size, state->xmin, size);
+        state->out(tmp + 2 * size, state->xmin + (1ULL << (k + 1)) - 1, size);
+        state->out(tmp + 3 * size, state->xmin, size);
     }
 
-    printf("Checking splitting with k=%i, bit per sample %i ... ",
-           k, strm->bit_per_sample);
+    printf("Checking splitting with k=%i ... ", k);
+    status = check_block_sizes(strm, state, k + 1);
+    if (status)
+        return status;
 
-    for (bs = 8; bs <= 64; bs *= 2) {
-        strm->block_size = bs;
-        strm->rsi = state->buf_len / (bs * state->byte_per_sample);
+    printf ("OK\n");
+    return 0;
+}
 
-        status = encode_decode(strm, state);
+int check_uncompressed(struct aec_stream *strm, struct test_state *state)
+{
+    int status, size;
+    unsigned char *tmp;
+
+    size = state->byte_per_sample;
+
+    for (tmp = state->ubuf;
+         tmp < state->ubuf + state->buf_len;
+         tmp += 2 * state->byte_per_sample) {
+        state->out(tmp, state->xmax, size);
+        state->out(tmp + size, state->xmin, size);
+    }
+
+    printf("Checking uncompressed ... ");
+    status = check_block_sizes(strm, state, (1ULL << state->id_len) - 1);
+    if (status)
+        return status;
+
+    printf ("OK\n");
+    return 0;
+}
+
+int check_fs(struct aec_stream *strm, struct test_state *state)
+{
+    int status, size;
+    unsigned char *tmp;
+
+    size = state->byte_per_sample;
+
+    for (tmp = state->ubuf;
+         tmp < state->ubuf + state->buf_len;
+         tmp += 2 * state->byte_per_sample) {
+        state->out(tmp, state->xmin + 1, size);
+        state->out(tmp + size, state->xmin, size);
+    }
+
+    printf("Checking FS ... ");
+    status = check_block_sizes(strm, state, 1);
+    if (status)
+        return status;
+
+    printf ("OK\n");
+    return 0;
+}
+
+int check_se(struct aec_stream *strm, struct test_state *state)
+{
+    int status, size;
+    unsigned char *tmp;
+
+    size = state->byte_per_sample;
+
+    for (tmp = state->ubuf;
+         tmp < state->ubuf + state->buf_len;
+         tmp += 8 * size) {
+        state->out(tmp, 0, size);
+        state->out(tmp + size, 0, size);
+        state->out(tmp + 2 * size, 0, size);
+        state->out(tmp + 3 * size, 0, size);
+        state->out(tmp + 4 * size, 0, size);
+        state->out(tmp + 5 * size, 0, size);
+        state->out(tmp + 6 * size, 0, size);
+        state->out(tmp + 7 * size, 1, size);
+    }
+
+    printf("Checking Second Extension ... ");
+    status = check_block_sizes(strm, state, 0);
+    if (status)
+        return status;
+
+    printf ("OK\n");
+    return 0;
+}
+
+int check_bps(struct aec_stream *strm, struct test_state *state)
+{
+    int k, status, bps;
+
+    for (bps = 8; bps <= 32; bps += 8) {
+        strm->bit_per_sample = bps;
+        if (bps == 24)
+            strm->flags |= AEC_DATA_3BYTE;
+        else
+            strm->flags &= ~AEC_DATA_3BYTE;
+
+        update_state(strm, state);
+
+        status = check_zero(strm, state);
         if (status)
             return status;
 
-        if ((state->cbuf[0] >> (8 - state->id_len)) != k + 1) {
-            printf("FAIL: Unexpected block of size %i created %i.\n",
-                   bs, state->cbuf[0] >> 5);
-            return 99;
+        status = check_se(strm, state);
+        if (status)
+            return status;
+
+        status = check_uncompressed(strm, state);
+        if (status)
+            return status;
+
+        status = check_fs(strm, state);
+        if (status)
+            return status;
+
+        for (k = 1; k < bps - 2; k++) {
+            status = check_splitting(strm, state, k);
+            if (status)
+                return status;
         }
+        printf("All checks with %i bit per sample passed.\n\n", bps);
     }
-    printf ("OK\n");
     return 0;
 }
 
 int main (void)
 {
-    int k, status, bps;
+    int status;
     struct aec_stream strm;
     struct test_state state;
 
     state.buf_len = BUF_SIZE;
     state.cbuf_len = 2 * BUF_SIZE;
 
-    state.ubuf = (uint8_t *)malloc(state.buf_len);
-    state.cbuf = (uint8_t *)malloc(state.cbuf_len);
-    state.obuf = (uint8_t *)malloc(state.buf_len);
+    state.ubuf = (unsigned char *)malloc(state.buf_len);
+    state.cbuf = (unsigned char *)malloc(state.cbuf_len);
+    state.obuf = (unsigned char *)malloc(state.buf_len);
 
     if (!state.ubuf || !state.cbuf || !state.obuf) {
         printf("Not enough memory.\n");
         return 99;
     }
 
-    for (bps = 8; bps <= 32; bps += 8) {
-        strm.bit_per_sample = bps;
-        strm.flags = AEC_DATA_PREPROCESS;
-        if (bps == 24)
-            strm.flags |= AEC_DATA_3BYTE;
+    strm.flags = AEC_DATA_PREPROCESS;
 
-        update_state(&strm, &state);
+    printf("----------------------------\n");
+    printf("Checking LSB first, unsigned\n");
+    printf("----------------------------\n");
+    status = check_bps(&strm, &state);
+    if (status)
+        goto destruct;
 
-        status = check_zero(&strm, &state);
-        if (status)
-            return status;
+    printf("--------------------------\n");
+    printf("Checking LSB first, signed\n");
+    printf("--------------------------\n");
+    strm.flags |= AEC_DATA_SIGNED;
 
-        for (k = 1; k < bps - 2; k++) {
-            status = check_splitting(&strm, &state, k);
-            if (status)
-                return status;
-        }
-    }
+    status = check_bps(&strm, &state);
+    if (status)
+        goto destruct;
 
+    strm.flags &= ~AEC_DATA_SIGNED;
+    strm.flags |= AEC_DATA_MSB;
+
+    printf("----------------------------\n");
+    printf("Checking MSB first, unsigned\n");
+    printf("----------------------------\n");
+    status = check_bps(&strm, &state);
+    if (status)
+        goto destruct;
+
+    printf("--------------------------\n");
+    printf("Checking MSB first, signed\n");
+    printf("--------------------------\n");
+    strm.flags |= AEC_DATA_SIGNED;
+
+    status = check_bps(&strm, &state);
+    if (status)
+        goto destruct;
+
+destruct:
     free(state.ubuf);
     free(state.cbuf);
     free(state.obuf);
 
-    return 0;
+    return status;
 }
