@@ -343,83 +343,106 @@ static uint64_t block_fs(struct aec_stream *strm, int k)
 
 static int count_splitting_option(struct aec_stream *strm)
 {
-    int i, k, this_bs, looked_bothways, direction;
-    uint64_t len, len_min, fs_len;
+    /**
+       Find the best point for splitting samples in a block.
+
+       In Rice coding each sample in a block of samples is split at
+       the same position into k LSB and bit_per_sample - k MSB. The
+       LSB part is left binary and the MSB part is coded as a
+       fundamental sequence a.k.a. unary (see CCSDS 121.0-B-2). The
+       function of the length of the Coded Data Set (CDS) depending on
+       k has exactly one minimum (see A. Kiely, IPN Progress Report
+       42-159).
+
+       To find that minimum with only a few costly evaluations of the
+       CDS length, we start with the k of the previous CDS. K is
+       increased and the CDS length evaluated. If the CDS length gets
+       smaller, then we are moving towards the minimum. If the length
+       increases, then the minimum will be found with smaller k. Two
+       additional checks are used to speed up the process:
+
+       1. If we are increasing k to find the minimum then we know that
+       k+1 will at most eliminate the FS part. OTOH we gain block_size
+       bits in length through the increased binary part. So if the FS
+       lenth is already less than the block size then the length of
+       the CDS for k+1 will be larger than for k. The same can be done
+       for decreasing k.
+
+       2. If 1. is not the case then we have to continue looking. The
+       next step would be to increase k by one and evaluate the CDS
+       length. A lower limit for the k+1 FS length is
+       0.5*(FS_len-block_size). If half of that is more than
+       block_size then we can skip k+1 altogether. This reduces to the
+       condition:
+
+       if (fs_len > 5 * block_size)
+           k++;
+
+       We can be repeat this step while the condition is met to skip
+       several k.
+     */
+
+    int k, k_min;
+    int this_bs; /* Block size of current block */
+    int min_dir; /* 1 if we saw a decrease in CDS length */
+    int dir; /* Direction, 1 means increasing k, 0 decreasing k */
+    uint64_t len; /* CDS length for current k */
+    uint64_t len_min; /* CDS length minimum so far */
+    uint64_t fs_len; /* Length of FS part (not including 1s) */
+
     struct internal_state *state = strm->state;
 
     this_bs = strm->block_size - state->ref;
     len_min = UINT64_MAX;
-    i = k = state->k;
-    direction = 1;
-    looked_bothways = 0;
+    k = k_min = state->k;
+    dir = 1;
+    min_dir = 0;
 
-    /* Starting with splitting position of last block. Look left and
-     * possibly right to find new minimum.
-     */
     for (;;) {
-        fs_len = block_fs(strm, i);
-        len = fs_len + this_bs * (i + 1);
+        fs_len = block_fs(strm, k);
+        len = fs_len + this_bs * (k + 1);
 
         if (len < len_min) {
-            if (len_min < UINT64_MAX) {
-                /* We are moving towards the minimum so it cant be in
-                 * the other direction.
-                 */
-                looked_bothways = 1;
-            }
-            len_min = len;
-            k = i;
+            if (len_min < UINT64_MAX)
+                min_dir = 1;
 
-            if (direction == 1) {
+            len_min = len;
+            k_min = k;
+
+            if (dir) {
                 if (fs_len < this_bs) {
-                    /* Next can't get better because what we lose by
-                     * additional uncompressed bits isn't compensated
-                     * by a smaller FS part. Vice versa if we are
-                     * coming from the other direction.
-                     */
-                    if (looked_bothways) {
-                        break;
-                    } else {
-                        direction = -direction;
-                        looked_bothways = 1;
-                        i = state->k;
-                    }
+                    goto reverse;
                 } else {
                     while (fs_len > 5 * this_bs) {
-                        i++;
+                        k++;
                         fs_len /= 5;
                     }
                 }
-            } else if (fs_len > this_bs) {
-                /* Since we started looking the other way there is no
-                 * need to turn back.
-                 */
-                break;
+
+                if (k >= state->kmax)
+                    goto reverse;
+                else
+                    k++;
+            } else {
+                if (fs_len >= this_bs || k == 0)
+                    break;
+
+                k--;
             }
         } else {
-            /* Stop looking for better option if we don't see any
-             * improvement.
-             */
-            if (looked_bothways) {
-                break;
-            } else {
-                direction = -direction;
-                looked_bothways = 1;
-                i = state->k;
-            }
+            goto reverse;
         }
-        if (i + direction < 0
-            || i + direction >= strm->bit_per_sample - 2) {
-            if (looked_bothways)
-                break;
+        continue;
 
-            direction = -direction;
-            looked_bothways = 1;
-            i = state->k;
-        }
-        i += direction;
+    reverse:
+        if (min_dir || state->k == 0)
+            break;
+
+        k = state->k - 1;
+        dir = 0;
+        min_dir = 1;
     }
-    state->k = k;
+    state->k = k_min;
 
     return len_min;
 }
@@ -677,6 +700,8 @@ int aec_encode_init(struct aec_stream *strm)
         state->xmax = (1ULL << strm->bit_per_sample) - 1;
         state->preprocess = preprocess_unsigned;
     }
+
+    state->kmax = (1U << state->id_len) - 3;
 
     state->block_buf = (uint32_t *)malloc(strm->rsi
                                          * strm->block_size
