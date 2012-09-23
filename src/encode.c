@@ -358,33 +358,20 @@ static int count_splitting_option(struct aec_stream *strm)
        CDS length, we start with the k of the previous CDS. K is
        increased and the CDS length evaluated. If the CDS length gets
        smaller, then we are moving towards the minimum. If the length
-       increases, then the minimum will be found with smaller k. Two
-       additional checks are used to speed up the process:
+       increases, then the minimum will be found with smaller k.
 
-       1. If we are increasing k to find the minimum then we know that
-       k+1 will at most eliminate the FS part. OTOH we gain block_size
-       bits in length through the increased binary part. So if the FS
-       lenth is already less than the block size then the length of
-       the CDS for k+1 will be larger than for k. The same can be done
-       for decreasing k.
+       For increasing k we know that we will gain block_size bits in
+       length through the larger binary part. If the FS lenth is less
+       than the block size then a reduced FS part can't compensate the
+       larger binary part. So we know that the CDS for k+1 will be
+       larger than for k without actually computing the length. An
+       analogue check can be done for decreasing k.
 
-       2. If 1. is not the case then we have to continue looking. The
-       next step would be to increase k by one and evaluate the CDS
-       length. A lower limit for the k+1 FS length is
-       0.5*(FS_len-block_size). If half of that is more than
-       block_size then we can skip k+1 altogether. This reduces to the
-       condition:
-
-       if (fs_len > 5 * block_size)
-           k++;
-
-       We can be repeat this step while the condition is met to skip
-       several k.
      */
 
     int k, k_min;
     int this_bs; /* Block size of current block */
-    int min_dir; /* 1 if we saw a decrease in CDS length */
+    int no_turn; /* 1 if we shouldn't reverse */
     int dir; /* Direction, 1 means increasing k, 0 decreasing k */
     uint64_t len; /* CDS length for current k */
     uint64_t len_min; /* CDS length minimum so far */
@@ -395,8 +382,8 @@ static int count_splitting_option(struct aec_stream *strm)
     this_bs = strm->block_size - state->ref;
     len_min = UINT64_MAX;
     k = k_min = state->k;
+    no_turn = (k == 0) ? 1 : 0;
     dir = 1;
-    min_dir = 0;
 
     for (;;) {
         fs_len = block_fs(strm, k);
@@ -404,43 +391,32 @@ static int count_splitting_option(struct aec_stream *strm)
 
         if (len < len_min) {
             if (len_min < UINT64_MAX)
-                min_dir = 1;
+                no_turn = 1;
 
             len_min = len;
             k_min = k;
 
             if (dir) {
-                if (fs_len < this_bs) {
-                    goto reverse;
-                } else {
-                    while (fs_len > 5 * this_bs) {
-                        k++;
-                        fs_len /= 5;
-                    }
+                if (fs_len < this_bs || k >= state->kmax) {
+                    if (no_turn)
+                        break;
+                    k = state->k - 1;
+                    dir = 0;
+                    no_turn = 1;
                 }
-
-                if (k >= state->kmax)
-                    goto reverse;
-                else
-                    k++;
+                k++;
             } else {
                 if (fs_len >= this_bs || k == 0)
                     break;
-
                 k--;
             }
         } else {
-            goto reverse;
+            if (no_turn)
+                break;
+            k = state->k - 1;
+            dir = 0;
+            no_turn = 1;
         }
-        continue;
-
-    reverse:
-        if (min_dir || state->k == 0)
-            break;
-
-        k = state->k - 1;
-        dir = 0;
-        min_dir = 1;
     }
     state->k = k_min;
 
