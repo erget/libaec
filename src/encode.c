@@ -223,44 +223,38 @@ static int m_get_block(struct aec_stream *strm)
     return M_CONTINUE;
 }
 
-static int input_empty(struct aec_stream *strm)
+static int m_get_block_cautious(struct aec_stream *strm)
 {
     int j;
     struct internal_state *state = strm->state;
 
-    if (state->flush == AEC_FLUSH) {
-        if (state->i > 0) {
-            for (j = state->i; j < strm->rsi * strm->block_size; j++)
-                state->block_buf[j] = state->block_buf[state->i - 1];
-            state->i = strm->rsi * strm->block_size;
-        } else {
-            if (state->zero_blocks) {
-                state->mode = m_encode_zero;
-                return M_CONTINUE;
-            }
-
-            emit(state, 0, state->bit_p);
-            if (state->direct_out == 0)
-                *strm->next_out++ = *state->cds_p;
-            strm->avail_out--;
-            strm->total_out++;
-
-            return M_EXIT;
-        }
-    }
-
-    return M_EXIT;
-}
-
-static int m_get_block_cautious(struct aec_stream *strm)
-{
-    struct internal_state *state = strm->state;
-
     do {
-        if (strm->avail_in > 0)
+        if (strm->avail_in > 0) {
             state->block_buf[state->i] = state->get_sample(strm);
-        else
-            return input_empty(strm);
+        } else {
+            if (state->flush == AEC_FLUSH) {
+                if (state->i > 0) {
+                    for (j = state->i; j < strm->rsi * strm->block_size; j++)
+                        state->block_buf[j] = state->block_buf[state->i - 1];
+                    state->i = strm->rsi * strm->block_size;
+                } else {
+                    if (state->zero_blocks) {
+                        state->mode = m_encode_zero;
+                        return M_CONTINUE;
+                    }
+
+                    emit(state, 0, state->bit_p);
+                    if (state->direct_out == 0)
+                        *strm->next_out++ = *state->cds_p;
+                    strm->avail_out--;
+                    strm->total_out++;
+
+                    return M_EXIT;
+                }
+            } else {
+                return M_EXIT;
+            }
+        }
     } while (++state->i < strm->rsi * strm->block_size);
 
     state->blocks_avail = strm->rsi - 1;
@@ -366,7 +360,6 @@ static int count_splitting_option(struct aec_stream *strm)
        larger binary part. So we know that the CDS for k+1 will be
        larger than for k without actually computing the length. An
        analogue check can be done for decreasing k.
-
      */
 
     int k, k_min;
@@ -403,8 +396,9 @@ static int count_splitting_option(struct aec_stream *strm)
                     k = state->k - 1;
                     dir = 0;
                     no_turn = 1;
+                } else {
+                    k++;
                 }
-                k++;
             } else {
                 if (fs_len >= this_bs || k == 0)
                     break;
