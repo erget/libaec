@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libsz.la libaec.la
+lib_LTLIBRARIES = libaec.la libsz.la
 libaec_la_SOURCES = encode.c encode_accessors.c decode.c encode.h encode_accessors.h
 libsz_la_SOURCES = sz_compat.c libaec.la
 libsz_la_LIBADD = libaec.la
