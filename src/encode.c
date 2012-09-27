@@ -123,26 +123,33 @@ EMITBLOCK(1);
 
 static void preprocess_unsigned(struct aec_stream *strm)
 {
-    int i;
-    int64_t theta, Delta, prev;
+    int64_t prev, d, t;
+    uint32_t *buf;
+    uint32_t xmax, s, rsi, msb, bits;
     struct internal_state *state = strm->state;
 
-    prev = state->block_buf[0];
+    buf = state->block_buf;
+    prev = *buf++;
+    xmax = state->xmax;
+    msb = 1UL << (strm->bit_per_sample - 1);
+    bits = 32 - strm->bit_per_sample;
 
-    for (i = 1; i < strm->rsi * strm->block_size; i++) {
-        theta = MIN(prev, state->xmax - prev);
-        Delta = (int64_t)state->block_buf[i] - prev;
-        prev = state->block_buf[i];
+    rsi = strm->rsi * strm->block_size - 1;
 
-        if (0 <= Delta && Delta <= theta) {
-            state->block_buf[i] = 2 * Delta;
-        } else if (-theta <= Delta && Delta < 0) {
-            state->block_buf[i] = 2
-                * (Delta < 0 ? -(uint64_t)Delta : Delta) - 1;
-        } else {
-            state->block_buf[i] = theta
-                + (Delta < 0 ? -(uint64_t)Delta : Delta);
-        }
+    while (rsi--) {
+        s = *buf < prev;
+        if (s)
+            d = prev - *buf;
+        else
+            d = *buf - prev;
+//        t = MIN(prev, xmax - prev);
+        t = (prev ^ ((int32_t)((prev & msb) << bits) >> 31));
+        prev = *buf;
+        if (d <= t)
+            *buf = 2 * d - s;
+        else
+            *buf = t + d;
+        buf++;
     }
 }
 
