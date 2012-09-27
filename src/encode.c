@@ -125,15 +125,12 @@ static void preprocess_unsigned(struct aec_stream *strm)
 {
     int64_t prev, d, t;
     uint32_t *buf;
-    uint32_t xmax, s, rsi, msb, bits;
+    uint32_t xmax, s, rsi;
     struct internal_state *state = strm->state;
 
     buf = state->block_buf;
     prev = *buf++;
     xmax = state->xmax;
-    msb = 1UL << (strm->bit_per_sample - 1);
-    bits = 32 - strm->bit_per_sample;
-
     rsi = strm->rsi * strm->block_size - 1;
 
     while (rsi--) {
@@ -142,8 +139,7 @@ static void preprocess_unsigned(struct aec_stream *strm)
             d = prev - *buf;
         else
             d = *buf - prev;
-//        t = MIN(prev, xmax - prev);
-        t = (prev ^ ((int32_t)((prev & msb) << bits) >> 31));
+        t = MIN(prev, xmax - prev);
         prev = *buf;
         if (d <= t)
             *buf = 2 * d - s;
@@ -155,28 +151,32 @@ static void preprocess_unsigned(struct aec_stream *strm)
 
 static void preprocess_signed(struct aec_stream *strm)
 {
-    int i, m;
-    int64_t theta, Delta, prev, sample;
+    int64_t prev, d, t, v, xmax, xmin;
+    uint32_t *buf;
+    uint32_t s, rsi, m;
     struct internal_state *state = strm->state;
 
+    buf = state->block_buf;
     m = 64 - strm->bit_per_sample;
-    prev = ((int64_t)state->block_buf[0] << m) >> m;
+    prev = (((int64_t)*buf++) << m) >> m;
+    xmax = state->xmax;
+    xmin = state->xmin;
+    rsi = strm->rsi * strm->block_size - 1;
 
-    for (i = 1; i < strm->rsi * strm->block_size; i++) {
-        theta = MIN(prev - state->xmin, state->xmax - prev);
-        sample = ((int64_t)state->block_buf[i] << m) >> m;
-        Delta = sample - prev;
-        prev = sample;
-
-        if (0 <= Delta && Delta <= theta) {
-            state->block_buf[i] = 2 * Delta;
-        } else if (-theta <= Delta && Delta < 0) {
-            state->block_buf[i] = 2
-                * (Delta < 0 ? -(uint64_t)Delta : Delta) - 1;
-        } else {
-            state->block_buf[i] = theta
-                + (Delta < 0 ? -(uint64_t)Delta : Delta);
-        }
+    while (rsi--) {
+        v = (((int64_t)*buf) << m) >> m;
+        s = v < prev;
+        if (s)
+            d = prev - v;
+        else
+            d = v - prev;
+        t = MIN(prev - xmin, xmax - prev);
+        prev = v;
+        if (d <= t)
+            *buf = 2 * d - s;
+        else
+            *buf = t + d;
+        buf++;
     }
 }
 
