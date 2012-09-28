@@ -210,7 +210,7 @@ static int m_get_block(struct aec_stream *strm)
         state->block_p = state->block_buf;
 
         if (strm->avail_in >= state->block_len * strm->rsi) {
-            state->get_block(strm);
+            state->get_rsi(strm);
             state->blocks_avail = strm->rsi - 1;
 
             if (strm->flags & AEC_DATA_PREPROCESS)
@@ -595,7 +595,6 @@ static int m_flush_block_cautious(struct aec_stream *strm)
 
 int aec_encode_init(struct aec_stream *strm)
 {
-    int bs, bsi;
     struct internal_state *state;
 
     if (strm->bit_per_sample > 32 || strm->bit_per_sample == 0)
@@ -617,11 +616,6 @@ int aec_encode_init(struct aec_stream *strm)
     memset(state, 0, sizeof(struct internal_state));
     strm->state = state;
 
-    bs = strm->block_size >> 3;
-    bsi = 0;
-    while (bs >>= 1)
-        bsi++;
-
     if (strm->bit_per_sample > 16) {
         /* 24/32 input bit settings */
         state->id_len = 5;
@@ -631,19 +625,19 @@ int aec_encode_init(struct aec_stream *strm)
             state->block_len = 3 * strm->block_size;
             if (strm->flags & AEC_DATA_MSB) {
                 state->get_sample = get_msb_24;
-                state->get_block = get_block_funcs_msb_24[bsi];
+                state->get_rsi = get_rsi_msb_24;
             } else {
                 state->get_sample = get_lsb_24;
-                state->get_block = get_block_funcs_lsb_24[bsi];
+                state->get_rsi = get_rsi_lsb_24;
             }
         } else {
             state->block_len = 4 * strm->block_size;
             if (strm->flags & AEC_DATA_MSB) {
                 state->get_sample = get_msb_32;
-                state->get_block = get_block_funcs_msb_32[bsi];
+                state->get_rsi = get_rsi_msb_32;
             } else {
                 state->get_sample = get_lsb_32;
-                state->get_block = get_block_funcs_lsb_32[bsi];
+                state->get_rsi = get_rsi_lsb_32;
             }
         }
     }
@@ -654,10 +648,10 @@ int aec_encode_init(struct aec_stream *strm)
 
         if (strm->flags & AEC_DATA_MSB) {
             state->get_sample = get_msb_16;
-            state->get_block = get_block_funcs_msb_16[bsi];
+            state->get_rsi = get_rsi_msb_16;
         } else {
             state->get_sample = get_lsb_16;
-            state->get_block = get_block_funcs_lsb_16[bsi];
+            state->get_rsi = get_rsi_lsb_16;
         }
     } else {
         /* 8 bit settings */
@@ -665,7 +659,7 @@ int aec_encode_init(struct aec_stream *strm)
         state->block_len = strm->block_size;
 
         state->get_sample = get_8;
-        state->get_block = get_block_funcs_8[bsi];
+        state->get_rsi = get_rsi_8;
     }
 
     if (strm->flags & AEC_DATA_SIGNED) {

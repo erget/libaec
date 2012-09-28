@@ -14,8 +14,8 @@
 
 struct internal_state {
     int (*mode)(struct aec_stream *);
-    void (*get_block)(struct aec_stream *);
     uint32_t (*get_sample)(struct aec_stream *);
+    void (*get_rsi)(struct aec_stream *);
     void (*preprocess)(struct aec_stream *);
 
     int id_len;             /* bit length of code option identification key */

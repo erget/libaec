@@ -44,8 +44,31 @@ uint32_t get_msb_24(struct aec_stream *strm)
     return data;
 }
 
-#ifdef WORDS_BIGENDIAN
+#define GET_NATIVE_16(BO)                       \
+uint32_t get_##BO##_16(struct aec_stream *strm) \
+{                                               \
+    uint32_t data;                              \
+                                                \
+    data = *(uint16_t *)strm->next_in;          \
+    strm->next_in += 2;                         \
+    strm->total_in += 2;                        \
+    strm->avail_in -= 2;                        \
+    return data;                                \
+}
 
+#define GET_NATIVE_32(BO)                       \
+uint32_t get_##BO##_32(struct aec_stream *strm) \
+{                                               \
+    uint32_t data;                              \
+                                                \
+    data = *(uint32_t *)strm->next_in;          \
+    strm->next_in += 4;                         \
+    strm->total_in += 4;                        \
+    strm->avail_in -= 4;                        \
+    return data;                                \
+}
+
+#ifdef WORDS_BIGENDIAN
 uint32_t get_lsb_16(struct aec_stream *strm)
 {
     uint32_t data;
@@ -53,17 +76,6 @@ uint32_t get_lsb_16(struct aec_stream *strm)
     data = ((uint32_t)strm->next_in[1] << 8)
         | (uint32_t)strm->next_in[0];
 
-    strm->next_in += 2;
-    strm->total_in += 2;
-    strm->avail_in -= 2;
-    return data;
-}
-
-uint32_t get_msb_16(struct aec_stream *strm)
-{
-    uint32_t data;
-
-    data = *(uint16_t *)strm->next_in;
     strm->next_in += 2;
     strm->total_in += 2;
     strm->avail_in -= 2;
@@ -85,29 +97,10 @@ uint32_t get_lsb_32(struct aec_stream *strm)
     return data;
 }
 
-uint32_t get_msb_32(struct aec_stream *strm)
-{
-    uint32_t data;
+GET_NATIVE_16(msb);
+GET_NATIVE_32(msb);
 
-    data = *(uint32_t *)strm->next_in;
-    strm->next_in += 4;
-    strm->total_in += 4;
-    strm->avail_in -= 4;
-    return data;
-}
-#else /* not WORDS_BIGENDIAN */
-
-uint32_t get_lsb_16(struct aec_stream *strm)
-{
-    uint32_t data;
-
-    data = *(uint16_t *)strm->next_in;
-    strm->next_in += 2;
-    strm->total_in += 2;
-    strm->avail_in -= 2;
-    return data;
-}
-
+#else /* !WORDS_BIGENDIAN */
 uint32_t get_msb_16(struct aec_stream *strm)
 {
     uint32_t data;
@@ -118,17 +111,6 @@ uint32_t get_msb_16(struct aec_stream *strm)
     strm->next_in += 2;
     strm->total_in += 2;
     strm->avail_in -= 2;
-    return data;
-}
-
-uint32_t get_lsb_32(struct aec_stream *strm)
-{
-    uint32_t data;
-
-    data = *(uint32_t *)strm->next_in;
-    strm->next_in += 4;
-    strm->total_in += 4;
-    strm->avail_in -= 4;
     return data;
 }
 
@@ -146,241 +128,326 @@ uint32_t get_msb_32(struct aec_stream *strm)
     strm->avail_in -= 4;
     return data;
 }
-#endif /* not WORDS_BIGENDIAN */
 
-#define GET_BLOCK_8(BS)                                              \
-    static void get_block_8_bs_##BS(struct aec_stream *strm)         \
-    {                                                                \
-        int i, j;                                                    \
-        uint32_t *block = strm->state->block_buf;                    \
-                                                                     \
-        for (i = 0; i < strm->rsi; i++)                              \
-            for (j = 0; j < BS; j++)                                 \
-                block[i * BS + j] = strm->next_in[i * BS + j];       \
-                                                                     \
-        strm->next_in += BS * strm->rsi;                             \
-        strm->total_in += BS * strm->rsi;                            \
-        strm->avail_in -= BS * strm->rsi;                            \
+GET_NATIVE_16(lsb);
+GET_NATIVE_32(lsb);
+
+#endif /* !WORDS_BIGENDIAN */
+
+void get_rsi_8(struct aec_stream *strm)
+{
+    uint32_t *out = strm->state->block_buf;
+    unsigned const char *in = strm->next_in;
+    int rsi = strm->rsi * strm->block_size;
+
+    strm->next_in += rsi;
+    strm->total_in += rsi;
+    strm->avail_in -= rsi;
+
+    while (rsi) {
+        out[0] = (uint32_t)in[0];
+        out[1] = (uint32_t)in[1];
+        out[2] = (uint32_t)in[2];
+        out[3] = (uint32_t)in[3];
+        out[4] = (uint32_t)in[4];
+        out[5] = (uint32_t)in[5];
+        out[6] = (uint32_t)in[6];
+        out[7] = (uint32_t)in[7];
+        in += 8;
+        out += 8;
+        rsi -= 8;
+    }
+}
+
+void get_rsi_lsb_24(struct aec_stream *strm)
+{
+    uint32_t *out = strm->state->block_buf;
+    unsigned const char *in = strm->next_in;
+    int rsi = strm->rsi * strm->block_size;
+
+    strm->next_in += 3 * rsi;
+    strm->total_in += 3 * rsi;
+    strm->avail_in -= 3 * rsi;
+
+    while (rsi) {
+        out[0] = (uint32_t)in[0]
+            | ((uint32_t)in[1] << 8)
+            | ((uint32_t)in[2] << 16);
+        out[1] = (uint32_t)in[3]
+            | ((uint32_t)in[4] << 8)
+            | ((uint32_t)in[5] << 16);
+        out[2] = (uint32_t)in[6]
+            | ((uint32_t)in[7] << 8)
+            | ((uint32_t)in[8] << 16);
+        out[3] = (uint32_t)in[9]
+            | ((uint32_t)in[10] << 8)
+            | ((uint32_t)in[11] << 16);
+        out[4] = (uint32_t)in[12]
+            | ((uint32_t)in[13] << 8)
+            | ((uint32_t)in[14] << 16);
+        out[5] = (uint32_t)in[15]
+            | ((uint32_t)in[16] << 8)
+            | ((uint32_t)in[17] << 16);
+        out[6] = (uint32_t)in[18]
+            | ((uint32_t)in[19] << 8)
+            | ((uint32_t)in[20] << 16);
+        out[7] = (uint32_t)in[21]
+            | ((uint32_t)in[22] << 8)
+            | ((uint32_t)in[23] << 16);
+        in += 24;
+        out += 8;
+        rsi -= 8;
+    }
+}
+
+void get_rsi_msb_24(struct aec_stream *strm)
+{
+    uint32_t *out = strm->state->block_buf;
+    unsigned const char *in = strm->next_in;
+    int rsi = strm->rsi * strm->block_size;
+
+    strm->next_in += 3 * rsi;
+    strm->total_in += 3 * rsi;
+    strm->avail_in -= 3 * rsi;
+
+    while (rsi) {
+        out[0] = ((uint32_t)in[0] << 16)
+            | ((uint32_t)in[1] << 8)
+            | (uint32_t)in[2];
+        out[1] = ((uint32_t)in[3] << 16)
+            | ((uint32_t)in[4] << 8)
+            | (uint32_t)in[5];
+        out[2] = ((uint32_t)in[6] << 16)
+            | ((uint32_t)in[7] << 8)
+            | (uint32_t)in[8];
+        out[3] = ((uint32_t)in[9] << 16)
+            | ((uint32_t)in[10] << 8)
+            | (uint32_t)in[11];
+        out[4] = ((uint32_t)in[12] << 16)
+            | ((uint32_t)in[13] << 8)
+            | (uint32_t)in[14];
+        out[5] = ((uint32_t)in[15] << 16)
+            | ((uint32_t)in[16] << 8)
+            | (uint32_t)in[17];
+        out[6] = ((uint32_t)in[18] << 16)
+            | ((uint32_t)in[19] << 8)
+            | (uint32_t)in[20];
+        out[7] = ((uint32_t)in[21] << 16)
+            | ((uint32_t)in[22] << 8)
+            | (uint32_t)in[23];
+        in += 24;
+        out += 8;
+        rsi -= 8;
+    }
+}
+
+#define GET_RSI_NATIVE_16(BO)                       \
+    void get_rsi_##BO##_16(struct aec_stream *strm) \
+    {                                               \
+        uint32_t *out = strm->state->block_buf;     \
+        uint16_t *in = (uint16_t *)strm->next_in;   \
+        int rsi = strm->rsi * strm->block_size;     \
+                                                    \
+        strm->next_in += 2 * rsi;                   \
+        strm->total_in += 2 * rsi;                  \
+        strm->avail_in -= 2 * rsi;                  \
+                                                    \
+        while (rsi) {                               \
+            out[0] = (uint32_t)in[0];               \
+            out[1] = (uint32_t)in[1];               \
+            out[2] = (uint32_t)in[2];               \
+            out[3] = (uint32_t)in[3];               \
+            out[4] = (uint32_t)in[4];               \
+            out[5] = (uint32_t)in[5];               \
+            out[6] = (uint32_t)in[6];               \
+            out[7] = (uint32_t)in[7];               \
+            in += 8;                                \
+            out += 8;                               \
+            rsi -= 8;                               \
+        }                                           \
     }
 
-#define GET_BLOCK_NATIVE_16(BS)                                      \
-    static void get_block_native_16_bs_##BS(struct aec_stream *strm) \
-    {                                                                \
-        int i, j;                                                    \
-        uint32_t *block = strm->state->block_buf;                    \
-        uint16_t *next_in = (uint16_t *)strm->next_in;               \
-                                                                     \
-        for (i = 0; i < strm->rsi; i++)                              \
-            for (j = 0; j < BS; j++)                                 \
-                block[i * BS + j] = (uint32_t)next_in[i * BS + j];   \
-                                                                     \
-        strm->next_in += 2 * BS * strm->rsi;                         \
-        strm->total_in += 2 * BS * strm->rsi;                        \
-        strm->avail_in -= 2 * BS * strm->rsi;                        \
+#define GET_RSI_NATIVE_32(BO)                       \
+    void get_rsi_##BO##_32(struct aec_stream *strm) \
+    {                                               \
+        int rsi = strm->rsi * strm->block_size;     \
+        memcpy(strm->state->block_buf,              \
+               strm->next_in, 4 * rsi);             \
+        strm->next_in += 4 * rsi;                   \
+        strm->total_in += 4 * rsi;                  \
+        strm->avail_in -= 4 * rsi;                  \
     }
-
-#define GET_BLOCK_LSB_16(BS)                                         \
-    static void get_block_lsb_16_bs_##BS(struct aec_stream *strm)    \
-    {                                                                \
-        int i, j;                                                    \
-        uint32_t *block = strm->state->block_buf;                    \
-                                                                     \
-        for (i = 0; i < strm->rsi; i++)                              \
-            for (j = 0; j < BS; j++)                                 \
-                block[i * BS + j] =                                  \
-                    (uint32_t)strm->next_in[2 * (i * BS + j)]        \
-                    | ((uint32_t)strm->next_in[2 * (i * BS + j) + 1] \
-                       << 8);                                        \
-                                                                     \
-        strm->next_in += 2 * BS * strm->rsi;                         \
-        strm->total_in += 2 * BS * strm->rsi;                        \
-        strm->avail_in -= 2 * BS * strm->rsi;                        \
-    }
-
-#define GET_BLOCK_MSB_16(BS)                                         \
-    static void get_block_msb_16_bs_##BS(struct aec_stream *strm)    \
-    {                                                                \
-        int i, j;                                                    \
-        uint32_t *block = strm->state->block_buf;                    \
-                                                                     \
-        for (i = 0; i < strm->rsi; i++)                              \
-            for (j = 0; j < BS; j++)                                 \
-                block[i * BS + j] =                                  \
-                    ((uint32_t)strm->next_in[2 * (i * BS + j)] << 8) \
-                    | (uint32_t)strm->next_in[2 * (i * BS + j) + 1]; \
-                                                                     \
-        strm->next_in += 2 * BS * strm->rsi;                         \
-        strm->total_in += 2 * BS * strm->rsi;                        \
-        strm->avail_in -= 2 * BS * strm->rsi;                        \
-    }
-
-#define GET_BLOCK_LSB_24(BS)                                         \
-    static void get_block_lsb_24_bs_##BS(struct aec_stream *strm)    \
-    {                                                                \
-        int i, j;                                                    \
-        uint32_t *block = strm->state->block_buf;                    \
-                                                                     \
-        for (i = 0; i < strm->rsi; i++)                              \
-            for (j = 0; j < BS; j++)                                 \
-                block[i * BS + j] =                                  \
-                    (uint32_t)strm->next_in[3 * (i * BS + j)]        \
-                    | ((uint32_t)strm->next_in[3 * (i * BS + j) + 1] \
-                       << 8)                                         \
-                    | ((uint32_t)strm->next_in[3 * (i * BS + j) + 2] \
-                       << 16);                                       \
-                                                                     \
-        strm->next_in += 3 * BS * strm->rsi;                         \
-        strm->total_in += 3 * BS * strm->rsi;                        \
-        strm->avail_in -= 3 * BS * strm->rsi;                        \
-    }
-
-#define GET_BLOCK_MSB_24(BS)                                         \
-    static void get_block_msb_24_bs_##BS(struct aec_stream *strm)    \
-    {                                                                \
-        int i, j;                                                    \
-        uint32_t *block = strm->state->block_buf;                    \
-                                                                     \
-        for (i = 0; i < strm->rsi; i++)                              \
-            for (j = 0; j < BS; j++)                                 \
-                block[i * BS + j] =                                  \
-                    ((uint32_t)strm->next_in[3 * (i * BS + j)]       \
-                       << 16)                                        \
-                    | ((uint32_t)strm->next_in[3 * (i * BS + j) + 1] \
-                       << 8)                                         \
-                    | (uint32_t)strm->next_in[3 * (i * BS + j) + 2]; \
-                                                                     \
-        strm->next_in += 3 * BS * strm->rsi;                         \
-        strm->total_in += 3 * BS * strm->rsi;                        \
-        strm->avail_in -= 3 * BS * strm->rsi;                        \
-    }
-
-#define GET_BLOCK_NATIVE_32(BS)                                      \
-    static void get_block_native_32_bs_##BS(struct aec_stream *strm) \
-    {                                                                \
-        memcpy(strm->state->block_buf,                               \
-               strm->next_in,                                        \
-               4 * BS * strm->rsi);                                  \
-                                                                     \
-        strm->next_in += 4 * BS * strm->rsi;                         \
-        strm->total_in += 4 * BS * strm->rsi;                        \
-        strm->avail_in -= 4 * BS * strm->rsi;                        \
-    }
-
-#define GET_BLOCK_LSB_32(BS)                                         \
-    static void get_block_lsb_32_bs_##BS(struct aec_stream *strm)    \
-    {                                                                \
-        int i, j;                                                    \
-        uint32_t *block = strm->state->block_buf;                    \
-                                                                     \
-        for (i = 0; i < strm->rsi; i++)                              \
-            for (j = 0; j < BS; j++)                                 \
-                block[i * BS + j] =                                  \
-                    (uint32_t)strm->next_in[4 * (i * BS + j)]        \
-                    | ((uint32_t)strm->next_in[4 * (i * BS + j) + 1] \
-                       << 8)                                         \
-                    | ((uint32_t)strm->next_in[4 * (i * BS + j) + 2] \
-                       << 16)                                        \
-                    | ((uint32_t)strm->next_in[4 * (i * BS + j) + 3] \
-                       << 24);                                       \
-                                                                     \
-        strm->next_in += 4 * BS * strm->rsi;                         \
-        strm->total_in += 4 * BS * strm->rsi;                        \
-        strm->avail_in -= 4 * BS * strm->rsi;                        \
-    }
-
-#define GET_BLOCK_MSB_32(BS)                                         \
-    static void get_block_msb_32_bs_##BS(struct aec_stream *strm)    \
-    {                                                                \
-        int i, j;                                                    \
-        uint32_t *block = strm->state->block_buf;                    \
-                                                                     \
-        for (i = 0; i < strm->rsi; i++)                              \
-            for (j = 0; j < BS; j++)                                 \
-                block[i * BS + j] =                                  \
-                    ((uint32_t)strm->next_in[4 * (i * BS + j)]       \
-                     << 24)                                          \
-                    | ((uint32_t)strm->next_in[4 * (i * BS + j) + 1] \
-                       << 16)                                        \
-                    | ((uint32_t)strm->next_in[4 * (i * BS + j) + 2] \
-                       << 8)                                         \
-                    | (uint32_t)strm->next_in[4 * (i * BS + j) + 3]; \
-                                                                     \
-        strm->next_in += 4 * BS * strm->rsi;                         \
-        strm->total_in += 4 * BS * strm->rsi;                        \
-        strm->avail_in -= 4 * BS * strm->rsi;                        \
-    }
-
-#define GET_BLOCK_FUNCS(A, B)                               \
-    void (*get_block_funcs_##A[])(struct aec_stream *) = {  \
-        get_block_##B##_bs_8,                               \
-        get_block_##B##_bs_16,                              \
-        get_block_##B##_bs_32,                              \
-        get_block_##B##_bs_64,                              \
-    }
-
-GET_BLOCK_8(8);
-GET_BLOCK_8(16);
-GET_BLOCK_8(32);
-GET_BLOCK_8(64);
-
-GET_BLOCK_FUNCS(8, 8);
-
-GET_BLOCK_LSB_24(8);
-GET_BLOCK_LSB_24(16);
-GET_BLOCK_LSB_24(32);
-GET_BLOCK_LSB_24(64);
-
-GET_BLOCK_FUNCS(lsb_24, lsb_24);
-
-GET_BLOCK_MSB_24(8);
-GET_BLOCK_MSB_24(16);
-GET_BLOCK_MSB_24(32);
-GET_BLOCK_MSB_24(64);
-
-GET_BLOCK_FUNCS(msb_24, msb_24);
-
-GET_BLOCK_NATIVE_16(8);
-GET_BLOCK_NATIVE_16(16);
-GET_BLOCK_NATIVE_16(32);
-GET_BLOCK_NATIVE_16(64);
-
-GET_BLOCK_NATIVE_32(8);
-GET_BLOCK_NATIVE_32(16);
-GET_BLOCK_NATIVE_32(32);
-GET_BLOCK_NATIVE_32(64);
 
 #ifdef WORDS_BIGENDIAN
+void get_rsi_lsb_16(struct aec_stream *strm)
+{
+    uint32_t *out = strm->state->block_buf;
+    unsigned const char *in = strm->next_in;
+    int rsi = strm->rsi * strm->block_size;
 
-GET_BLOCK_LSB_16(8);
-GET_BLOCK_LSB_16(16);
-GET_BLOCK_LSB_16(32);
-GET_BLOCK_LSB_16(64);
+    strm->next_in += 2 * rsi;
+    strm->total_in += 2 * rsi;
+    strm->avail_in -= 2 * rsi;
 
-GET_BLOCK_LSB_32(8);
-GET_BLOCK_LSB_32(16);
-GET_BLOCK_LSB_32(32);
-GET_BLOCK_LSB_32(64);
+    while (rsi) {
+        out[0] = (uint32_t)in[0]
+            | ((uint32_t)in[1] << 8);
+        out[1] = (uint32_t)in[2]
+            | ((uint32_t)in[3] << 8);
+        out[2] = (uint32_t)in[4]
+            | ((uint32_t)in[5] << 8);
+        out[3] = (uint32_t)in[6]
+            | ((uint32_t)in[7] << 8);
+        out[4] = (uint32_t)in[8]
+            | ((uint32_t)in[9] << 8);
+        out[5] = (uint32_t)in[10]
+            | ((uint32_t)in[11] << 8);
+        out[6] = (uint32_t)in[12]
+            | ((uint32_t)in[13] << 8);
+        out[7] = (uint32_t)in[14]
+            | ((uint32_t)in[15] << 8);
+        in += 16;
+        out += 8;
+        rsi -= 8;
+    }
+}
 
-GET_BLOCK_FUNCS(lsb_16, lsb_16);
-GET_BLOCK_FUNCS(msb_16, native_16);
-GET_BLOCK_FUNCS(lsb_32, lsb_32);
-GET_BLOCK_FUNCS(msb_32, native_32);
+void get_rsi_lsb_32(struct aec_stream *strm)
+{
+    uint32_t *out = strm->state->block_buf;
+    unsigned const char *in = strm->next_in;
+    int rsi = strm->rsi * strm->block_size;
 
-#else /* not WORDS_BIGENDIAN */
+    strm->next_in += 4 * rsi;
+    strm->total_in += 4 * rsi;
+    strm->avail_in -= 4 * rsi;
 
-GET_BLOCK_MSB_16(8);
-GET_BLOCK_MSB_16(16);
-GET_BLOCK_MSB_16(32);
-GET_BLOCK_MSB_16(64);
+    while (rsi) {
+        out[0] = (uint32_t)in[0]
+            | ((uint32_t)in[1] << 8)
+            | ((uint32_t)in[2] << 16)
+            | ((uint32_t)in[3] << 24);
+        out[1] = (uint32_t)in[4]
+            | ((uint32_t)in[5] << 8)
+            | ((uint32_t)in[6] << 16)
+            | ((uint32_t)in[7] << 24);
+        out[2] = (uint32_t)in[8]
+            | ((uint32_t)in[9] << 8)
+            | ((uint32_t)in[10] << 16)
+            | ((uint32_t)in[11] << 24);
+        out[3] = (uint32_t)in[12]
+            | ((uint32_t)in[13] << 8)
+            | ((uint32_t)in[14] << 16)
+            | ((uint32_t)in[15] << 24);
+        out[4] = (uint32_t)in[16]
+            | ((uint32_t)in[17] << 8)
+            | ((uint32_t)in[18] << 16)
+            | ((uint32_t)in[19] << 24);
+        out[5] = (uint32_t)in[20]
+            | ((uint32_t)in[21] << 8)
+            | ((uint32_t)in[22] << 16)
+            | ((uint32_t)in[23] << 24);
+        out[6] = (uint32_t)in[24]
+            | ((uint32_t)in[25] << 8)
+            | ((uint32_t)in[26] << 16)
+            | ((uint32_t)in[27] << 24);
+        out[7] = (uint32_t)in[28]
+            | ((uint32_t)in[29] << 8)
+            | ((uint32_t)in[30] << 16)
+            | ((uint32_t)in[31] << 24);
+        in += 32;
+        out += 8;
+        rsi -= 8;
+    }
+}
 
-GET_BLOCK_MSB_32(8);
-GET_BLOCK_MSB_32(16);
-GET_BLOCK_MSB_32(32);
-GET_BLOCK_MSB_32(64);
+GET_RSI_NATIVE_16(msb);
+GET_RSI_NATIVE_32(msb);
 
-GET_BLOCK_FUNCS(lsb_16, native_16);
-GET_BLOCK_FUNCS(msb_16, msb_16);
-GET_BLOCK_FUNCS(lsb_32, native_32);
-GET_BLOCK_FUNCS(msb_32, msb_32);
+#else /* !WORDS_BIGENDIAN */
+void get_rsi_msb_16(struct aec_stream *strm)
+{
+    uint32_t *out = strm->state->block_buf;
+    unsigned const char *in = strm->next_in;
+    int rsi = strm->rsi * strm->block_size;
 
-#endif /* not WORDS_BIGENDIAN */
+    strm->next_in += 2 * rsi;
+    strm->total_in += 2 * rsi;
+    strm->avail_in -= 2 * rsi;
+
+    while (rsi) {
+        out[0] = ((uint32_t)in[0] << 8)
+            | (uint32_t)in[1];
+        out[1] = ((uint32_t)in[2] << 8)
+            | (uint32_t)in[3];
+        out[2] = ((uint32_t)in[4] << 8)
+            | (uint32_t)in[5];
+        out[3] = ((uint32_t)in[6] << 8)
+            | (uint32_t)in[7];
+        out[4] = ((uint32_t)in[8] << 8)
+            | (uint32_t)in[9];
+        out[5] = ((uint32_t)in[10] << 8)
+            | (uint32_t)in[11];
+        out[6] = ((uint32_t)in[12] << 8)
+            | (uint32_t)in[13];
+        out[7] = ((uint32_t)in[14] << 8)
+            | (uint32_t)in[15];
+        in += 16;
+        out += 8;
+        rsi -= 8;
+    }
+}
+
+void get_rsi_msb_32(struct aec_stream *strm)
+{
+    uint32_t *out = strm->state->block_buf;
+    unsigned const char *in = strm->next_in;
+    int rsi = strm->rsi * strm->block_size;
+
+    strm->next_in += 4 * rsi;
+    strm->total_in += 4 * rsi;
+    strm->avail_in -= 4 * rsi;
+
+    while (rsi) {
+        out[0] = ((uint32_t)in[0] << 24)
+            | ((uint32_t)in[1] << 16)
+            | ((uint32_t)in[2] << 8)
+            | (uint32_t)in[3];
+        out[1] = ((uint32_t)in[4] << 24)
+            | ((uint32_t)in[5] << 16)
+            | ((uint32_t)in[6] << 8)
+            | (uint32_t)in[7];
+        out[2] = ((uint32_t)in[8] << 24)
+            | ((uint32_t)in[9] << 16)
+            | ((uint32_t)in[10] << 8)
+            | (uint32_t)in[11];
+        out[3] = ((uint32_t)in[12] << 24)
+            | ((uint32_t)in[13] << 16)
+            | ((uint32_t)in[14] << 8)
+            | (uint32_t)in[15];
+        out[4] = ((uint32_t)in[16] << 24)
+            | ((uint32_t)in[17] << 16)
+            | ((uint32_t)in[18] << 8)
+            | (uint32_t)in[19];
+        out[5] = ((uint32_t)in[20] << 24)
+            | ((uint32_t)in[21] << 16)
+            | ((uint32_t)in[22] << 8)
+            | (uint32_t)in[23];
+        out[6] = ((uint32_t)in[24] << 24)
+            | ((uint32_t)in[25] << 16)
+            | ((uint32_t)in[26] << 8)
+            | (uint32_t)in[27];
+        out[7] = ((uint32_t)in[28] << 24)
+            | ((uint32_t)in[29] << 16)
+            | ((uint32_t)in[30] << 8)
+            | (uint32_t)in[31];
+        in += 32;
+        out += 8;
+        rsi -= 8;
+    }
+}
+
+GET_RSI_NATIVE_16(lsb);
+GET_RSI_NATIVE_32(lsb);
+
+#endif /* !WORDS_BIGENDIAN */
