@@ -29,13 +29,11 @@ AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
 
 # Checks for library functions.
-AC_FUNC_MALLOC
 AC_CHECK_FUNCS([memset strstr])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  tests/Makefile])
-AC_OUTPUT
-
-# Checks compilers and preprocessors
 AC_C_BIGENDIAN
+
+AC_OUTPUT
