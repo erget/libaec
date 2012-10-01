@@ -3,7 +3,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+
+#ifndef _AIX
 #include <getopt.h>
+#endif
+
 #include "libaec.h"
 
 #define CHUNK 1024
