@@ -26,8 +26,6 @@
 /* Marker for Remainder Of Segment condition in zero block encoding */
 #define ROS -1
 
-#define MIN(a, b) (((a) < (b))? (a): (b))
-
 static int m_get_block(struct aec_stream *strm);
 static int m_get_block_cautious(struct aec_stream *strm);
 static int m_check_zero_block(struct aec_stream *strm);
@@ -135,11 +133,14 @@ static void preprocess_unsigned(struct aec_stream *strm)
 
     while (rsi--) {
         s = *buf < prev;
-        if (s)
+        if (s) {
             d = prev - *buf;
-        else
+            t = xmax - prev;
+        } else {
             d = *buf - prev;
-        t = MIN(prev, xmax - prev);
+            t = prev;
+        }
+
         prev = *buf;
         if (d <= t)
             *buf = 2 * d - s;
@@ -166,11 +167,14 @@ static void preprocess_signed(struct aec_stream *strm)
     while (rsi--) {
         v = (((int64_t)*buf) << m) >> m;
         s = v < prev;
-        if (s)
+        if (s) {
             d = prev - v;
-        else
+            t = xmax - prev;
+        } else {
             d = v - prev;
-        t = MIN(prev - xmin, xmax - prev);
+            t = prev - xmin;
+        }
+
         prev = v;
         if (d <= t)
             *buf = 2 * d - s;
