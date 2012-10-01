@@ -276,21 +276,32 @@ static int m_get_block_cautious(struct aec_stream *strm)
 
 static int m_check_zero_block(struct aec_stream *strm)
 {
-    int i;
     struct internal_state *state = strm->state;
+    uint32_t *p = state->block_p + state->ref;
+    uint32_t *end = state->block_p + strm->block_size;
 
-    i = state->ref;
-    while(i < strm->block_size && state->block_p[i] == 0)
-        i++;
+    while(*p == 0 && p < end)
+        p++;
 
-    if (i == strm->block_size) {
-        if (state->zero_blocks == 0) {
+    if (p < end) {
+        if (state->zero_blocks) {
+            /* The current block isn't zero but we have to emit a
+             * previous zero block first. The current block will be
+             * handled later.
+             */
+            state->block_p -= strm->block_size;
+            state->blocks_avail++;
+            state->mode = m_encode_zero;
+            return M_CONTINUE;
+        }
+        state->mode = m_select_code_option;
+        return M_CONTINUE;
+    } else {
+        state->zero_blocks++;
+        if (state->zero_blocks == 1) {
             state->zero_ref = state->ref;
             state->zero_ref_sample = state->block_p[0];
         }
-
-        state->zero_blocks++;
-
         if ((strm->rsi - state->blocks_avail) % 64 == 0) {
             if (state->zero_blocks > 4)
                 state->zero_blocks = ROS;
@@ -299,18 +310,7 @@ static int m_check_zero_block(struct aec_stream *strm)
         }
         state->mode = m_get_block;
         return M_CONTINUE;
-    } else if (state->zero_blocks) {
-        /* The current block isn't zero but we have to emit a previous
-         * zero block first. The current block will be handled
-         * later.
-         */
-        state->block_p -= strm->block_size;
-        state->blocks_avail++;
-        state->mode = m_encode_zero;
-        return M_CONTINUE;
     }
-    state->mode = m_select_code_option;
-    return M_CONTINUE;
 }
 
 static uint64_t block_fs(struct aec_stream *strm, int k)
