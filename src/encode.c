@@ -121,15 +121,14 @@ EMITBLOCK(1);
 
 static void preprocess_unsigned(struct aec_stream *strm)
 {
-    int64_t prev, d, t;
-    uint32_t *buf;
-    uint32_t xmax, s, rsi;
+    int64_t d;
+    int64_t t;
+    uint32_t s;
     struct internal_state *state = strm->state;
-
-    buf = state->block_buf;
-    prev = *buf++;
-    xmax = state->xmax;
-    rsi = strm->rsi * strm->block_size - 1;
+    uint32_t *buf = state->block_buf;
+    int64_t prev = *buf++;
+    uint32_t xmax = state->xmax;
+    uint32_t rsi = strm->rsi * strm->block_size - 1;
 
     while (rsi--) {
         s = *buf < prev;
@@ -152,20 +151,20 @@ static void preprocess_unsigned(struct aec_stream *strm)
 
 static void preprocess_signed(struct aec_stream *strm)
 {
-    int64_t prev, d, t, v, xmax, xmin;
-    uint32_t *buf;
-    uint32_t s, rsi, m;
+    int64_t d;
+    int64_t t;
+    int64_t v;
+    uint32_t s;
     struct internal_state *state = strm->state;
-
-    buf = state->block_buf;
-    m = 64 - strm->bit_per_sample;
-    prev = (((int64_t)*buf++) << m) >> m;
-    xmax = state->xmax;
-    xmin = state->xmin;
-    rsi = strm->rsi * strm->block_size - 1;
+    uint32_t *buf = state->block_buf;
+    uint32_t m = 1ULL << (strm->bit_per_sample - 1);
+    int64_t prev = (((int64_t)*buf++) ^ m) - m;
+    int64_t xmax = state->xmax;
+    int64_t xmin = state->xmin;
+    uint32_t rsi = strm->rsi * strm->block_size - 1;
 
     while (rsi--) {
-        v = (((int64_t)*buf) << m) >> m;
+        v = (((int64_t)*buf) ^ m) - m;
         s = v < prev;
         if (s) {
             d = prev - v;
