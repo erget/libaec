@@ -1,4 +1,4 @@
-INCLUDES = -I$(top_srcdir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src
 TESTS = check_code_options check_buffer_sizes
 check_LTLIBRARIES = libcheck_aec.la
 libcheck_aec_la_SOURCES = check_aec.c check_aec.h

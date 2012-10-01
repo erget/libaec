@@ -14,5 +14,6 @@ config.status
 configure
 libtool
 autom4te.cache
-m4
+.DS_Store
+data
 
