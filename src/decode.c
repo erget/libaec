@@ -608,7 +608,7 @@ req_buffer:
     return AEC_OK;
 }
 
-int aec_buf_decode(struct aec_stream *strm)
+int aec_buffer_decode(struct aec_stream *strm)
 {
     int status;
 

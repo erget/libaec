@@ -740,7 +740,7 @@ int aec_encode_end(struct aec_stream *strm)
     return AEC_OK;
 }
 
-int aec_buf_encode(struct aec_stream *strm)
+int aec_buffer_encode(struct aec_stream *strm)
 {
     int status;
 

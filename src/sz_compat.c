@@ -19,7 +19,7 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
     strm.next_out = dest;
     strm.next_in = source;
 
-    status = aec_buf_encode(&strm);
+    status = aec_buffer_encode(&strm);
     if (status != AEC_OK)
         return status;
 
@@ -43,7 +43,7 @@ int SZ_BufftoBuffDecompress(void *dest, size_t *destLen,
     strm.next_out = dest;
     strm.next_in = source;
 
-    status = aec_buf_decode(&strm);
+    status = aec_buffer_decode(&strm);
     if (status != AEC_OK)
         return status;
 
