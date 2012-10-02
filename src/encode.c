@@ -328,18 +328,18 @@ static uint64_t block_fs(struct aec_stream *strm, int k)
         + (uint64_t)(state->block_p[7] >> k);
 
     if (strm->block_size > 8)
-        for (j = 1; j < strm->block_size / 8; j++)
+        for (j = 8; j < strm->block_size; j += 8)
             fs +=
-                (uint64_t)(state->block_p[j * 8 + 0] >> k)
-                + (uint64_t)(state->block_p[j * 8 + 1] >> k)
-                + (uint64_t)(state->block_p[j * 8 + 2] >> k)
-                + (uint64_t)(state->block_p[j * 8 + 3] >> k)
-                + (uint64_t)(state->block_p[j * 8 + 4] >> k)
-                + (uint64_t)(state->block_p[j * 8 + 5] >> k)
-                + (uint64_t)(state->block_p[j * 8 + 6] >> k)
-                + (uint64_t)(state->block_p[j * 8 + 7] >> k);
+                (uint64_t)(state->block_p[j + 0] >> k)
+                + (uint64_t)(state->block_p[j + 1] >> k)
+                + (uint64_t)(state->block_p[j + 2] >> k)
+                + (uint64_t)(state->block_p[j + 3] >> k)
+                + (uint64_t)(state->block_p[j + 4] >> k)
+                + (uint64_t)(state->block_p[j + 5] >> k)
+                + (uint64_t)(state->block_p[j + 6] >> k)
+                + (uint64_t)(state->block_p[j + 7] >> k);
 
-    if (state->ref == 0)
+    if (!state->ref)
         fs += (uint64_t)(state->block_p[0] >> k);
 
     return fs;
@@ -486,13 +486,15 @@ static int m_encode_splitting(struct aec_stream *strm)
         emit(state, state->block_p[0], strm->bit_per_sample);
         for (i = 1; i < strm->block_size; i++)
             emitfs(state, state->block_p[i] >> k);
-        if (k) emitblock_1(strm, k);
+        if (k)
+            emitblock_1(strm, k);
     }
     else
     {
         for (i = 0; i < strm->block_size; i++)
             emitfs(state, state->block_p[i] >> k);
-        if (k) emitblock_0(strm, k);
+        if (k)
+            emitblock_0(strm, k);
     }
 
     return m_flush_block(strm);
@@ -502,7 +504,7 @@ static int m_encode_uncomp(struct aec_stream *strm)
 {
     struct internal_state *state = strm->state;
 
-    emit(state, (1 << state->id_len) - 1, state->id_len);
+    emit(state, (1U << state->id_len) - 1, state->id_len);
     emitblock_0(strm, strm->bit_per_sample);
 
     return m_flush_block(strm);
