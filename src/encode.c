@@ -122,63 +122,63 @@ EMITBLOCK(1);
 static void preprocess_unsigned(struct aec_stream *strm)
 {
     int64_t d;
-    int64_t t;
-    uint32_t s;
     struct internal_state *state = strm->state;
-    uint32_t *buf = state->block_buf;
-    int64_t prev = *buf++;
+    uint32_t *x = state->block_buf;
+    int64_t x1 = *x++;
     uint32_t xmax = state->xmax;
     uint32_t rsi = strm->rsi * strm->block_size - 1;
 
     while (rsi--) {
-        s = *buf < prev;
-        if (s) {
-            d = prev - *buf;
-            t = xmax - prev;
+        if (*x >= x1) {
+            d = *x - x1;
+            if (d <= x1) {
+                x1 = *x;
+                *x = 2 * d;
+            } else {
+                x1 = *x;
+            }
         } else {
-            d = *buf - prev;
-            t = prev;
+            d = x1 - *x;
+            if (d <= xmax - x1) {
+                x1 = *x;
+                *x = 2 * d - 1;
+            } else {
+                x1 = *x;
+                *x = xmax - *x;
+            }
         }
-
-        prev = *buf;
-        if (d <= t)
-            *buf = 2 * d - s;
-        else
-            *buf = t + d;
-        buf++;
+        x++;
     }
 }
 
 static void preprocess_signed(struct aec_stream *strm)
 {
     int64_t d;
-    int64_t t;
-    int64_t v;
-    uint32_t s;
+    int64_t x;
     struct internal_state *state = strm->state;
     uint32_t *buf = state->block_buf;
     uint32_t m = 1ULL << (strm->bit_per_sample - 1);
-    int64_t prev = (((int64_t)*buf++) ^ m) - m;
+    int64_t x1 = (((int64_t)*buf++) ^ m) - m;
     int64_t xmax = state->xmax;
     int64_t xmin = state->xmin;
     uint32_t rsi = strm->rsi * strm->block_size - 1;
 
     while (rsi--) {
-        v = (((int64_t)*buf) ^ m) - m;
-        s = v < prev;
-        if (s) {
-            d = prev - v;
-            t = xmax - prev;
+        x = (((int64_t)*buf) ^ m) - m;
+        if (x < x1) {
+            d = x1 - x;
+            if (d <= xmax - x1)
+                *buf = 2 * d - 1;
+            else
+                *buf = xmax - x;
         } else {
-            d = v - prev;
-            t = prev - xmin;
+            d = x - x1;
+            if (d <= x1 - xmin)
+                *buf = 2 * d;
+            else
+                *buf = x - xmin;
         }
-
-        prev = v;
-        if (d <= t)
-            *buf = 2 * d - s;
-        else
-            *buf = t + d;
+        x1 = x;
         buf++;
     }
 }
