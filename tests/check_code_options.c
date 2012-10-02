@@ -103,9 +103,11 @@ int check_fs(struct test_state *state)
 
     for (tmp = state->ubuf;
          tmp < state->ubuf + state->buf_len;
-         tmp += 2 * state->byte_per_sample) {
-        state->out(tmp, state->xmin + 1, size);
+         tmp += 4 * state->byte_per_sample) {
+        state->out(tmp, state->xmin + 2, size);
         state->out(tmp + size, state->xmin, size);
+        state->out(tmp + 2 * size, state->xmin, size);
+        state->out(tmp + 3 * size, state->xmin, size);
     }
 
     printf("Checking FS ... ");
