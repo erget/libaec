@@ -737,3 +737,18 @@ int aec_encode_end(struct aec_stream *strm)
     free(state);
     return AEC_OK;
 }
+
+int aec_buf_encode(struct aec_stream *strm)
+{
+    int status;
+
+    status = aec_encode_init(strm);
+    if (status != AEC_OK)
+        return status;
+    status = aec_encode(strm, AEC_FLUSH);
+    if (strm->avail_in > 0 || strm->avail_out == 0)
+        status = AEC_DATA_ERROR;
+
+    aec_encode_end(strm);
+    return status;
+}

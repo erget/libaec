@@ -22,7 +22,11 @@ typedef struct SZ_com_t_s
     int pixels_per_scanline;
 } SZ_com_t;
 
-int SZ_BufftoBuffCompress(void *dest, size_t *destLen, const void *source, size_t sourceLen, SZ_com_t *param);
-int SZ_BufftoBuffDecompress(void *dest, size_t *destLen, const void *source, size_t sourceLen, SZ_com_t *param);
+int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
+                          const void *source, size_t sourceLen,
+                          SZ_com_t *param);
+int SZ_BufftoBuffDecompress(void *dest, size_t *destLen,
+                            const void *source, size_t sourceLen,
+                            SZ_com_t *param);
 
 #endif /* SZLIB_H */

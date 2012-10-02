@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <stddef.h>
 #include "szlib.h"
+#include "libaec.h"
 
-int SZ_BufftoBuffCompress(void *dest, size_t *destLen, const void *source, size_t sourceLen, SZ_com_t *param)
+int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
+                          const void *source, size_t sourceLen,
+                          SZ_com_t *param)
 {
     int status;
     struct aec_stream strm;
@@ -16,21 +19,17 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen, const void *source, size_
     strm.next_out = dest;
     strm.next_in = source;
 
-    if ((status = aec_encode_init(&strm)) != AEC_OK)
-        return status;
-
-    if ((status = aec_encode(&strm, AEC_FLUSH)) != AEC_OK)
+    status = aec_buf_encode(&strm);
+    if (status != AEC_OK)
         return status;
 
     *destLen = strm.total_out;
-
-    if ((status = aec_encode_end(&strm)) != AEC_OK)
-        return status;
-
     return SZ_OK;
 }
 
-int SZ_BufftoBuffDecompress(void *dest, size_t *destLen, const void *source, size_t sourceLen, SZ_com_t *param)
+int SZ_BufftoBuffDecompress(void *dest, size_t *destLen,
+                            const void *source, size_t sourceLen,
+                            SZ_com_t *param)
 {
     int status;
     struct aec_stream strm;
@@ -44,16 +43,10 @@ int SZ_BufftoBuffDecompress(void *dest, size_t *destLen, const void *source, siz
     strm.next_out = dest;
     strm.next_in = source;
 
-    if ((status = aec_decode_init(&strm)) != AEC_OK)
-        return status;
-
-    if ((status = aec_decode(&strm, AEC_FLUSH)) != AEC_OK)
+    status = aec_buf_decode(&strm);
+    if (status != AEC_OK)
         return status;
 
     *destLen = strm.total_out;
-
-    if ((status = aec_decode_end(&strm)) != AEC_OK)
-        return status;
-
     return SZ_OK;
 }

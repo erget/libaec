@@ -607,3 +607,16 @@ int aec_decode(struct aec_stream *strm, int flush)
 req_buffer:
     return AEC_OK;
 }
+
+int aec_buf_decode(struct aec_stream *strm)
+{
+    int status;
+
+    status = aec_decode_init(strm);
+    if (status != AEC_OK)
+        return status;
+
+    status = aec_decode(strm, AEC_FLUSH);
+    aec_decode_end(strm);
+    return status;
+}
