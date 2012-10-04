@@ -30,19 +30,18 @@ struct aec_stream {
 };
 
 /* Sample data description flags */
-#define AEC_DATA_UNSIGNED     0  /* Samples are unsigned integers (default) */
-#define AEC_DATA_SIGNED       1  /* Samples are signed. Telling libaec
+#define AEC_DATA_SIGNED 1        /* Samples are signed. Telling libaec
                                   * this results in a slightly better
-                                  * compression ratio.
+                                  * compression ratio. Default is
+                                  * unsigned.
                                   */
-#define AEC_DATA_3BYTE        2  /* 24 bit samples are coded in 3 bytes */
-#define AEC_DATA_MSB         16  /* Samples are stored with their most
+#define AEC_DATA_3BYTE 2         /* 24 bit samples are coded in 3 bytes */
+#define AEC_DATA_MSB 4           /* Samples are stored with their most
                                   * significant bit first. This has
                                   * nothing to do with the endianness
-                                  * of the host.
+                                  * of the host. Default is LSB.
                                   */
-#define AEC_DATA_LSB          0  /* Samples are stored LSB first (default) */
-#define AEC_DATA_PREPROCESS  32  /* Set if preprocessor should be used */
+#define AEC_DATA_PREPROCESS 8    /* Set if preprocessor should be used */
 
 /* Return codes of library functions */
 #define AEC_OK            0
