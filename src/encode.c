@@ -302,7 +302,8 @@ static int m_check_zero_block(struct aec_stream *strm)
             state->zero_ref = state->ref;
             state->zero_ref_sample = state->block_p[0];
         }
-        if ((strm->rsi - state->blocks_avail) % 64 == 0) {
+        if (state->blocks_avail == 0
+            || (strm->rsi - state->blocks_avail) % 64 == 0) {
             if (state->zero_blocks > 4)
                 state->zero_blocks = ROS;
             state->mode = m_encode_zero;

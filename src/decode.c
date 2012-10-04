@@ -439,7 +439,7 @@ int aec_decode(struct aec_stream *strm, int flush)
        of the states are called. Inspired by zlib.
     */
 
-    int zero_blocks;
+    int zero_blocks, b;
     int64_t gamma, beta, ms, delta1;
     int k;
     decode_state *state;
@@ -522,9 +522,8 @@ int aec_decode(struct aec_stream *strm, int flush)
             DROPFS();
 
             if (zero_blocks == ROS) {
-                zero_blocks =  64 - (
-                    (state->samples_out / strm->block_size)
-                    % strm->rsi % 64);
+                b = (state->samples_out / strm->block_size) % strm->rsi;
+                zero_blocks = MIN(strm->rsi - b, 64 - (b % 64));
             } else if (zero_blocks > ROS) {
                 zero_blocks--;
             }

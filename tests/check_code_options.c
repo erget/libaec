@@ -9,21 +9,26 @@
 
 int check_block_sizes(struct test_state *state, int id, int id_len)
 {
-    int bs, status;
+    int bs, status, rsi, max_rsi;
 
     for (bs = 8; bs <= 64; bs *= 2) {
         state->strm->block_size = bs;
-        state->strm->rsi = state->buf_len
-            / (bs * state->byte_per_sample);
 
-        status = encode_decode(state);
-        if (status)
-            return status;
+        max_rsi = state->buf_len / (bs * state->byte_per_sample);
+        if (max_rsi > 4096)
+            max_rsi = 4096;
 
-        if ((state->cbuf[0] >> (8 - id_len)) != id) {
-            printf("FAIL: Unexpected block of size %i created %x.\n",
-                   bs, state->cbuf[0] >> (8 - id_len));
-            return 99;
+        for (rsi = 1; rsi <= max_rsi; rsi++) {
+            state->strm->rsi = rsi;
+            status = encode_decode(state);
+            if (status)
+                return status;
+
+            if ((state->cbuf[0] >> (8 - id_len)) != id) {
+                printf("FAIL: Unexpected block of size %i created ID:%x.\n",
+                       bs, state->cbuf[0] >> (8 - id_len));
+                return 99;
+            }
         }
     }
     return 0;
