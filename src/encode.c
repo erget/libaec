@@ -280,7 +280,7 @@ static int m_check_zero_block(struct aec_stream *strm)
     uint32_t *p = state->block_p + state->ref;
     uint32_t *end = state->block_p + strm->block_size;
 
-    while(*p == 0 && p < end)
+    while(p < end && *p == 0)
         p++;
 
     if (p < end) {
