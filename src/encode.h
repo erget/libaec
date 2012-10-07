@@ -22,7 +22,8 @@ struct internal_state {
     int64_t xmin;           /* minimum integer for preprocessing */
     int64_t xmax;           /* maximum integer for preprocessing */
     int i;                  /* counter */
-    uint32_t *block_buf;    /* RSI blocks of input */
+    uint32_t *data_pp;      /* RSI blocks of preprocessed input */
+    uint32_t *data_raw;     /* RSI blocks of input */
     int blocks_avail;       /* remaining blocks in buffer */
     uint32_t *block_p;      /* pointer to current block */
     int block_len;          /* input block length in byte */

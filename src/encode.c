@@ -121,65 +121,66 @@ EMITBLOCK(1);
 
 static void preprocess_unsigned(struct aec_stream *strm)
 {
-    int64_t d;
+    int64_t D;
     struct internal_state *state = strm->state;
-    uint32_t *x = state->block_buf;
-    int64_t x1 = *x++;
+    const uint32_t *x = state->data_raw;
+    uint32_t *d = state->data_pp;
     uint32_t xmax = state->xmax;
     uint32_t rsi = strm->rsi * strm->block_size - 1;
 
+    *d++ = x[0];
     while (rsi--) {
-        if (*x >= x1) {
-            d = *x - x1;
-            if (d <= x1) {
-                x1 = *x;
-                *x = 2 * d;
+        if (x[1] >= x[0]) {
+            D = x[1] - x[0];
+            if (D <= x[0]) {
+                *d = 2 * D;
             } else {
-                x1 = *x;
+                *d = x[1];
             }
         } else {
-            d = x1 - *x;
-            if (d <= xmax - x1) {
-                x1 = *x;
-                *x = 2 * d - 1;
+            D = x[0] - x[1];
+            if (D <= xmax - x[0]) {
+                *d = 2 * D - 1;
             } else {
-                x1 = *x;
-                *x = xmax - *x;
+                *d = xmax - x[1];
             }
         }
+        d++;
         x++;
     }
 }
 
 static void preprocess_signed(struct aec_stream *strm)
 {
-    int64_t d;
-    int64_t x;
+    int64_t D;
     struct internal_state *state = strm->state;
-    uint32_t *buf = state->block_buf;
-    uint32_t m = 1ULL << (strm->bit_per_sample - 1);
-    int64_t x1 = (((int64_t)*buf++) ^ m) - m;
+    uint32_t *d = state->data_pp;
+    int32_t *x = (int32_t *)state->data_raw;
+    uint64_t m = 1ULL << (strm->bit_per_sample - 1);
     int64_t xmax = state->xmax;
     int64_t xmin = state->xmin;
     uint32_t rsi = strm->rsi * strm->block_size - 1;
 
+    *d++ = (uint32_t)x[0];
+    x[0] = (x[0] ^ m) - m;
+
     while (rsi--) {
-        x = (((int64_t)*buf) ^ m) - m;
-        if (x < x1) {
-            d = x1 - x;
-            if (d <= xmax - x1)
-                *buf = 2 * d - 1;
+        x[1] = (x[1] ^ m) - m;
+        if (x[1] < x[0]) {
+            D = (int64_t)x[0] - x[1];
+            if (D <= xmax - x[0])
+                *d = 2 * D - 1;
             else
-                *buf = xmax - x;
+                *d = xmax - x[1];
         } else {
-            d = x - x1;
-            if (d <= x1 - xmin)
-                *buf = 2 * d;
+            D = (int64_t)x[1] - x[0];
+            if (D <= x[0] - xmin)
+                *d = 2 * D;
             else
-                *buf = x - xmin;
+                *d = x[1] - xmin;
         }
-        x1 = x;
-        buf++;
+        x++;
+        d++;
     }
 }
 
@@ -240,12 +241,12 @@ static int m_get_block_cautious(struct aec_stream *strm)
 
     do {
         if (strm->avail_in > 0) {
-            state->block_buf[state->i] = state->get_sample(strm);
+            state->data_raw[state->i] = state->get_sample(strm);
         } else {
             if (state->flush == AEC_FLUSH) {
                 if (state->i > 0) {
                     for (j = state->i; j < strm->rsi * strm->block_size; j++)
-                        state->block_buf[j] = state->block_buf[state->i - 1];
+                        state->data_raw[j] = state->data_raw[state->i - 1];
                     state->i = strm->rsi * strm->block_size;
                 } else {
                     if (state->zero_blocks) {
@@ -682,13 +683,23 @@ int aec_encode_init(struct aec_stream *strm)
 
     state->kmax = (1U << state->id_len) - 3;
 
-    state->block_buf = (uint32_t *)malloc(strm->rsi
+    state->data_pp = (uint32_t *)malloc(strm->rsi
                                          * strm->block_size
                                          * sizeof(uint32_t));
-    if (state->block_buf == NULL)
+    if (state->data_pp == NULL)
         return AEC_MEM_ERROR;
 
-    state->block_p = state->block_buf;
+    if (strm->flags & AEC_DATA_PREPROCESS) {
+        state->data_raw = (uint32_t *)malloc(strm->rsi
+                                             * strm->block_size
+                                             * sizeof(uint32_t));
+        if (state->data_raw == NULL)
+            return AEC_MEM_ERROR;
+    } else {
+        state->data_raw = state->data_pp;
+    }
+
+    state->block_p = state->data_pp;
 
     /* Largest possible CDS according to specs */
     state->cds_len = (5 + 64 * 32) / 8 + 3;
@@ -737,7 +748,9 @@ int aec_encode_end(struct aec_stream *strm)
 {
     struct internal_state *state = strm->state;
 
-    free(state->block_buf);
+    if (strm->flags & AEC_DATA_PREPROCESS)
+        free(state->data_raw);
+    free(state->data_pp);
     free(state->cds_buf);
     free(state);
     return AEC_OK;
