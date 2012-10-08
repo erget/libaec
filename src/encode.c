@@ -27,11 +27,11 @@
 #define ROS -1
 
 static int m_get_block(struct aec_stream *strm);
-static int m_get_block_cautious(struct aec_stream *strm);
+static int m_get_rsi_resumable(struct aec_stream *strm);
 static int m_check_zero_block(struct aec_stream *strm);
 static int m_select_code_option(struct aec_stream *strm);
 static int m_flush_block(struct aec_stream *strm);
-static int m_flush_block_cautious(struct aec_stream *strm);
+static int m_flush_block_resumable(struct aec_stream *strm);
 static int m_encode_splitting(struct aec_stream *strm);
 static int m_encode_uncomp(struct aec_stream *strm);
 static int m_encode_se(struct aec_stream *strm);
@@ -44,20 +44,20 @@ static inline void emit(struct internal_state *state,
        Emit sequence of bits.
      */
 
-    if (bits <= state->bit_p) {
-        state->bit_p -= bits;
-        *state->cds_p += data << state->bit_p;
+    if (bits <= state->bits) {
+        state->bits -= bits;
+        *state->cds += data << state->bits;
     } else {
-        bits -= state->bit_p;
-        *state->cds_p++ += (uint64_t)data >> bits;
+        bits -= state->bits;
+        *state->cds++ += (uint64_t)data >> bits;
 
         while (bits & ~7) {
             bits -= 8;
-            *state->cds_p++ = data >> bits;
+            *state->cds++ = data >> bits;
         }
 
-        state->bit_p = 8 - bits;
-        *state->cds_p = data << state->bit_p;
+        state->bits = 8 - bits;
+        *state->cds = data << state->bits;
     }
 }
 
@@ -70,14 +70,14 @@ static inline void emitfs(struct internal_state *state, int fs)
      */
 
     for(;;) {
-        if (fs < state->bit_p) {
-            state->bit_p -= fs + 1;
-            *state->cds_p += 1 << state->bit_p;
+        if (fs < state->bits) {
+            state->bits -= fs + 1;
+            *state->cds += 1U << state->bits;
             break;
         } else {
-            fs -= state->bit_p;
-            *++state->cds_p = 0;
-            state->bit_p = 8;
+            fs -= state->bits;
+            *++state->cds = 0;
+            state->bits = 8;
         }
     }
 }
@@ -86,14 +86,18 @@ static inline void emitfs(struct internal_state *state, int fs)
     static inline void emitblock_##ref(struct aec_stream *strm, \
                                        int k)                   \
     {                                                           \
+        /**                                                     \
+           Emit the k LSB of a whole block of input data.       \
+        */                                                      \
+                                                                \
         int b;                                                  \
         uint64_t a;                                             \
         struct internal_state *state = strm->state;             \
-        uint32_t *in = state->block_p + ref;                    \
-        uint32_t *in_end = state->block_p + strm->block_size;   \
+        uint32_t *in = state->block + ref;                      \
+        uint32_t *in_end = state->block + strm->block_size;     \
         uint64_t mask = (1ULL << k) - 1;                        \
-        uint8_t *o = state->cds_p;                              \
-        int p = state->bit_p;                                   \
+        uint8_t *o = state->cds;                                \
+        int p = state->bits;                                    \
                                                                 \
         a = *o;                                                 \
                                                                 \
@@ -112,8 +116,8 @@ static inline void emitfs(struct internal_state *state, int fs)
         }                                                       \
                                                                 \
         *o = a;                                                 \
-        state->cds_p = o;                                       \
-        state->bit_p = p % 8;                                   \
+        state->cds = o;                                         \
+        state->bits = p % 8;                                    \
     }
 
 EMITBLOCK(0);
@@ -121,6 +125,10 @@ EMITBLOCK(1);
 
 static void preprocess_unsigned(struct aec_stream *strm)
 {
+    /**
+       Preprocess RSI of unsigned samples.
+    */
+
     int64_t D;
     struct internal_state *state = strm->state;
     const uint32_t *x = state->data_raw;
@@ -152,6 +160,10 @@ static void preprocess_unsigned(struct aec_stream *strm)
 
 static void preprocess_signed(struct aec_stream *strm)
 {
+    /**
+       Preprocess RSI of signed samples.
+    */
+
     int64_t D;
     struct internal_state *state = strm->state;
     uint32_t *d = state->data_pp;
@@ -184,175 +196,46 @@ static void preprocess_signed(struct aec_stream *strm)
     }
 }
 
-/*
- *
- * FSM functions
- *
- */
-
-static int m_get_block(struct aec_stream *strm)
-{
-    struct internal_state *state = strm->state;
-
-    if (strm->avail_out > state->cds_len) {
-        if (!state->direct_out) {
-            state->direct_out = 1;
-            *strm->next_out = *state->cds_p;
-            state->cds_p = strm->next_out;
-        }
-    } else {
-        if (state->zero_blocks == 0 || state->direct_out) {
-            /* copy leftover from last block */
-            *state->cds_buf = *state->cds_p;
-            state->cds_p = state->cds_buf;
-        }
-        state->direct_out = 0;
-    }
-
-    if (state->blocks_avail == 0) {
-        state->block_p = state->data_pp;
-
-        if (strm->avail_in >= state->block_len * strm->rsi) {
-            state->get_rsi(strm);
-            state->blocks_avail = strm->rsi - 1;
-
-            if (strm->flags & AEC_DATA_PREPROCESS) {
-                state->preprocess(strm);
-                state->ref = 1;
-            }
-            return m_check_zero_block(strm);
-        } else {
-            state->i = 0;
-            state->mode = m_get_block_cautious;
-        }
-    } else {
-        state->ref = 0;
-        state->block_p += strm->block_size;
-        state->blocks_avail--;
-        return m_check_zero_block(strm);
-    }
-    return M_CONTINUE;
-}
-
-static int m_get_block_cautious(struct aec_stream *strm)
-{
-    int j;
-    struct internal_state *state = strm->state;
-
-    do {
-        if (strm->avail_in > 0) {
-            state->data_raw[state->i] = state->get_sample(strm);
-        } else {
-            if (state->flush == AEC_FLUSH) {
-                if (state->i > 0) {
-                    for (j = state->i; j < strm->rsi * strm->block_size; j++)
-                        state->data_raw[j] = state->data_raw[state->i - 1];
-                    state->i = strm->rsi * strm->block_size;
-                } else {
-                    if (state->zero_blocks) {
-                        state->mode = m_encode_zero;
-                        return M_CONTINUE;
-                    }
-
-                    emit(state, 0, state->bit_p);
-                    if (state->direct_out == 0)
-                        *strm->next_out++ = *state->cds_p;
-                    strm->avail_out--;
-                    strm->total_out++;
-
-                    return M_EXIT;
-                }
-            } else {
-                return M_EXIT;
-            }
-        }
-    } while (++state->i < strm->rsi * strm->block_size);
-
-    state->blocks_avail = strm->rsi - 1;
-    if (strm->flags & AEC_DATA_PREPROCESS) {
-        state->preprocess(strm);
-        state->ref = 1;
-    }
-
-    return m_check_zero_block(strm);
-}
-
-static int m_check_zero_block(struct aec_stream *strm)
-{
-    struct internal_state *state = strm->state;
-    uint32_t *p = state->block_p + state->ref;
-    uint32_t *end = state->block_p + strm->block_size;
-
-    while(p < end && *p == 0)
-        p++;
-
-    if (p < end) {
-        if (state->zero_blocks) {
-            /* The current block isn't zero but we have to emit a
-             * previous zero block first. The current block will be
-             * handled later.
-             */
-            state->block_p -= strm->block_size;
-            state->blocks_avail++;
-            state->mode = m_encode_zero;
-            return M_CONTINUE;
-        }
-        state->mode = m_select_code_option;
-        return M_CONTINUE;
-    } else {
-        state->zero_blocks++;
-        if (state->zero_blocks == 1) {
-            state->zero_ref = state->ref;
-            state->zero_ref_sample = state->block_p[0];
-        }
-        if (state->blocks_avail == 0
-            || (strm->rsi - state->blocks_avail) % 64 == 0) {
-            if (state->zero_blocks > 4)
-                state->zero_blocks = ROS;
-            state->mode = m_encode_zero;
-            return M_CONTINUE;
-        }
-        state->mode = m_get_block;
-        return M_CONTINUE;
-    }
-}
-
 static uint64_t block_fs(struct aec_stream *strm, int k)
 {
+    /**
+       Sum FS of all samples in block for given splitting position.
+    */
+
     int j;
     uint64_t fs;
     struct internal_state *state = strm->state;
 
-    fs = (uint64_t)(state->block_p[1] >> k)
-        + (uint64_t)(state->block_p[2] >> k)
-        + (uint64_t)(state->block_p[3] >> k)
-        + (uint64_t)(state->block_p[4] >> k)
-        + (uint64_t)(state->block_p[5] >> k)
-        + (uint64_t)(state->block_p[6] >> k)
-        + (uint64_t)(state->block_p[7] >> k);
+    fs = (uint64_t)(state->block[1] >> k)
+        + (uint64_t)(state->block[2] >> k)
+        + (uint64_t)(state->block[3] >> k)
+        + (uint64_t)(state->block[4] >> k)
+        + (uint64_t)(state->block[5] >> k)
+        + (uint64_t)(state->block[6] >> k)
+        + (uint64_t)(state->block[7] >> k);
 
     if (strm->block_size > 8)
         for (j = 8; j < strm->block_size; j += 8)
             fs +=
-                (uint64_t)(state->block_p[j + 0] >> k)
-                + (uint64_t)(state->block_p[j + 1] >> k)
-                + (uint64_t)(state->block_p[j + 2] >> k)
-                + (uint64_t)(state->block_p[j + 3] >> k)
-                + (uint64_t)(state->block_p[j + 4] >> k)
-                + (uint64_t)(state->block_p[j + 5] >> k)
-                + (uint64_t)(state->block_p[j + 6] >> k)
-                + (uint64_t)(state->block_p[j + 7] >> k);
+                (uint64_t)(state->block[j + 0] >> k)
+                + (uint64_t)(state->block[j + 1] >> k)
+                + (uint64_t)(state->block[j + 2] >> k)
+                + (uint64_t)(state->block[j + 3] >> k)
+                + (uint64_t)(state->block[j + 4] >> k)
+                + (uint64_t)(state->block[j + 5] >> k)
+                + (uint64_t)(state->block[j + 6] >> k)
+                + (uint64_t)(state->block[j + 7] >> k);
 
     if (!state->ref)
-        fs += (uint64_t)(state->block_p[0] >> k);
+        fs += (uint64_t)(state->block[0] >> k);
 
     return fs;
 }
 
-static int count_splitting_option(struct aec_stream *strm)
+static int assess_splitting_option(struct aec_stream *strm)
 {
     /**
-       Find the best point for splitting samples in a block.
+       Length of CDS encoded with splitting option and optimal k.
 
        In Rice coding each sample in a block of samples is split at
        the same position into k LSB and bit_per_sample - k MSB. The
@@ -376,7 +259,8 @@ static int count_splitting_option(struct aec_stream *strm)
        analogue check can be done for decreasing k.
      */
 
-    int k, k_min;
+    int k;
+    int k_min;
     int this_bs; /* Block size of current block */
     int no_turn; /* 1 if we shouldn't reverse */
     int dir; /* Direction, 1 means increasing k, 0 decreasing k */
@@ -431,38 +315,205 @@ static int count_splitting_option(struct aec_stream *strm)
     return len_min;
 }
 
-static int count_se_option(uint64_t limit, struct aec_stream *strm)
+static int assess_se_option(uint64_t limit, struct aec_stream *strm)
 {
+    /**
+       Length of CDS encoded with Second Extension option.
+
+       If length is above limit just return UINT64_MAX.
+    */
+
     int i;
-    uint64_t d, len;
+    uint64_t d;
+    uint64_t len;
     struct internal_state *state = strm->state;
 
     len = 1;
 
     for (i = 0; i < strm->block_size; i+= 2) {
-        d = (uint64_t)state->block_p[i]
-            + (uint64_t)state->block_p[i + 1];
+        d = (uint64_t)state->block[i]
+            + (uint64_t)state->block[i + 1];
         /* we have to worry about overflow here */
         if (d > limit) {
             len = UINT64_MAX;
             break;
         } else {
             len += d * (d + 1) / 2
-                + (uint64_t)state->block_p[i + 1];
+                + (uint64_t)state->block[i + 1];
         }
     }
     return len;
 }
 
+/*
+ *
+ * FSM functions
+ *
+ */
+
+static int m_get_block(struct aec_stream *strm)
+{
+    /**
+       Provide the next block of preprocessed input data.
+
+       Pull in a whole Reference Sample Interval (RSI) of data if
+       block buffer is empty.
+    */
+
+    struct internal_state *state = strm->state;
+
+    if (strm->avail_out > state->cds_len) {
+        if (!state->direct_out) {
+            state->direct_out = 1;
+            *strm->next_out = *state->cds;
+            state->cds = strm->next_out;
+        }
+    } else {
+        if (state->zero_blocks == 0 || state->direct_out) {
+            /* copy leftover from last block */
+            *state->cds_buf = *state->cds;
+            state->cds = state->cds_buf;
+        }
+        state->direct_out = 0;
+    }
+
+    if (state->blocks_avail == 0) {
+        state->block = state->data_pp;
+
+        if (strm->avail_in >= state->block_len * strm->rsi) {
+            state->get_rsi(strm);
+            state->blocks_avail = strm->rsi - 1;
+
+            if (strm->flags & AEC_DATA_PREPROCESS) {
+                state->preprocess(strm);
+                state->ref = 1;
+            }
+            return m_check_zero_block(strm);
+        } else {
+            state->i = 0;
+            state->mode = m_get_rsi_resumable;
+        }
+    } else {
+        state->ref = 0;
+        state->block += strm->block_size;
+        state->blocks_avail--;
+        return m_check_zero_block(strm);
+    }
+    return M_CONTINUE;
+}
+
+static int m_get_rsi_resumable(struct aec_stream *strm)
+{
+    /**
+       Get RSI while input buffer is short.
+
+       Let user provide more input. Once we got all input pad buffer
+       to full RSI.
+    */
+
+    int j;
+    struct internal_state *state = strm->state;
+
+    do {
+        if (strm->avail_in > 0) {
+            state->data_raw[state->i] = state->get_sample(strm);
+        } else {
+            if (state->flush == AEC_FLUSH) {
+                if (state->i > 0) {
+                    for (j = state->i; j < strm->rsi * strm->block_size; j++)
+                        state->data_raw[j] = state->data_raw[state->i - 1];
+                    state->i = strm->rsi * strm->block_size;
+                } else {
+                    if (state->zero_blocks) {
+                        state->mode = m_encode_zero;
+                        return M_CONTINUE;
+                    }
+
+                    emit(state, 0, state->bits);
+                    if (state->direct_out == 0)
+                        *strm->next_out++ = *state->cds;
+                    strm->avail_out--;
+                    strm->total_out++;
+
+                    return M_EXIT;
+                }
+            } else {
+                return M_EXIT;
+            }
+        }
+    } while (++state->i < strm->rsi * strm->block_size);
+
+    state->blocks_avail = strm->rsi - 1;
+    if (strm->flags & AEC_DATA_PREPROCESS) {
+        state->preprocess(strm);
+        state->ref = 1;
+    }
+
+    return m_check_zero_block(strm);
+}
+
+static int m_check_zero_block(struct aec_stream *strm)
+{
+    /**
+       Check if input block is all zero.
+
+       Aggregate consecutive zero blocks until we find !0 or reach the
+       end of a segment or RSI.
+    */
+
+    struct internal_state *state = strm->state;
+    uint32_t *p = state->block + state->ref;
+    uint32_t *end = state->block + strm->block_size;
+
+    while(p < end && *p == 0)
+        p++;
+
+    if (p < end) {
+        if (state->zero_blocks) {
+            /* The current block isn't zero but we have to emit a
+             * previous zero block first. The current block will be
+             * handled later.
+             */
+            state->block -= strm->block_size;
+            state->blocks_avail++;
+            state->mode = m_encode_zero;
+            return M_CONTINUE;
+        }
+        state->mode = m_select_code_option;
+        return M_CONTINUE;
+    } else {
+        state->zero_blocks++;
+        if (state->zero_blocks == 1) {
+            state->zero_ref = state->ref;
+            state->zero_ref_sample = state->block[0];
+        }
+        if (state->blocks_avail == 0
+            || (strm->rsi - state->blocks_avail) % 64 == 0) {
+            if (state->zero_blocks > 4)
+                state->zero_blocks = ROS;
+            state->mode = m_encode_zero;
+            return M_CONTINUE;
+        }
+        state->mode = m_get_block;
+        return M_CONTINUE;
+    }
+}
+
 static int m_select_code_option(struct aec_stream *strm)
 {
-    uint64_t uncomp_len, split_len, se_len;
+    /**
+       Decide which code option to use.
+    */
+
+    uint64_t uncomp_len;
+    uint64_t split_len;
+    uint64_t se_len;
     struct internal_state *state = strm->state;
 
     uncomp_len = (strm->block_size - state->ref)
         * strm->bit_per_sample;
-    split_len = count_splitting_option(strm);
-    se_len = count_se_option(split_len, strm);
+    split_len = assess_splitting_option(strm);
+    se_len = assess_se_option(split_len, strm);
 
     if (split_len < uncomp_len) {
         if (split_len < se_len)
@@ -487,16 +538,16 @@ static int m_encode_splitting(struct aec_stream *strm)
 
     if (state->ref)
     {
-        emit(state, state->block_p[0], strm->bit_per_sample);
+        emit(state, state->block[0], strm->bit_per_sample);
         for (i = 1; i < strm->block_size; i++)
-            emitfs(state, state->block_p[i] >> k);
+            emitfs(state, state->block[i] >> k);
         if (k)
             emitblock_1(strm, k);
     }
     else
     {
         for (i = 0; i < strm->block_size; i++)
-            emitfs(state, state->block_p[i] >> k);
+            emitfs(state, state->block[i] >> k);
         if (k)
             emitblock_0(strm, k);
     }
@@ -522,11 +573,11 @@ static int m_encode_se(struct aec_stream *strm)
 
     emit(state, 1, state->id_len + 1);
     if (state->ref)
-        emit(state, state->block_p[0], strm->bit_per_sample);
+        emit(state, state->block[0], strm->bit_per_sample);
 
     for (i = 0; i < strm->block_size; i+= 2) {
-        d = state->block_p[i] + state->block_p[i + 1];
-        emitfs(state, d * (d + 1) / 2 + state->block_p[i + 1]);
+        d = state->block[i] + state->block[i + 1];
+        emitfs(state, d * (d + 1) / 2 + state->block[i + 1]);
     }
 
     return m_flush_block(strm);
@@ -563,7 +614,7 @@ static int m_flush_block(struct aec_stream *strm)
     struct internal_state *state = strm->state;
 
     if (state->direct_out) {
-        n = state->cds_p - strm->next_out;
+        n = state->cds - strm->next_out;
         strm->next_out += n;
         strm->avail_out -= n;
         strm->total_out += n;
@@ -572,18 +623,18 @@ static int m_flush_block(struct aec_stream *strm)
     }
 
     state->i = 0;
-    state->mode = m_flush_block_cautious;
+    state->mode = m_flush_block_resumable;
     return M_CONTINUE;
 }
 
-static int m_flush_block_cautious(struct aec_stream *strm)
+static int m_flush_block_resumable(struct aec_stream *strm)
 {
     /**
        Slow and restartable flushing
     */
     struct internal_state *state = strm->state;
 
-    while(state->cds_buf + state->i < state->cds_p) {
+    while(state->cds_buf + state->i < state->cds) {
         if (strm->avail_out == 0)
             return M_EXIT;
 
@@ -699,7 +750,7 @@ int aec_encode_init(struct aec_stream *strm)
         state->data_raw = state->data_pp;
     }
 
-    state->block_p = state->data_pp;
+    state->block = state->data_pp;
 
     /* Largest possible CDS according to specs */
     state->cds_len = (5 + 64 * 32) / 8 + 3;
@@ -710,9 +761,9 @@ int aec_encode_init(struct aec_stream *strm)
     strm->total_in = 0;
     strm->total_out = 0;
 
-    state->cds_p = state->cds_buf;
-    *state->cds_p = 0;
-    state->bit_p = 8;
+    state->cds = state->cds_buf;
+    *state->cds = 0;
+    state->bits = 8;
     state->mode = m_get_block;
 
     return AEC_OK;
@@ -732,13 +783,13 @@ int aec_encode(struct aec_stream *strm, int flush)
     while (state->mode(strm) == M_CONTINUE);
 
     if (state->direct_out) {
-        n = state->cds_p - strm->next_out;
+        n = state->cds - strm->next_out;
         strm->next_out += n;
         strm->avail_out -= n;
         strm->total_out += n;
 
-        *state->cds_buf = *state->cds_p;
-        state->cds_p = state->cds_buf;
+        *state->cds_buf = *state->cds;
+        state->cds = state->cds_buf;
         state->direct_out = 0;
     }
     return AEC_OK;
