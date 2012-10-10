@@ -82,42 +82,85 @@ static inline void emitfs(struct internal_state *state, int fs)
     }
 }
 
-#define EMITBLOCK(ref)                                          \
-    static inline void emitblock_##ref(struct aec_stream *strm, \
-                                       int k)                   \
-    {                                                           \
-        /**                                                     \
-           Emit the k LSB of a whole block of input data.       \
-        */                                                      \
-                                                                \
-        int b;                                                  \
-        uint64_t a;                                             \
-        struct internal_state *state = strm->state;             \
-        uint32_t *in = state->block + ref;                      \
-        uint32_t *in_end = state->block + strm->block_size;     \
-        uint64_t mask = (1ULL << k) - 1;                        \
-        uint8_t *o = state->cds;                                \
-        int p = state->bits;                                    \
-                                                                \
-        a = *o;                                                 \
-                                                                \
-        while(in < in_end) {                                    \
-            a <<= 56;                                           \
-            p = (p % 8) + 56;                                   \
-                                                                \
-            while (p > k && in < in_end) {                      \
-                p -= k;                                         \
-                a += ((uint64_t)(*in++) & mask) << p;           \
-            }                                                   \
-                                                                \
-            for (b = 56; b > (p & ~7); b -= 8)                  \
-                *o++ = a >> b;                                  \
-            a >>= b;                                            \
-        }                                                       \
-                                                                \
-        *o = a;                                                 \
-        state->cds = o;                                         \
-        state->bits = p % 8;                                    \
+static inline void copy64(uint8_t *dst, uint64_t src)
+{
+    dst[0] = src >> 56;
+    dst[1] = src >> 48;
+    dst[2] = src >> 40;
+    dst[3] = src >> 32;
+    dst[4] = src >> 24;
+    dst[5] = src >> 16;
+    dst[6] = src >> 8;
+    dst[7] = src;
+}
+
+#define EMITBLOCK_FS(ref)                                           \
+    static inline void emitblock_fs_##ref(struct aec_stream *strm,  \
+                                          int k)                    \
+    {                                                               \
+        int i;                                                      \
+        int used; /* used bits in 64 bit accumulator */             \
+        uint64_t acc; /* accumulator */                             \
+        struct internal_state *state = strm->state;                 \
+                                                                    \
+        acc = (uint64_t)*state->cds << 56;                          \
+        used = 7 - state->bits;                                     \
+                                                                    \
+        for (i = ref; i < strm->block_size; i++) {                  \
+            used += (state->block[i] >> k) + 1;                     \
+            if (used > 63) {                                        \
+                copy64(state->cds, acc);                            \
+                state->cds += 8;                                    \
+                acc = 0;                                            \
+                used &= 0x3f;                                       \
+            }                                                       \
+            acc |= 1ULL << (63 - used);                             \
+        }                                                           \
+                                                                    \
+        copy64(state->cds, acc);                                    \
+        state->cds += used >> 3;                                    \
+        state->bits = 7 - (used & 7);                               \
+    }
+
+EMITBLOCK_FS(0);
+EMITBLOCK_FS(1);
+
+#define EMITBLOCK(ref)                                              \
+    static inline void emitblock_##ref(struct aec_stream *strm,     \
+                                       int k)                       \
+    {                                                               \
+        /**                                                         \
+           Emit the k LSB of a whole block of input data.           \
+        */                                                          \
+                                                                    \
+        int b;                                                      \
+        uint64_t a;                                                 \
+        struct internal_state *state = strm->state;                 \
+        uint32_t *in = state->block + ref;                          \
+        uint32_t *in_end = state->block + strm->block_size;         \
+        uint64_t mask = (1ULL << k) - 1;                            \
+        uint8_t *o = state->cds;                                    \
+        int p = state->bits;                                        \
+                                                                    \
+        a = *o;                                                     \
+                                                                    \
+        while(in < in_end) {                                        \
+            a <<= 56;                                               \
+            p = (p % 8) + 56;                                       \
+                                                                    \
+            while (p > k && in < in_end) {                          \
+                p -= k;                                             \
+                a += ((uint64_t)(*in++) & mask) << p;               \
+            }                                                       \
+                                                                    \
+            for (b = 56; b > (p & ~7); b -= 8)                      \
+                *o++ = a >> b;                                      \
+            a >>= b;                                                \
+        }                                                           \
+                                                                    \
+        *o = a;                                                     \
+        state->cds = o;                                             \
+        state->bits = p % 8;                                        \
     }
 
 EMITBLOCK(0);
@@ -530,7 +573,6 @@ static int m_select_code_option(struct aec_stream *strm)
 
 static int m_encode_splitting(struct aec_stream *strm)
 {
-    int i;
     struct internal_state *state = strm->state;
     int k = state->k;
 
@@ -539,15 +581,13 @@ static int m_encode_splitting(struct aec_stream *strm)
     if (state->ref)
     {
         emit(state, state->block[0], strm->bit_per_sample);
-        for (i = 1; i < strm->block_size; i++)
-            emitfs(state, state->block[i] >> k);
+        emitblock_fs_1(strm, k);
         if (k)
             emitblock_1(strm, k);
     }
     else
     {
-        for (i = 0; i < strm->block_size; i++)
-            emitfs(state, state->block[i] >> k);
+        emitblock_fs_0(strm, k);
         if (k)
             emitblock_0(strm, k);
     }
