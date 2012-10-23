@@ -20,7 +20,7 @@ int check_block_sizes(struct test_state *state, int id, int id_len)
 
         for (rsi = 1; rsi <= max_rsi; rsi++) {
             state->strm->rsi = rsi;
-            status = encode_decode(state);
+            status = state->codec(state);
             if (status)
                 return status;
 
@@ -212,6 +212,7 @@ int main (void)
 
     strm.flags = AEC_DATA_PREPROCESS;
     state.strm = &strm;
+    state.codec = encode_decode_small;
 
     printf("----------------------------\n");
     printf("Checking LSB first, unsigned\n");

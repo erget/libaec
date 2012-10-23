@@ -58,6 +58,93 @@ int update_state(struct test_state *state)
     return 0;
 }
 
+int encode_decode_small(struct test_state *state)
+{
+    int status, i, to, Bps;
+    struct aec_stream *strm = state->strm;
+
+    strm->avail_out = state->cbuf_len;
+    strm->next_out = state->cbuf;
+
+    status = aec_encode_init(strm);
+    if (status != AEC_OK) {
+        printf("Init failed.\n");
+        return 99;
+    }
+
+    Bps = strm->bit_per_sample / 8;
+    for (i = 0; i < state->ibuf_len / Bps; i++) {
+        strm->avail_in = Bps;
+        strm->next_in = state->ubuf + i * Bps;
+        status = aec_encode(strm, AEC_NO_FLUSH);
+        if (status != AEC_OK) {
+            printf("Encode failed.\n");
+            return 99;
+        }
+    }
+
+    status = aec_encode(strm, AEC_FLUSH);
+    if (status != AEC_OK) {
+        printf("Encode failed.\n");
+        return 99;
+    }
+
+    aec_encode_end(strm);
+
+    strm->avail_out = state->buf_len;
+    strm->next_out = state->obuf;
+    to = strm->total_out;
+
+    status = aec_decode_init(strm);
+    if (status != AEC_OK) {
+        printf("Init failed.\n");
+        return 99;
+    }
+
+    for (i = 0; i < to; i++) {
+        strm->avail_in = 1;
+        strm->next_in = state->cbuf + i;
+        status = aec_decode(strm, AEC_NO_FLUSH);
+        if (status != AEC_OK) {
+            printf("Decode failed.\n");
+            return 99;
+        }
+    }
+
+    status = aec_decode(strm, AEC_FLUSH);
+    if (status != AEC_OK) {
+        printf("Decode failed.\n");
+        return 99;
+    }
+
+    if (memcmp(state->ubuf, state->obuf, state->ibuf_len)) {
+        printf("FAIL: Uncompressed output differs from input.\n");
+
+        printf("\nuncompressed buf");
+        for (i = 0; i < 80; i++) {
+            if (i % 8 == 0)
+                printf("\n");
+            printf("%02x ", state->ubuf[i]);
+        }
+        printf("\n\ncompressed buf len %i", to);
+        for (i = 0; i < 80; i++) {
+            if (i % 8 == 0)
+                printf("\n");
+            printf("%02x ", state->cbuf[i]);
+        }
+        printf("\n\ndecompressed buf");
+        for (i = 0; i < 80; i++) {
+            if (i % 8 == 0)
+                printf("\n");
+            printf("%02x ", state->obuf[i]);
+        }
+        printf("\n");
+        return 99;
+    }
+    aec_decode_end(strm);
+    return 0;
+}
+
 int encode_decode(struct test_state *state)
 {
     int status, i, to;

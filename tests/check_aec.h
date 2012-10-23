@@ -3,6 +3,7 @@
 #include "libaec.h"
 
 struct test_state {
+    int (* codec)(struct test_state *state);
     int id_len;
     int byte_per_sample;
     unsigned char *ubuf;
@@ -18,6 +19,7 @@ struct test_state {
 };
 
 int update_state(struct test_state *state);
+int encode_decode_small(struct test_state *state);
 int encode_decode(struct test_state *state);
 
 

@@ -13,70 +13,227 @@
 #include <string.h>
 
 #include "libaec.h"
+#include "decode.h"
 
-#define MIN(a, b) (((a) < (b))? (a): (b))
+static int se_beta(int m)
+{
+    switch(m) {
+    case 0:
+        return 0;
+    case 1:
+    case 2:
+        return 1;
+    case 3:
+    case 4:
+    case 5:
+        return 2;
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+        return 3;
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+        return 4;
+    case 15:
+    case 16:
+    case 17:
+    case 18:
+    case 19:
+    case 20:
+        return 5;
+    case 21:
+    case 22:
+    case 23:
+    case 24:
+    case 25:
+    case 26:
+    case 27:
+        return 6;
+    case 28:
+    case 29:
+    case 30:
+    case 31:
+    case 32:
+    case 33:
+    case 34:
+    case 35:
+        return 7;
+    case 36:
+    case 37:
+    case 38:
+    case 39:
+    case 40:
+    case 41:
+    case 42:
+    case 43:
+    case 44:
+        return 8;
+    case 45:
+    case 46:
+    case 47:
+    case 48:
+    case 49:
+    case 50:
+    case 51:
+    case 52:
+    case 53:
+    case 55:
+        return 9;
+    case 56:
+    case 57:
+    case 58:
+    case 59:
+    case 60:
+    case 61:
+    case 62:
+    case 63:
+    case 64:
+    case 65:
+    case 66:
+        return 10;
+    case 67:
+    case 68:
+    case 69:
+    case 70:
+    case 71:
+    case 72:
+    case 73:
+    case 74:
+    case 75:
+    case 76:
+    case 77:
+    case 78:
+        return 11;
+    case 79:
+    case 80:
+    case 81:
+    case 82:
+    case 83:
+    case 84:
+    case 85:
+    case 86:
+    case 87:
+    case 88:
+    case 89:
+    case 90:
+    case 91:
+        return 12;
+    }
+}
 
-#define SAFE (strm->avail_in >= state->in_blklen        \
-              && strm->avail_out >= state->out_blklen)
-
-#define ROS 5
-
-typedef struct internal_state {
-    int id;            /* option ID */
-    int id_len;        /* bit length of code option identification key */
-    int *id_table;     /* table maps IDs to states */
-    void (*put_sample)(struct aec_stream *, int64_t);
-    int ref_int;       /* reference sample is every ref_int samples */
-    int64_t last_out;  /* previous output for post-processing */
-    int64_t xmin;      /* minimum integer for post-processing */
-    int64_t xmax;      /* maximum integer for post-processing */
-    int mode;          /* current mode of FSM */
-    int in_blklen;     /* length of uncompressed input block
-                          should be the longest possible block */
-    int out_blklen;    /* length of output block in bytes */
-    int n, i;          /* counter for samples */
-    int64_t *block;    /* block buffer for split-sample options */
-    int se;            /* set if second extension option is selected */
-    uint64_t acc;      /* accumulator for currently used bit sequence */
-    int bitp;          /* bit pointer to the next unused bit in accumulator */
-    int fs;            /* last fundamental sequence in accumulator */
-    int ref;           /* 1 if current block has reference sample */
-    int pp;            /* 1 if postprocessor has to be used */
-    int byte_per_sample;
-    size_t samples_out;
-} decode_state;
-
-/* decoding table for the second-extension option */
-static const int second_extension[92][2] = {
-    {0, 0},
-    {1, 1}, {1, 1},
-    {2, 3}, {2, 3}, {2, 3},
-    {3, 6}, {3, 6}, {3, 6}, {3, 6},
-    {4, 10}, {4, 10}, {4, 10}, {4, 10}, {4, 10},
-    {5, 15}, {5, 15}, {5, 15}, {5, 15}, {5, 15}, {5, 15},
-    {6, 21}, {6, 21}, {6, 21}, {6, 21}, {6, 21}, {6, 21}, {6, 21},
-    {7, 28}, {7, 28}, {7, 28}, {7, 28}, {7, 28}, {7, 28}, {7, 28}, {7, 28},
-    {8, 36}, {8, 36}, {8, 36}, {8, 36}, {8, 36}, {8, 36}, {8, 36}, {8, 36}, {8, 36},
-    {9, 45}, {9, 45}, {9, 45}, {9, 45}, {9, 45}, {9, 45}, {9, 45}, {9, 45}, {9, 45}, {9, 45},
-    {10, 55}, {10, 55}, {10, 55}, {10, 55}, {10, 55}, {10, 55}, {10, 55}, {10, 55}, {10, 55}, {10, 55}, {10, 55},
-    {11, 66}, {11, 66}, {11, 66}, {11, 66}, {11, 66}, {11, 66}, {11, 66}, {11, 66}, {11, 66}, {11, 66}, {11, 66}, {11, 66},
-    {12, 78}, {12, 78}, {12, 78}, {12, 78}, {12, 78}, {12, 78}, {12, 78}, {12, 78}, {12, 78}, {12, 78}, {12, 78}, {12, 78}, {12, 78}
-};
-
-enum {
-    M_ID = 0,
-    M_SPLIT,
-    M_SPLIT_FS,
-    M_SPLIT_OUTPUT,
-    M_LOW_ENTROPY,
-    M_LOW_ENTROPY_REF,
-    M_ZERO_BLOCK,
-    M_ZERO_OUTPUT,
-    M_SE,
-    M_SE_DECODE,
-    M_UNCOMP,
-    M_UNCOMP_COPY,
-};
+static int se_ms(int m)
+{
+    switch(m) {
+    case 0:
+        return 0;
+    case 1:
+    case 2:
+        return 1;
+    case 3:
+    case 4:
+    case 5:
+        return 3;
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+        return 6;
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+        return 10;
+    case 15:
+    case 16:
+    case 17:
+    case 18:
+    case 19:
+    case 20:
+        return 15;
+    case 21:
+    case 22:
+    case 23:
+    case 24:
+    case 25:
+    case 26:
+    case 27:
+        return 21;
+    case 28:
+    case 29:
+    case 30:
+    case 31:
+    case 32:
+    case 33:
+    case 34:
+    case 35:
+        return 28;
+    case 36:
+    case 37:
+    case 38:
+    case 39:
+    case 40:
+    case 41:
+    case 42:
+    case 43:
+    case 44:
+        return 36;
+    case 45:
+    case 46:
+    case 47:
+    case 48:
+    case 49:
+    case 50:
+    case 51:
+    case 52:
+    case 53:
+    case 55:
+        return 45;
+    case 56:
+    case 57:
+    case 58:
+    case 59:
+    case 60:
+    case 61:
+    case 62:
+    case 63:
+    case 64:
+    case 65:
+    case 66:
+        return 56;
+    case 67:
+    case 68:
+    case 69:
+    case 70:
+    case 71:
+    case 72:
+    case 73:
+    case 74:
+    case 75:
+    case 76:
+    case 77:
+    case 78:
+        return 67;
+    case 79:
+    case 80:
+    case 81:
+    case 82:
+    case 83:
+    case 84:
+    case 85:
+    case 86:
+    case 87:
+    case 88:
+    case 89:
+    case 90:
+    case 91:
+        return 79;
+    }
+}
 
 static void put_msb_32(struct aec_stream *strm, int64_t data)
 {
@@ -141,8 +298,8 @@ static void put_8(struct aec_stream *strm, int64_t data)
 
 static inline void u_put(struct aec_stream *strm, int64_t sample)
 {
-    int64_t x, d, th, D, lower;
-    decode_state *state = strm->state;
+    int64_t x, d, th, D, lower, m;
+    struct internal_state *state = strm->state;
 
     if (state->pp && (state->samples_out % state->ref_int != 0)) {
         d = sample;
@@ -164,9 +321,9 @@ static inline void u_put(struct aec_stream *strm, int64_t sample)
         sample = x + D;
     } else {
         if (strm->flags & AEC_DATA_SIGNED) {
-            int m = 64 - strm->bit_per_sample;
+            m = 1ULL << (strm->bit_per_sample - 1);
             /* Reference samples have to be sign extended */
-            sample = (sample << m) >> m;
+            sample = (sample ^ m) - m;
         }
     }
     state->last_out = sample;
@@ -182,7 +339,7 @@ static inline int64_t u_get(struct aec_stream *strm, unsigned int n)
        No checking whatsoever. Read bits are dumped.
      */
 
-    decode_state *state;
+    struct internal_state *state;
 
     state = strm->state;
     while (state->bitp < n) {
@@ -215,7 +372,7 @@ static inline int64_t u_get_fs(struct aec_stream *strm)
 static inline void fast_split(struct aec_stream *strm)
 {
     int i, k;
-    decode_state *state;
+    struct internal_state *state;
 
     state = strm->state;
     k = state->id - 1;
@@ -243,21 +400,19 @@ static inline void fast_zero(struct aec_stream *strm)
 static inline void fast_se(struct aec_stream *strm)
 {
     int i;
-    int64_t gamma, beta, ms, delta1;
+    int64_t m, d1;
 
     i = strm->state->ref;
 
     while (i < strm->block_size) {
-        gamma = u_get_fs(strm);
-        beta = second_extension[gamma][0];
-        ms = second_extension[gamma][1];
-        delta1 = gamma - ms;
+        m = u_get_fs(strm);
+        d1 = m - se_ms(m);
 
         if ((i & 1) == 0) {
-            u_put(strm, beta - delta1);
+            u_put(strm, se_beta(m) - d1);
             i++;
         }
-        u_put(strm, delta1);
+        u_put(strm, d1);
         i++;
     }
 }
@@ -270,15 +425,281 @@ static inline void fast_uncomp(struct aec_stream *strm)
         u_put(strm, u_get(strm, strm->bit_per_sample));
 }
 
+#define ASK(strm, n)                                     \
+    do {                                                 \
+        while (strm->state->bitp < (unsigned)(n)) {      \
+            if (strm->avail_in == 0)                     \
+                return M_EXIT;                           \
+            strm->avail_in--;                            \
+            strm->total_in++;                            \
+            strm->state->acc <<= 8;                      \
+            strm->state->acc |= *strm->next_in++;        \
+            strm->state->bitp += 8;                      \
+        }                                                \
+    } while (0)
+
+#define GET(strm, n)                                                    \
+    ((strm->state->acc >> (strm->state->bitp - (n))) & ((1ULL << (n)) - 1))
+
+#define DROP(strm, n) strm->state->bitp -= (unsigned)(n)
+
+#define ASKFS(strm)                                                           \
+    do {                                                                      \
+        ASK(strm, 1);                                                         \
+        while ((strm->state->acc & (1ULL << (strm->state->bitp - 1))) == 0) { \
+            if (strm->state->bitp == 1) {                                     \
+                if (strm->avail_in == 0)                                      \
+                    return M_EXIT;                                            \
+                strm->avail_in--;                                             \
+                strm->total_in++;                                             \
+                strm->state->acc <<= 8;                                       \
+                strm->state->acc |= *strm->next_in++;                         \
+                strm->state->bitp += 8;                                       \
+            }                                                                 \
+            strm->state->fs++;                                                \
+            strm->state->bitp--;                                              \
+        }                                                                     \
+    } while (0)
+
+#define GETFS(strm) state->fs
+
+#define DROPFS(strm)                            \
+    do {                                        \
+        strm->state->fs = 0;                    \
+        /* Needs to be here for                 \
+           ASK/GET/PUT/DROP interleaving. */    \
+        strm->state->bitp--;                    \
+    } while (0)
+
+#define PUT(strm, sample)                          \
+    do {                                           \
+        if (strm->avail_out == 0)                  \
+            return M_EXIT;                         \
+        u_put(strm, (sample));                     \
+    } while (0)
+
+#define COPYSAMPLE(strm)                            \
+    do {                                            \
+        ASK(strm, strm->bit_per_sample);            \
+        PUT(strm, GET(strm, strm->bit_per_sample)); \
+        DROP(strm, strm->bit_per_sample);           \
+    } while (0)
+
+
+static int m_id(struct aec_stream *strm)
+{
+    struct internal_state *state = strm->state;
+
+    if (state->pp && (state->samples_out / strm->block_size) % strm->rsi == 0)
+        state->ref = 1;
+    else
+        state->ref = 0;
+
+    ASK(strm, state->id_len);
+    state->id = GET(strm, state->id_len);
+    DROP(strm, state->id_len);
+    state->mode = state->id_table[state->id];
+
+    return M_CONTINUE;
+}
+
+static int m_split_output(struct aec_stream *strm)
+{
+    struct internal_state *state = strm->state;
+    int k = state->id - 1;
+
+    do {
+        ASK(strm, k);
+        PUT(strm, (state->block[state->i] << k) + GET(strm, k));
+        DROP(strm, k);
+    } while(state->i--);
+
+    state->mode = m_id;
+    return M_CONTINUE;
+}
+
+static int m_split_fs(struct aec_stream *strm)
+{
+    struct internal_state *state = strm->state;
+
+    do {
+        ASKFS(strm);
+        state->block[state->i] = GETFS(strm);
+        DROPFS(strm);
+    } while(state->i--);
+
+    state->i = state->n - 1;
+    state->mode = m_split_output;
+    return M_CONTINUE;
+}
+
+static int m_split(struct aec_stream *strm)
+{
+    struct internal_state *state = strm->state;
+
+    if (SAFE) {
+        fast_split(strm);
+        state->mode = m_id;
+        return M_CONTINUE;
+    }
+
+    if (state->ref) {
+        COPYSAMPLE(strm);
+        state->n = strm->block_size - 1;
+    } else {
+        state->n = strm->block_size;
+    }
+
+    state->i = state->n - 1;
+    state->mode = m_split_fs;
+    return M_CONTINUE;
+}
+
+static int m_zero_output(struct aec_stream *strm)
+{
+    struct internal_state *state = strm->state;
+
+    do
+        PUT(strm, 0);
+    while(--state->i);
+
+    state->mode = m_id;
+    return M_CONTINUE;
+}
+
+static int m_zero_block(struct aec_stream *strm)
+{
+    int zero_blocks, b;
+    struct internal_state *state = strm->state;
+
+    ASKFS(strm);
+    zero_blocks = GETFS(strm) + 1;
+    DROPFS(strm);
+
+    if (zero_blocks == ROS) {
+        b = (state->samples_out / strm->block_size) % strm->rsi;
+        zero_blocks = MIN(strm->rsi - b, 64 - (b % 64));
+    } else if (zero_blocks > ROS) {
+        zero_blocks--;
+    }
+
+    if (state->ref)
+        state->i = zero_blocks * strm->block_size - 1;
+    else
+        state->i = zero_blocks * strm->block_size;
+
+    if (strm->avail_out >= state->i * state->byte_per_sample) {
+        fast_zero(strm);
+        state->mode = m_id;
+        return M_CONTINUE;
+    }
+
+    state->mode = m_zero_output;
+    return M_CONTINUE;
+}
+
+static int m_se_decode(struct aec_stream *strm)
+{
+    int64_t m, d1;
+    struct internal_state *state = strm->state;
+
+    while(state->i < strm->block_size) {
+        ASKFS(strm);
+        m = GETFS(strm);
+        d1 = m - se_ms(m);
+
+        if ((state->i & 1) == 0) {
+            PUT(strm, se_beta(m) - d1);
+            state->i++;
+        }
+
+        PUT(strm, d1);
+        state->i++;
+        DROPFS(strm);
+    }
+
+    state->mode = m_id;
+    return M_CONTINUE;
+}
+
+static int m_se(struct aec_stream *strm)
+{
+    struct internal_state *state = strm->state;
+
+    if (SAFE) {
+        fast_se(strm);
+        state->mode = m_id;
+        return M_CONTINUE;
+    }
+
+    state->mode = m_se_decode;
+    state->i = state->ref;
+    return M_CONTINUE;
+}
+
+static int m_low_entropy_ref(struct aec_stream *strm)
+{
+    struct internal_state *state = strm->state;
+
+    if (state->ref)
+        COPYSAMPLE(strm);
+
+    if(state->id == 1) {
+        state->mode = m_se;
+        return M_CONTINUE;
+    }
+
+    state->mode = m_zero_block;
+    return M_CONTINUE;
+}
+
+static int m_low_entropy(struct aec_stream *strm)
+{
+    struct internal_state *state = strm->state;
+
+    ASK(strm, 1);
+    state->id = GET(strm, 1);
+    DROP(strm, 1);
+    state->mode = m_low_entropy_ref;
+    return M_CONTINUE;
+}
+
+static int m_uncomp_copy(struct aec_stream *strm)
+{
+    struct internal_state *state = strm->state;
+
+    do
+        COPYSAMPLE(strm);
+    while(--state->i);
+
+    state->mode = m_id;
+    return M_CONTINUE;
+}
+
+static int m_uncomp(struct aec_stream *strm)
+{
+    struct internal_state *state = strm->state;
+
+    if (SAFE) {
+        fast_uncomp(strm);
+        state->mode = m_id;
+        return M_CONTINUE;
+    }
+
+    state->i = strm->block_size;
+    state->mode = m_uncomp_copy;
+    return M_CONTINUE;
+}
+
 int aec_decode_init(struct aec_stream *strm)
 {
     int i, modi;
-    decode_state *state;
+    struct internal_state *state;
 
     if (strm->bit_per_sample > 32 || strm->bit_per_sample == 0)
         return AEC_CONF_ERROR;
 
-    state = (decode_state *) malloc(sizeof(decode_state));
+    state = (struct internal_state *) malloc(sizeof(struct internal_state));
     if (state == NULL)
         return AEC_MEM_ERROR;
 
@@ -331,15 +752,15 @@ int aec_decode_init(struct aec_stream *strm)
                         + state->id_len) / 8 + 1;
 
     modi = 1UL << state->id_len;
-    state->id_table = (int *)malloc(modi * sizeof(int));
+    state->id_table = malloc(modi * sizeof(int (*)(struct aec_stream *)));
     if (state->id_table == NULL)
         return AEC_MEM_ERROR;
 
-    state->id_table[0] = M_LOW_ENTROPY;
+    state->id_table[0] = m_low_entropy;
     for (i = 1; i < modi - 1; i++) {
-        state->id_table[i] = M_SPLIT;
+        state->id_table[i] = m_split;
     }
-    state->id_table[modi - 1] = M_UNCOMP;
+    state->id_table[modi - 1] = m_uncomp;
 
     state->block = (int64_t *)malloc(strm->block_size * sizeof(int64_t));
     if (state->block == NULL)
@@ -352,81 +773,9 @@ int aec_decode_init(struct aec_stream *strm)
     state->bitp = 0;
     state->fs = 0;
     state->pp = strm->flags & AEC_DATA_PREPROCESS;
-    state->mode = M_ID;
+    state->mode = m_id;
     return AEC_OK;
 }
-
-int aec_decode_end(struct aec_stream *strm)
-{
-    decode_state *state;
-
-    state = strm->state;
-    free(state->block);
-    free(state->id_table);
-    free(state);
-    return AEC_OK;
-}
-
-#define ASK(n)                                           \
-    do {                                                 \
-        while (state->bitp < (unsigned)(n)) {            \
-            if (strm->avail_in == 0)                     \
-                goto req_buffer;                         \
-            strm->avail_in--;                            \
-            strm->total_in++;                            \
-            state->acc <<= 8;                            \
-            state->acc |= *strm->next_in++;              \
-            state->bitp += 8;                            \
-        }                                                \
-    } while (0)
-
-#define GET(n)                                                  \
-    ((state->acc >> (state->bitp - (n))) & ((1ULL << (n)) - 1))
-
-#define DROP(n) state->bitp -= (unsigned)(n)
-
-#define ASKFS()                                                     \
-    do {                                                            \
-        ASK(1);                                                     \
-        while ((state->acc & (1ULL << (state->bitp - 1))) == 0) {   \
-            if (state->bitp == 1) {                                 \
-                if (strm->avail_in == 0)                            \
-                    goto req_buffer;                                \
-                strm->avail_in--;                                   \
-                strm->total_in++;                                   \
-                state->acc <<= 8;                                   \
-                state->acc |= *strm->next_in++;                     \
-                state->bitp += 8;                                   \
-            }                                                       \
-            state->fs++;                                            \
-            state->bitp--;                                          \
-        }                                                           \
-    } while (0)
-
-#define GETFS() state->fs
-
-#define DROPFS()                                \
-    do {                                        \
-        state->fs = 0;                          \
-        /* Needs to be here for                 \
-           ASK/GET/PUT/DROP interleaving. */    \
-        state->bitp--;                          \
-    } while (0)
-
-#define PUT(sample)                                \
-    do {                                           \
-        if (strm->avail_out == 0)                  \
-            goto req_buffer;                       \
-        u_put(strm, (sample));                     \
-    } while (0)
-
-#define COPYSAMPLE()                    \
-    do {                                \
-        ASK(strm->bit_per_sample);      \
-        PUT(GET(strm->bit_per_sample)); \
-        DROP(strm->bit_per_sample);     \
-    } while (0)
-
 
 int aec_decode(struct aec_stream *strm, int flush)
 {
@@ -439,171 +788,18 @@ int aec_decode(struct aec_stream *strm, int flush)
        of the states are called. Inspired by zlib.
     */
 
-    int zero_blocks, b;
-    int64_t gamma, beta, ms, delta1;
-    int k;
-    decode_state *state;
+    while (strm->state->mode(strm) == M_CONTINUE);
+    return AEC_OK;
+}
+
+int aec_decode_end(struct aec_stream *strm)
+{
+    struct internal_state *state;
 
     state = strm->state;
-
-    for (;;) {
-        switch(state->mode) {
-        case M_ID:
-            if (state->pp
-                && (state->samples_out / strm->block_size) % strm->rsi == 0)
-                state->ref = 1;
-            else
-                state->ref = 0;
-
-            ASK(state->id_len);
-            state->id = GET(state->id_len);
-            DROP(state->id_len);
-            state->mode = state->id_table[state->id];
-            break;
-
-        case M_SPLIT:
-            if (SAFE) {
-                fast_split(strm);
-                state->mode = M_ID;
-                break;
-            }
-
-            if (state->ref) {
-                COPYSAMPLE();
-                state->n = strm->block_size - 1;
-            } else {
-                state->n = strm->block_size;
-            }
-
-            state->i = state->n - 1;
-            state->mode = M_SPLIT_FS;
-
-        case M_SPLIT_FS:
-            do {
-                ASKFS();
-                state->block[state->i] = GETFS();
-                DROPFS();
-            } while(state->i--);
-
-            state->i = state->n - 1;
-            state->mode = M_SPLIT_OUTPUT;
-
-        case M_SPLIT_OUTPUT:
-            k = state->id - 1;
-            do {
-                ASK(k);
-                PUT((state->block[state->i] << k) + GET(k));
-                DROP(k);
-            } while(state->i--);
-
-            state->mode = M_ID;
-            break;
-
-        case M_LOW_ENTROPY:
-            ASK(1);
-            state->id = GET(1);
-            DROP(1);
-            state->mode = M_LOW_ENTROPY_REF;
-
-        case M_LOW_ENTROPY_REF:
-            if (state->ref)
-                COPYSAMPLE();
-
-            if(state->id == 1) {
-                state->mode = M_SE;
-                break;
-            }
-
-            state->mode = M_ZERO_BLOCK;
-
-        case M_ZERO_BLOCK:
-            ASKFS();
-            zero_blocks = GETFS() + 1;
-            DROPFS();
-
-            if (zero_blocks == ROS) {
-                b = (state->samples_out / strm->block_size) % strm->rsi;
-                zero_blocks = MIN(strm->rsi - b, 64 - (b % 64));
-            } else if (zero_blocks > ROS) {
-                zero_blocks--;
-            }
-
-            if (state->ref)
-                state->i = zero_blocks * strm->block_size - 1;
-            else
-                state->i = zero_blocks * strm->block_size;
-
-            if (strm->avail_out >= state->i * state->byte_per_sample) {
-                fast_zero(strm);
-                state->mode = M_ID;
-                break;
-            }
-
-            state->mode = M_ZERO_OUTPUT;
-
-        case M_ZERO_OUTPUT:
-            do
-                PUT(0);
-            while(--state->i);
-
-            state->mode = M_ID;
-            break;
-
-        case M_SE:
-            if (SAFE) {
-                fast_se(strm);
-                state->mode = M_ID;
-                break;
-            }
-
-            state->mode = M_SE_DECODE;
-            state->i = state->ref;
-
-        case M_SE_DECODE:
-            while(state->i < strm->block_size) {
-                ASKFS();
-                gamma = GETFS();
-                beta = second_extension[gamma][0];
-                ms = second_extension[gamma][1];
-                delta1 = gamma - ms;
-
-                if ((state->i & 1) == 0) {
-                    PUT(beta - delta1);
-                    state->i++;
-                }
-
-                PUT(delta1);
-                state->i++;
-                DROPFS();
-            }
-
-            state->mode = M_ID;
-            break;
-
-        case M_UNCOMP:
-            if (SAFE) {
-                fast_uncomp(strm);
-                state->mode = M_ID;
-                break;
-            }
-
-            state->i = strm->block_size;
-            state->mode = M_UNCOMP_COPY;
-
-        case M_UNCOMP_COPY:
-            do
-                COPYSAMPLE();
-            while(--state->i);
-
-            state->mode = M_ID;
-            break;
-
-        default:
-            return AEC_STREAM_ERROR;
-        }
-    }
-
-req_buffer:
+    free(state->block);
+    free(state->id_table);
+    free(state);
     return AEC_OK;
 }
 
