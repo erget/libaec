@@ -41,6 +41,7 @@ struct internal_state {
     int pp;            /* 1 if postprocessor has to be used */
     int byte_per_sample;
     size_t samples_out;
+    int *se_table;
 } decode_state;
 
 #endif /* DECODE_H */

@@ -15,226 +15,6 @@
 #include "libaec.h"
 #include "decode.h"
 
-static int se_beta(int m)
-{
-    switch(m) {
-    case 0:
-        return 0;
-    case 1:
-    case 2:
-        return 1;
-    case 3:
-    case 4:
-    case 5:
-        return 2;
-    case 6:
-    case 7:
-    case 8:
-    case 9:
-        return 3;
-    case 10:
-    case 11:
-    case 12:
-    case 13:
-    case 14:
-        return 4;
-    case 15:
-    case 16:
-    case 17:
-    case 18:
-    case 19:
-    case 20:
-        return 5;
-    case 21:
-    case 22:
-    case 23:
-    case 24:
-    case 25:
-    case 26:
-    case 27:
-        return 6;
-    case 28:
-    case 29:
-    case 30:
-    case 31:
-    case 32:
-    case 33:
-    case 34:
-    case 35:
-        return 7;
-    case 36:
-    case 37:
-    case 38:
-    case 39:
-    case 40:
-    case 41:
-    case 42:
-    case 43:
-    case 44:
-        return 8;
-    case 45:
-    case 46:
-    case 47:
-    case 48:
-    case 49:
-    case 50:
-    case 51:
-    case 52:
-    case 53:
-    case 55:
-        return 9;
-    case 56:
-    case 57:
-    case 58:
-    case 59:
-    case 60:
-    case 61:
-    case 62:
-    case 63:
-    case 64:
-    case 65:
-    case 66:
-        return 10;
-    case 67:
-    case 68:
-    case 69:
-    case 70:
-    case 71:
-    case 72:
-    case 73:
-    case 74:
-    case 75:
-    case 76:
-    case 77:
-    case 78:
-        return 11;
-    case 79:
-    case 80:
-    case 81:
-    case 82:
-    case 83:
-    case 84:
-    case 85:
-    case 86:
-    case 87:
-    case 88:
-    case 89:
-    case 90:
-    case 91:
-        return 12;
-    }
-}
-
-static int se_ms(int m)
-{
-    switch(m) {
-    case 0:
-        return 0;
-    case 1:
-    case 2:
-        return 1;
-    case 3:
-    case 4:
-    case 5:
-        return 3;
-    case 6:
-    case 7:
-    case 8:
-    case 9:
-        return 6;
-    case 10:
-    case 11:
-    case 12:
-    case 13:
-    case 14:
-        return 10;
-    case 15:
-    case 16:
-    case 17:
-    case 18:
-    case 19:
-    case 20:
-        return 15;
-    case 21:
-    case 22:
-    case 23:
-    case 24:
-    case 25:
-    case 26:
-    case 27:
-        return 21;
-    case 28:
-    case 29:
-    case 30:
-    case 31:
-    case 32:
-    case 33:
-    case 34:
-    case 35:
-        return 28;
-    case 36:
-    case 37:
-    case 38:
-    case 39:
-    case 40:
-    case 41:
-    case 42:
-    case 43:
-    case 44:
-        return 36;
-    case 45:
-    case 46:
-    case 47:
-    case 48:
-    case 49:
-    case 50:
-    case 51:
-    case 52:
-    case 53:
-    case 55:
-        return 45;
-    case 56:
-    case 57:
-    case 58:
-    case 59:
-    case 60:
-    case 61:
-    case 62:
-    case 63:
-    case 64:
-    case 65:
-    case 66:
-        return 56;
-    case 67:
-    case 68:
-    case 69:
-    case 70:
-    case 71:
-    case 72:
-    case 73:
-    case 74:
-    case 75:
-    case 76:
-    case 77:
-    case 78:
-        return 67;
-    case 79:
-    case 80:
-    case 81:
-    case 82:
-    case 83:
-    case 84:
-    case 85:
-    case 86:
-    case 87:
-    case 88:
-    case 89:
-    case 90:
-    case 91:
-        return 79;
-    }
-}
-
 static void put_msb_32(struct aec_stream *strm, int64_t data)
 {
     *strm->next_out++ = data >> 24;
@@ -372,9 +152,8 @@ static inline int64_t u_get_fs(struct aec_stream *strm)
 static inline void fast_split(struct aec_stream *strm)
 {
     int i, k;
-    struct internal_state *state;
+    struct internal_state *state= strm->state;
 
-    state = strm->state;
     k = state->id - 1;
 
     if (state->ref)
@@ -401,15 +180,16 @@ static inline void fast_se(struct aec_stream *strm)
 {
     int i;
     int64_t m, d1;
+    struct internal_state *state= strm->state;
 
-    i = strm->state->ref;
+    i = state->ref;
 
     while (i < strm->block_size) {
         m = u_get_fs(strm);
-        d1 = m - se_ms(m);
+        d1 = m - state->se_table[2 * m + 1];
 
         if ((i & 1) == 0) {
-            u_put(strm, se_beta(m) - d1);
+            u_put(strm, state->se_table[2 * m] - d1);
             i++;
         }
         u_put(strm, d1);
@@ -606,10 +386,10 @@ static int m_se_decode(struct aec_stream *strm)
     while(state->i < strm->block_size) {
         ASKFS(strm);
         m = GETFS(strm);
-        d1 = m - se_ms(m);
+        d1 = m - state->se_table[2 * m + 1];
 
         if ((state->i & 1) == 0) {
-            PUT(strm, se_beta(m) - d1);
+            PUT(strm, state->se_table[2 * m] - d1);
             state->i++;
         }
 
@@ -691,6 +471,21 @@ static int m_uncomp(struct aec_stream *strm)
     return M_CONTINUE;
 }
 
+static void create_se_table(int *table)
+{
+    int i, j, k, ms;
+
+    k = 0;
+    for (i = 0; i < 13; i++) {
+        ms = k;
+        for (j = 0; j <= i; j++) {
+            table[2 * k] = i;
+            table[2 * k + 1] = ms;
+            k++;
+        }
+    }
+}
+
 int aec_decode_init(struct aec_stream *strm)
 {
     int i, modi;
@@ -702,6 +497,12 @@ int aec_decode_init(struct aec_stream *strm)
     state = (struct internal_state *) malloc(sizeof(struct internal_state));
     if (state == NULL)
         return AEC_MEM_ERROR;
+
+    state->se_table = (int *) malloc(180 * sizeof(int));
+    if (state->se_table == NULL)
+        return AEC_MEM_ERROR;
+
+    create_se_table(state->se_table);
 
     strm->state = state;
 
@@ -794,9 +595,8 @@ int aec_decode(struct aec_stream *strm, int flush)
 
 int aec_decode_end(struct aec_stream *strm)
 {
-    struct internal_state *state;
+    struct internal_state *state= strm->state;
 
-    state = strm->state;
     free(state->block);
     free(state->id_table);
     free(state);
