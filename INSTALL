@@ -1,0 +1,6 @@
+The most common installation procedure looks as follows.
+
+Unpack the tar archive and change into the unpacked directory.
+
+  ./configure
+  make check install

@@ -1,36 +1,32 @@
-libae - Adaptive entropy encoding library
-----------------------------------------------------------------------------------------------
-Copyright 2012 
+libaec - Adaptive Entropy Coding library
 
-Mathis Rosenhauer, Moritz Hanke, Joerg Behrens           Luis Kornblueh
+--------------------------------------------------------------------------------
+Copyright 2012
 
-Deutsches Klimarechenzentrum GmbH                        Max-Planck-Institut fuer Meteorologie 
-Bundesstr. 45a                                           Bundesstr. 53
-D-20146 Hamburg                                          D-20146 Hamburg               
-Germany                                                  Germany
-----------------------------------------------------------------------------------------------
+Mathis Rosenhauer,                 Luis Kornblueh
+Moritz Hanke,
+Joerg Behrens
+
+Deutsches Klimarechenzentrum GmbH  Max-Planck-Institut fuer Meteorologie
+Bundesstr. 45a                     Bundesstr. 53
+20146 Hamburg                      20146 Hamburg
+Germany                            Germany
+--------------------------------------------------------------------------------
 
 The implementation is based on:
 
-Consultative Committee for Space Data Systems. Lossless Data Compression. 
-Recommendation for Space Data System Standards, CCSDS 121.0-B-2. Blue Book. Issue 2. 
-Washington, D.C.: CCSDS, May 2012.
+Consultative Committee for Space Data Systems. Lossless Data
+Compression. Recommendation for Space Data System Standards, CCSDS
+121.0-B-2. Blue Book. Issue 2. Washington, D.C.: CCSDS, May 2012.
 
 http://public.ccsds.org/publications/archive/121x0b2.pdf
 
-Consultative Committee for Space Data Systems. Lossless Data Compression. 
-Recommendation for Space Data System Standards, CCSDS 120.0-G-2. Green Book. Issue 2. 
-Washington, D.C.: CCSDS, December 2006.
+Consultative Committee for Space Data Systems. Lossless Data
+Compression.  Recommendation for Space Data System Standards, CCSDS
+120.0-G-2. Green Book. Issue 2. Washington, D.C.: CCSDS, December
+2006.
 
 http://public.ccsds.org/publications/archive/120x0g2.pdf
 
-Aaron B. Kiely. Selecting the golomb parameter in rice coding. 
-IPN Progress Report, 42-159:18+, November 2004.
-
-http://ipnpr.jpl.nasa.gov/progress_report/42-159/159E.pdf
-
-Copies are made available with some additional documents in the docs directory.
-Additional, in doc/license.txt a clarification on eventually applying intellectual
+In doc/license.txt a clarification on eventually applying intellectual
 property rights is given.
-
-----------------------------------------------------------------------------------------------
