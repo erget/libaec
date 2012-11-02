@@ -27,15 +27,6 @@
 #define ROS -1
 
 static int m_get_block(struct aec_stream *strm);
-static int m_get_rsi_resumable(struct aec_stream *strm);
-static int m_check_zero_block(struct aec_stream *strm);
-static int m_select_code_option(struct aec_stream *strm);
-static int m_flush_block(struct aec_stream *strm);
-static int m_flush_block_resumable(struct aec_stream *strm);
-static int m_encode_splitting(struct aec_stream *strm);
-static int m_encode_uncomp(struct aec_stream *strm);
-static int m_encode_se(struct aec_stream *strm);
-static int m_encode_zero(struct aec_stream *strm);
 
 static inline void emit(struct internal_state *state,
                         uint32_t data, int bits)
@@ -394,181 +385,48 @@ static int assess_se_option(uint64_t limit, struct aec_stream *strm)
  *
  */
 
-static int m_get_block(struct aec_stream *strm)
+static int m_flush_block_resumable(struct aec_stream *strm)
 {
     /**
-       Provide the next block of preprocessed input data.
-
-       Pull in a whole Reference Sample Interval (RSI) of data if
-       block buffer is empty.
+       Slow and restartable flushing
     */
-
     struct internal_state *state = strm->state;
 
-    if (strm->avail_out > state->cds_len) {
-        if (!state->direct_out) {
-            state->direct_out = 1;
-            *strm->next_out = *state->cds;
-            state->cds = strm->next_out;
-        }
-    } else {
-        if (state->zero_blocks == 0 || state->direct_out) {
-            /* copy leftover from last block */
-            *state->cds_buf = *state->cds;
-            state->cds = state->cds_buf;
-        }
-        state->direct_out = 0;
+    while(state->cds_buf + state->i < state->cds) {
+        if (strm->avail_out == 0)
+            return M_EXIT;
+
+        *strm->next_out++ = state->cds_buf[state->i];
+        strm->avail_out--;
+        strm->total_out++;
+        state->i++;
     }
-
-    if (state->blocks_avail == 0) {
-        state->block = state->data_pp;
-
-        if (strm->avail_in >= state->block_len * strm->rsi) {
-            state->get_rsi(strm);
-            state->blocks_avail = strm->rsi - 1;
-
-            if (strm->flags & AEC_DATA_PREPROCESS) {
-                state->preprocess(strm);
-                state->ref = 1;
-            }
-            return m_check_zero_block(strm);
-        } else {
-            state->i = 0;
-            state->mode = m_get_rsi_resumable;
-        }
-    } else {
-        state->ref = 0;
-        state->block += strm->block_size;
-        state->blocks_avail--;
-        return m_check_zero_block(strm);
-    }
+    state->mode = m_get_block;
     return M_CONTINUE;
 }
 
-static int m_get_rsi_resumable(struct aec_stream *strm)
+static int m_flush_block(struct aec_stream *strm)
 {
     /**
-       Get RSI while input buffer is short.
+       Flush block in direct_out mode by updating counters.
 
-       Let user provide more input. Once we got all input pad buffer
-       to full RSI.
+       Fall back to slow flushing if in buffered mode.
     */
-
-    int j;
+    int n;
     struct internal_state *state = strm->state;
 
-    do {
-        if (strm->avail_in > 0) {
-            state->data_raw[state->i] = state->get_sample(strm);
-        } else {
-            if (state->flush == AEC_FLUSH) {
-                if (state->i > 0) {
-                    for (j = state->i; j < strm->rsi * strm->block_size; j++)
-                        state->data_raw[j] = state->data_raw[state->i - 1];
-                    state->i = strm->rsi * strm->block_size;
-                } else {
-                    if (state->zero_blocks) {
-                        state->mode = m_encode_zero;
-                        return M_CONTINUE;
-                    }
-
-                    emit(state, 0, state->bits);
-                    if (state->direct_out == 0)
-                        *strm->next_out++ = *state->cds;
-                    strm->avail_out--;
-                    strm->total_out++;
-
-                    return M_EXIT;
-                }
-            } else {
-                return M_EXIT;
-            }
-        }
-    } while (++state->i < strm->rsi * strm->block_size);
-
-    state->blocks_avail = strm->rsi - 1;
-    if (strm->flags & AEC_DATA_PREPROCESS) {
-        state->preprocess(strm);
-        state->ref = 1;
-    }
-
-    return m_check_zero_block(strm);
-}
-
-static int m_check_zero_block(struct aec_stream *strm)
-{
-    /**
-       Check if input block is all zero.
-
-       Aggregate consecutive zero blocks until we find !0 or reach the
-       end of a segment or RSI.
-    */
-
-    struct internal_state *state = strm->state;
-    uint32_t *p = state->block + state->ref;
-    uint32_t *end = state->block + strm->block_size;
-
-    while(p < end && *p == 0)
-        p++;
-
-    if (p < end) {
-        if (state->zero_blocks) {
-            /* The current block isn't zero but we have to emit a
-             * previous zero block first. The current block will be
-             * handled later.
-             */
-            state->block -= strm->block_size;
-            state->blocks_avail++;
-            state->mode = m_encode_zero;
-            return M_CONTINUE;
-        }
-        state->mode = m_select_code_option;
-        return M_CONTINUE;
-    } else {
-        state->zero_blocks++;
-        if (state->zero_blocks == 1) {
-            state->zero_ref = state->ref;
-            state->zero_ref_sample = state->block[0];
-        }
-        if (state->blocks_avail == 0
-            || (strm->rsi - state->blocks_avail) % 64 == 0) {
-            if (state->zero_blocks > 4)
-                state->zero_blocks = ROS;
-            state->mode = m_encode_zero;
-            return M_CONTINUE;
-        }
+    if (state->direct_out) {
+        n = state->cds - strm->next_out;
+        strm->next_out += n;
+        strm->avail_out -= n;
+        strm->total_out += n;
         state->mode = m_get_block;
         return M_CONTINUE;
     }
-}
 
-static int m_select_code_option(struct aec_stream *strm)
-{
-    /**
-       Decide which code option to use.
-    */
-
-    uint64_t uncomp_len;
-    uint64_t split_len;
-    uint64_t se_len;
-    struct internal_state *state = strm->state;
-
-    uncomp_len = (strm->block_size - state->ref)
-        * strm->bit_per_sample;
-    split_len = assess_splitting_option(strm);
-    se_len = assess_se_option(split_len, strm);
-
-    if (split_len < uncomp_len) {
-        if (split_len < se_len)
-            return m_encode_splitting(strm);
-        else
-            return m_encode_se(strm);
-    } else {
-        if (uncomp_len <= se_len)
-            return m_encode_uncomp(strm);
-        else
-            return m_encode_se(strm);
-    }
+    state->i = 0;
+    state->mode = m_flush_block_resumable;
+    return M_CONTINUE;
 }
 
 static int m_encode_splitting(struct aec_stream *strm)
@@ -643,47 +501,180 @@ static int m_encode_zero(struct aec_stream *strm)
     return m_flush_block(strm);
 }
 
-static int m_flush_block(struct aec_stream *strm)
+static int m_select_code_option(struct aec_stream *strm)
 {
     /**
-       Flush block in direct_out mode by updating counters.
-
-       Fall back to slow flushing if in buffered mode.
+       Decide which code option to use.
     */
-    int n;
+
+    uint64_t uncomp_len;
+    uint64_t split_len;
+    uint64_t se_len;
     struct internal_state *state = strm->state;
 
-    if (state->direct_out) {
-        n = state->cds - strm->next_out;
-        strm->next_out += n;
-        strm->avail_out -= n;
-        strm->total_out += n;
+    uncomp_len = (strm->block_size - state->ref)
+        * strm->bit_per_sample;
+    split_len = assess_splitting_option(strm);
+    se_len = assess_se_option(split_len, strm);
+
+    if (split_len < uncomp_len) {
+        if (split_len < se_len)
+            return m_encode_splitting(strm);
+        else
+            return m_encode_se(strm);
+    } else {
+        if (uncomp_len <= se_len)
+            return m_encode_uncomp(strm);
+        else
+            return m_encode_se(strm);
+    }
+}
+
+static int m_check_zero_block(struct aec_stream *strm)
+{
+    /**
+       Check if input block is all zero.
+
+       Aggregate consecutive zero blocks until we find !0 or reach the
+       end of a segment or RSI.
+    */
+
+    struct internal_state *state = strm->state;
+    uint32_t *p = state->block + state->ref;
+    uint32_t *end = state->block + strm->block_size;
+
+    while(p < end && *p == 0)
+        p++;
+
+    if (p < end) {
+        if (state->zero_blocks) {
+            /* The current block isn't zero but we have to emit a
+             * previous zero block first. The current block will be
+             * handled later.
+             */
+            state->block -= strm->block_size;
+            state->blocks_avail++;
+            state->mode = m_encode_zero;
+            return M_CONTINUE;
+        }
+        state->mode = m_select_code_option;
+        return M_CONTINUE;
+    } else {
+        state->zero_blocks++;
+        if (state->zero_blocks == 1) {
+            state->zero_ref = state->ref;
+            state->zero_ref_sample = state->block[0];
+        }
+        if (state->blocks_avail == 0
+            || (strm->rsi - state->blocks_avail) % 64 == 0) {
+            if (state->zero_blocks > 4)
+                state->zero_blocks = ROS;
+            state->mode = m_encode_zero;
+            return M_CONTINUE;
+        }
         state->mode = m_get_block;
         return M_CONTINUE;
     }
-
-    state->i = 0;
-    state->mode = m_flush_block_resumable;
-    return M_CONTINUE;
 }
 
-static int m_flush_block_resumable(struct aec_stream *strm)
+static int m_get_rsi_resumable(struct aec_stream *strm)
 {
     /**
-       Slow and restartable flushing
+       Get RSI while input buffer is short.
+
+       Let user provide more input. Once we got all input pad buffer
+       to full RSI.
     */
+
+    int j;
     struct internal_state *state = strm->state;
 
-    while(state->cds_buf + state->i < state->cds) {
-        if (strm->avail_out == 0)
-            return M_EXIT;
+    do {
+        if (strm->avail_in > 0) {
+            state->data_raw[state->i] = state->get_sample(strm);
+        } else {
+            if (state->flush == AEC_FLUSH) {
+                if (state->i > 0) {
+                    for (j = state->i; j < strm->rsi * strm->block_size; j++)
+                        state->data_raw[j] = state->data_raw[state->i - 1];
+                    state->i = strm->rsi * strm->block_size;
+                } else {
+                    if (state->zero_blocks) {
+                        state->mode = m_encode_zero;
+                        return M_CONTINUE;
+                    }
 
-        *strm->next_out++ = state->cds_buf[state->i];
-        strm->avail_out--;
-        strm->total_out++;
-        state->i++;
+                    emit(state, 0, state->bits);
+                    if (state->direct_out == 0)
+                        *strm->next_out++ = *state->cds;
+                    strm->avail_out--;
+                    strm->total_out++;
+
+                    return M_EXIT;
+                }
+            } else {
+                return M_EXIT;
+            }
+        }
+    } while (++state->i < strm->rsi * strm->block_size);
+
+    state->blocks_avail = strm->rsi - 1;
+    if (strm->flags & AEC_DATA_PREPROCESS) {
+        state->preprocess(strm);
+        state->ref = 1;
     }
-    state->mode = m_get_block;
+
+    return m_check_zero_block(strm);
+}
+
+static int m_get_block(struct aec_stream *strm)
+{
+    /**
+       Provide the next block of preprocessed input data.
+
+       Pull in a whole Reference Sample Interval (RSI) of data if
+       block buffer is empty.
+    */
+
+    struct internal_state *state = strm->state;
+
+    if (strm->avail_out > state->cds_len) {
+        if (!state->direct_out) {
+            state->direct_out = 1;
+            *strm->next_out = *state->cds;
+            state->cds = strm->next_out;
+        }
+    } else {
+        if (state->zero_blocks == 0 || state->direct_out) {
+            /* copy leftover from last block */
+            *state->cds_buf = *state->cds;
+            state->cds = state->cds_buf;
+        }
+        state->direct_out = 0;
+    }
+
+    if (state->blocks_avail == 0) {
+        state->block = state->data_pp;
+
+        if (strm->avail_in >= state->block_len * strm->rsi) {
+            state->get_rsi(strm);
+            state->blocks_avail = strm->rsi - 1;
+
+            if (strm->flags & AEC_DATA_PREPROCESS) {
+                state->preprocess(strm);
+                state->ref = 1;
+            }
+            return m_check_zero_block(strm);
+        } else {
+            state->i = 0;
+            state->mode = m_get_rsi_resumable;
+        }
+    } else {
+        state->ref = 0;
+        state->block += strm->block_size;
+        state->blocks_avail--;
+        return m_check_zero_block(strm);
+    }
     return M_CONTINUE;
 }
 
@@ -816,8 +807,8 @@ int aec_encode(struct aec_stream *strm, int flush)
        encoder.
     */
     int n;
-    struct internal_state *state;
-    state = strm->state;
+    struct internal_state *state = strm->state;
+
     state->flush = flush;
 
     while (state->mode(strm) == M_CONTINUE);
