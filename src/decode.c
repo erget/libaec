@@ -498,7 +498,7 @@ int aec_decode_init(struct aec_stream *strm)
     if (state == NULL)
         return AEC_MEM_ERROR;
 
-    state->se_table = (int *) malloc(180 * sizeof(int));
+    state->se_table = (int *) malloc(182 * sizeof(int));
     if (state->se_table == NULL)
         return AEC_MEM_ERROR;
 
