@@ -20,7 +20,7 @@ struct test_state {
 
 int update_state(struct test_state *state);
 int encode_decode_small(struct test_state *state);
-int encode_decode(struct test_state *state);
+int encode_decode_large(struct test_state *state);
 
 
 #endif /* CHECK_AEC_H */

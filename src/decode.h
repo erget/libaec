@@ -12,8 +12,8 @@
 #define M_CONTINUE 1
 #define M_EXIT 0
 
-#define SAFE (strm->avail_in >= state->in_blklen        \
-              && strm->avail_out >= state->out_blklen)
+#define SAFE(strm) (strm->avail_in >= strm->state->in_blklen    \
+              && strm->avail_out >= strm->state->out_blklen)
 
 #define ROS 5
 #define MIN(a, b) (((a) < (b))? (a): (b))
@@ -23,7 +23,7 @@ struct internal_state {
     int id;            /* option ID */
     int id_len;        /* bit length of code option identification key */
     int (**id_table)(struct aec_stream *); /* table maps IDs to states */
-    void (*put_sample)(struct aec_stream *, int64_t);
+    void (*flush_output)(struct aec_stream *);
     int ref_int;       /* reference sample is every ref_int samples */
     int64_t last_out;  /* previous output for post-processing */
     int64_t xmin;      /* minimum integer for post-processing */
@@ -40,8 +40,12 @@ struct internal_state {
     int ref;           /* 1 if current block has reference sample */
     int pp;            /* 1 if postprocessor has to be used */
     int byte_per_sample;
-    size_t samples_out;
     int *se_table;
+    uint32_t *buf_out;
+    uint32_t buf_next_out;
+    uint32_t buf_size;
+    uint32_t flush_start;
+    uint32_t flush_end;
 } decode_state;
 
 #endif /* DECODE_H */
