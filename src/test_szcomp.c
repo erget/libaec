@@ -4,7 +4,9 @@
 #include <string.h>
 #include "szlib.h"
 
-#define OPTIONS_MASK        (SZ_RAW_OPTION_MASK | SZ_MSB_OPTION_MASK | SZ_NN_OPTION_MASK)
+#define OPTIONS_MASK        (SZ_RAW_OPTION_MASK     \
+                             | SZ_MSB_OPTION_MASK   \
+                             | SZ_NN_OPTION_MASK)
 #define PIXELS_PER_BLOCK    (8)
 #define PIXELS_PER_SCANLINE (PIXELS_PER_BLOCK*128)
 
@@ -22,7 +24,7 @@ int main(int argc, char *argv[])
         return 1;
     }
     sz_param.options_mask = OPTIONS_MASK;
-    sz_param.bits_per_pixel = 16;
+    sz_param.bits_per_pixel = 64;
     sz_param.pixels_per_block = PIXELS_PER_BLOCK;
     sz_param.pixels_per_scanline = PIXELS_PER_SCANLINE;
 
@@ -43,12 +45,14 @@ int main(int argc, char *argv[])
 
     sourceLen = fread(source, 1, sourceLen, fp);
 
-    status = SZ_BufftoBuffCompress(dest, &destLen, source, sourceLen, &sz_param);
+    status = SZ_BufftoBuffCompress(dest, &destLen,
+                                   source, sourceLen, &sz_param);
     if (status != SZ_OK)
         return status;
 
     dest1Len = sourceLen;
-    status = SZ_BufftoBuffDecompress(dest1, &dest1Len, dest, destLen, &sz_param);
+    status = SZ_BufftoBuffDecompress(dest1, &dest1Len,
+                                     dest, destLen, &sz_param);
     if (status != SZ_OK)
         return status;
 
