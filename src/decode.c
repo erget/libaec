@@ -23,11 +23,9 @@
         int64_t data;                                                   \
         struct internal_state *state = strm->state;                     \
                                                                         \
-        state->flush_end = MIN(state->buf_size, state->buf_next_out);   \
-                                                                        \
         if (state->pp) {                                                \
-            if (state->flush_start == 0 && state->flush_end > 0) {      \
-                state->last_out = state->buf_out[0];                    \
+            if (state->flush_start == 0 && state->buf_i > 0) {          \
+                state->last_out = state->buf[0];                        \
                                                                         \
                 if (strm->flags & AEC_DATA_SIGNED) {                    \
                     m = 1ULL << (strm->bit_per_sample - 1);             \
@@ -40,8 +38,8 @@
                 state->flush_start = 1;                                 \
             }                                                           \
                                                                         \
-            for (i = state->flush_start; i < state->flush_end; i++) {   \
-                d = state->buf_out[i];                                  \
+            for (i = state->flush_start; i < state->buf_i; i++) {       \
+                d = state->buf[i];                                      \
                 x = state->last_out;                                    \
                 lower = x - state->xmin;                                \
                 th = MIN(lower, state->xmax - x);                       \
@@ -62,15 +60,15 @@
                 PUTBLOCK;                                               \
             }                                                           \
         } else {                                                        \
-            for (i = state->flush_start; i < state->flush_end; i++) {   \
-                data = state->buf_out[i];                               \
+            for (i = state->flush_start; i < state->buf_i; i++) {       \
+                data = state->buf[i];                                   \
                 PUTBLOCK;                                               \
             }                                                           \
         }                                                               \
-        if (state->flush_end == state->buf_size) {                      \
+        if (state->buf_i == state->buf_size) {                          \
             state->flush_start = 0;                                     \
         } else {                                                        \
-            state->flush_start = state->flush_end;                      \
+            state->flush_start = state->buf_i;                          \
         }                                                               \
     }
 
@@ -130,13 +128,13 @@ static void put_sample(struct aec_stream *strm, uint32_t s)
 {
     struct internal_state *state = strm->state;
 
-    state->buf_out[state->buf_next_out++] = s;
+    state->buf[state->buf_i++] = s;
     strm->avail_out -= state->byte_per_sample;
     strm->total_out += state->byte_per_sample;
 
-    if (state->buf_next_out == state->buf_size) {
+    if (state->buf_i == state->buf_size) {
         state->flush_output(strm);
-        state->buf_next_out = 0;
+        state->buf_i = 0;
     }
 }
 
@@ -304,7 +302,7 @@ static int m_id(struct aec_stream *strm)
 {
     struct internal_state *state = strm->state;
 
-    if (state->pp && state->buf_next_out == 0)
+    if (state->pp && state->buf_i == 0)
         state->ref = 1;
     else
         state->ref = 0;
@@ -399,7 +397,7 @@ static int m_zero_block(struct aec_stream *strm)
     fs_drop(strm);
 
     if (zero_blocks == ROS) {
-        b = state->buf_next_out / strm->block_size;
+        b = state->buf_i / strm->block_size;
         zero_blocks = MIN(strm->rsi - b, 64 - (b % 64));
     } else if (zero_blocks > ROS) {
         zero_blocks--;
@@ -617,14 +615,14 @@ int aec_decode_init(struct aec_stream *strm)
         return AEC_MEM_ERROR;
 
     state->buf_size = strm->rsi * strm->block_size;
-    state->buf_out = (uint32_t *)malloc(state->buf_size * sizeof(uint32_t));
-    if (state->buf_out == NULL)
+    state->buf = (uint32_t *)malloc(state->buf_size * sizeof(uint32_t));
+    if (state->buf == NULL)
         return AEC_MEM_ERROR;
 
     strm->total_in = 0;
     strm->total_out = 0;
 
-    state->buf_next_out = 0;
+    state->buf_i = 0;
     state->flush_start = 0;
     state->bitp = 0;
     state->fs = 0;
@@ -658,7 +656,7 @@ int aec_decode_end(struct aec_stream *strm)
     free(state->block);
     free(state->id_table);
     free(state->se_table);
-    free(state->buf_out);
+    free(state->buf);
     free(state);
     return AEC_OK;
 }
