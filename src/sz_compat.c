@@ -23,24 +23,34 @@ static int convert_options(int sz_opts)
     return opts;
 }
 
-static void interleave_buffer(unsigned char *dest, unsigned char *src,
+static void interleave_buffer(void *dest, const void *src,
                               size_t n, int wordsize)
 {
     size_t i, j;
+    const unsigned char *src8;
+    unsigned char *dest8;
+
+    src8 = (unsigned char *)src;
+    dest8 = (unsigned char *)dest;
 
     for (i = 0; i < n / wordsize; i++)
         for (j = 0; j < wordsize; j++)
-            dest[j * (n / wordsize) + i] = src[i * wordsize + j];
+            dest8[j * (n / wordsize) + i] = src8[i * wordsize + j];
 }
 
-static void deinterleave_buffer(unsigned char *dest, unsigned char *src,
-                              size_t n, int wordsize)
+static void deinterleave_buffer(void *dest, const void *src,
+                                size_t n, int wordsize)
 {
     size_t i, j;
+    const unsigned char *src8;
+    unsigned char *dest8;
+
+    src8 = (unsigned char *)src;
+    dest8 = (unsigned char *)dest;
 
     for (i = 0; i < n / wordsize; i++)
         for (j = 0; j < wordsize; j++)
-            dest[i * wordsize + j] = src[j * (n / wordsize) + i];
+            dest8[i * wordsize + j] = src8[j * (n / wordsize) + i];
 }
 
 int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
@@ -49,10 +59,10 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
 {
     int status;
     struct aec_stream strm;
-    unsigned char *buf;
+    void *buf;
 
     if (param->bits_per_pixel == 32 || param->bits_per_pixel == 64) {
-        buf = (unsigned char *)malloc(sourceLen);
+        buf = malloc(sourceLen);
         if (buf == NULL)
             return SZ_MEM_ERROR;
 
@@ -89,10 +99,10 @@ int SZ_BufftoBuffDecompress(void *dest, size_t *destLen,
 {
     int status;
     struct aec_stream strm;
-    unsigned char *buf;
+    void *buf;
 
     if (param->bits_per_pixel == 32 || param->bits_per_pixel == 64) {
-        buf = (unsigned char *)malloc(*destLen);
+        buf = malloc(*destLen);
         if (buf == NULL)
             return SZ_MEM_ERROR;
 
