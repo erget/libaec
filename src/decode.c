@@ -1,5 +1,12 @@
-/* Adaptive Entropy Decoder            */
-/* CCSDS 121.0-B-1 and CCSDS 120.0-G-2 */
+/**
+ * @file decode.c
+ * @author Mathis Rosenhauer, Deutsches Klimarechenzentrum
+ * @section DESCRIPTION
+ *
+ * Adaptive Entropy Decoder
+ * Based on CCSDS documents 121.0-B-2 and 120.0-G-2
+ *
+ */
 
 #include <config.h>
 
@@ -30,7 +37,7 @@
                 if (strm->flags & AEC_DATA_SIGNED) {                    \
                     m = 1ULL << (strm->bit_per_sample - 1);             \
                     /* Reference samples have to be sign extended */    \
-                    state->last_out = ( state->last_out ^ m) - m;       \
+                    state->last_out = (state->last_out ^ m) - m;        \
                 }                                                       \
                                                                         \
                 data = state->last_out;                                 \
@@ -138,7 +145,7 @@ static void put_sample(struct aec_stream *strm, uint32_t s)
     }
 }
 
-static int64_t u_get(struct aec_stream *strm, unsigned int n)
+static int64_t direct_get(struct aec_stream *strm, unsigned int n)
 {
     /**
        Get n bit from input stream
@@ -154,23 +161,39 @@ static int64_t u_get(struct aec_stream *strm, unsigned int n)
         state->acc = (state->acc << 8) | *strm->next_in++;
         state->bitp += 8;
     }
+
     state->bitp -= n;
     return (state->acc >> state->bitp) & ((1ULL << n) - 1);
 }
 
-static int64_t u_get_fs(struct aec_stream *strm)
+static int64_t direct_get_fs(struct aec_stream *strm)
 {
     /**
        Interpret a Fundamental Sequence from the input buffer.
 
-       Essentially counts the number of 0 bits until a
-       1 is encountered. TODO: faster version.
+       Essentially counts the number of 0 bits until a 1 is
+       encountered. The longest FS we can safely detect is 56 bits. If
+       no FS is found in accumulator then we top it up to at least 56
+       bits.
      */
 
+    struct internal_state *state = strm->state;
     int64_t fs = 0;
 
-    while(u_get(strm, 1) == 0)
+    if ((state->acc & ((1ULL << state->bitp) - 1)) == 0)
+        while (state->bitp < 56) {
+            strm->avail_in--;
+            strm->total_in++;
+            state->acc = (state->acc << 8) | *strm->next_in++;
+            state->bitp += 8;
+        }
+
+    state->bitp--;
+
+    while ((state->acc & (1ULL << state->bitp)) == 0) {
+        state->bitp--;
         fs++;
+    }
 
     return fs;
 }
@@ -183,15 +206,13 @@ static void fast_split(struct aec_stream *strm)
     k = state->id - 1;
 
     if (state->ref)
-        put_sample(strm, u_get(strm, strm->bit_per_sample));
+        put_sample(strm, direct_get(strm, strm->bit_per_sample));
 
     for (i = state->ref; i < strm->block_size; i++)
-        state->block[i] = u_get_fs(strm) << k;
+        state->block[i] = direct_get_fs(strm) << k;
 
-    for (i = state->ref; i < strm->block_size; i++) {
-        state->block[i] += u_get(strm, k);
-        put_sample(strm, state->block[i]);
-    }
+    for (i = state->ref; i < strm->block_size; i++)
+        put_sample(strm, state->block[i] + direct_get(strm, k));
 }
 
 static void fast_zero(struct aec_stream *strm)
@@ -211,7 +232,7 @@ static void fast_se(struct aec_stream *strm)
     i = state->ref;
 
     while (i < strm->block_size) {
-        m = u_get_fs(strm);
+        m = direct_get_fs(strm);
         d1 = m - state->se_table[2 * m + 1];
 
         if ((i & 1) == 0) {
@@ -228,7 +249,7 @@ static void fast_uncomp(struct aec_stream *strm)
     int i;
 
     for (i = 0; i < strm->block_size; i++)
-        put_sample(strm, u_get(strm, strm->bit_per_sample));
+        put_sample(strm, direct_get(strm, strm->bit_per_sample));
 }
 
 static uint32_t bits_ask(struct aec_stream *strm, int n)
