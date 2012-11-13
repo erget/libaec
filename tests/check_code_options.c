@@ -192,6 +192,46 @@ int check_bps(struct test_state *state)
     return 0;
 }
 
+int check_byte_orderings(struct test_state *state)
+{
+    int status;
+
+    printf("----------------------------\n");
+    printf("Checking LSB first, unsigned\n");
+    printf("----------------------------\n");
+    status = check_bps(state);
+    if (status)
+        return status;
+
+    printf("--------------------------\n");
+    printf("Checking LSB first, signed\n");
+    printf("--------------------------\n");
+    state->strm->flags |= AEC_DATA_SIGNED;
+
+    status = check_bps(state);
+    if (status)
+        return status;
+
+    state->strm->flags &= ~AEC_DATA_SIGNED;
+    state->strm->flags |= AEC_DATA_MSB;
+
+    printf("----------------------------\n");
+    printf("Checking MSB first, unsigned\n");
+    printf("----------------------------\n");
+    status = check_bps(state);
+    if (status)
+        return status;
+
+    printf("--------------------------\n");
+    printf("Checking MSB first, signed\n");
+    printf("--------------------------\n");
+    state->strm->flags |= AEC_DATA_SIGNED;
+
+    status = check_bps(state);
+    if (status)
+        return status;
+}
+
 int main (void)
 {
     int status;
@@ -212,42 +252,20 @@ int main (void)
 
     strm.flags = AEC_DATA_PREPROCESS;
     state.strm = &strm;
+
+    printf("***************************\n");
+    printf("Checking with small buffers\n");
+    printf("***************************\n");
     state.codec = encode_decode_small;
-
-    printf("----------------------------\n");
-    printf("Checking LSB first, unsigned\n");
-    printf("----------------------------\n");
-    status = check_bps(&state);
+    status = check_byte_orderings(&state);
     if (status)
         goto DESTRUCT;
 
-    printf("--------------------------\n");
-    printf("Checking LSB first, signed\n");
-    printf("--------------------------\n");
-    strm.flags |= AEC_DATA_SIGNED;
-
-    status = check_bps(&state);
-    if (status)
-        goto DESTRUCT;
-
-    strm.flags &= ~AEC_DATA_SIGNED;
-    strm.flags |= AEC_DATA_MSB;
-
-    printf("----------------------------\n");
-    printf("Checking MSB first, unsigned\n");
-    printf("----------------------------\n");
-    status = check_bps(&state);
-    if (status)
-        goto DESTRUCT;
-
-    printf("--------------------------\n");
-    printf("Checking MSB first, signed\n");
-    printf("--------------------------\n");
-    strm.flags |= AEC_DATA_SIGNED;
-
-    status = check_bps(&state);
-    if (status)
-        goto DESTRUCT;
+    printf("***************************\n");
+    printf("Checking with large buffers\n");
+    printf("***************************\n");
+    state.codec = encode_decode_large;
+    status = check_byte_orderings(&state);
 
 DESTRUCT:
     free(state.ubuf);
