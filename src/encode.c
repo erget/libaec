@@ -605,11 +605,12 @@ static int m_get_rsi_resumable(struct aec_stream *strm)
                     }
 
                     emit(state, 0, state->bits);
-                    if (state->direct_out == 0)
-                        *strm->next_out++ = *state->cds;
-                    strm->avail_out--;
-                    strm->total_out++;
-
+                    if (strm->avail_out > 0) {
+                        if (state->direct_out == 0)
+                            *strm->next_out++ = *state->cds;
+                        strm->avail_out--;
+                        strm->total_out++;
+                    }
                     return M_EXIT;
                 }
             } else {
