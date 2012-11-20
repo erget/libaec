@@ -14,7 +14,7 @@ int check_block_sizes(struct test_state *state, int id, int id_len)
     for (bs = 8; bs <= 64; bs *= 2) {
         state->strm->block_size = bs;
 
-        max_rsi = state->buf_len / (bs * state->byte_per_sample);
+        max_rsi = state->buf_len / (bs * state->bytes_per_sample);
         if (max_rsi > 4096)
             max_rsi = 4096;
 
@@ -54,11 +54,11 @@ int check_splitting(struct test_state *state, int k)
     int status, size;
     unsigned char *tmp;
 
-    size = state->byte_per_sample;
+    size = state->bytes_per_sample;
 
     for (tmp = state->ubuf;
          tmp < state->ubuf + state->buf_len;
-         tmp += 4 * state->byte_per_sample) {
+         tmp += 4 * state->bytes_per_sample) {
         state->out(tmp, state->xmin + (1ULL << (k - 1)) - 1, size);
         state->out(tmp + size, state->xmin, size);
         state->out(tmp + 2 * size, state->xmin + (1ULL << (k + 1)) - 1, size);
@@ -79,11 +79,11 @@ int check_uncompressed(struct test_state *state)
     int status, size;
     unsigned char *tmp;
 
-    size = state->byte_per_sample;
+    size = state->bytes_per_sample;
 
     for (tmp = state->ubuf;
          tmp < state->ubuf + state->buf_len;
-         tmp += 2 * state->byte_per_sample) {
+         tmp += 2 * state->bytes_per_sample) {
         state->out(tmp, state->xmax, size);
         state->out(tmp + size, state->xmin, size);
     }
@@ -104,11 +104,11 @@ int check_fs(struct test_state *state)
     int status, size;
     unsigned char *tmp;
 
-    size = state->byte_per_sample;
+    size = state->bytes_per_sample;
 
     for (tmp = state->ubuf;
          tmp < state->ubuf + state->buf_len;
-         tmp += 4 * state->byte_per_sample) {
+         tmp += 4 * state->bytes_per_sample) {
         state->out(tmp, state->xmin + 2, size);
         state->out(tmp + size, state->xmin, size);
         state->out(tmp + 2 * size, state->xmin, size);
@@ -129,7 +129,7 @@ int check_se(struct test_state *state)
     int status, size;
     unsigned char *tmp;
 
-    size = state->byte_per_sample;
+    size = state->bytes_per_sample;
 
     for (tmp = state->ubuf;
          tmp < state->ubuf + state->buf_len;
@@ -158,7 +158,7 @@ int check_bps(struct test_state *state)
     int k, status, bps;
 
     for (bps = 8; bps <= 32; bps += 8) {
-        state->strm->bit_per_sample = bps;
+        state->strm->bits_per_sample = bps;
         if (bps == 24)
             state->strm->flags |= AEC_DATA_3BYTE;
         else

@@ -133,17 +133,17 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
     interleave = param->bits_per_pixel == 32 || param->bits_per_pixel == 64;
 
     if (interleave) {
-        strm.bit_per_sample = 8;
+        strm.bits_per_sample = 8;
         buf = malloc(sourceLen);
         if (buf == NULL)
             return SZ_MEM_ERROR;
         interleave_buffer(buf, source, sourceLen, param->bits_per_pixel / 8);
     } else {
-        strm.bit_per_sample = param->bits_per_pixel;
+        strm.bits_per_sample = param->bits_per_pixel;
         buf = (void *)source;
     }
 
-    pixel_size = bits_to_bytes(strm.bit_per_sample);
+    pixel_size = bits_to_bytes(strm.bits_per_sample);
 
     if (pad_scanline) {
         scanlines = (sourceLen / pixel_size + param->pixels_per_scanline - 1)
@@ -213,11 +213,11 @@ int SZ_BufftoBuffDecompress(void *dest, size_t *destLen,
     extra_buffer = pad_scanline || deinterleave;
 
     if (deinterleave)
-        strm.bit_per_sample = 8;
+        strm.bits_per_sample = 8;
     else
-        strm.bit_per_sample = param->bits_per_pixel;
+        strm.bits_per_sample = param->bits_per_pixel;
 
-    pixel_size = bits_to_bytes(strm.bit_per_sample);
+    pixel_size = bits_to_bytes(strm.bits_per_sample);
 
     if (extra_buffer) {
         if (pad_scanline) {

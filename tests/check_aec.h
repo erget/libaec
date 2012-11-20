@@ -5,7 +5,7 @@
 struct test_state {
     int (* codec)(struct test_state *state);
     int id_len;
-    int byte_per_sample;
+    int bytes_per_sample;
     unsigned char *ubuf;
     unsigned char *cbuf;
     unsigned char *obuf;

@@ -16,7 +16,7 @@ struct aec_stream {
     unsigned char *next_out;
     size_t avail_out;           /* remaining free space at next_out */
     size_t total_out;           /* total number of bytes output so far */
-    int bit_per_sample;         /* resolution in bits per sample (n =
+    int bits_per_sample;        /* resolution in bits per sample (n =
                                  * 1, ..., 32)
                                  */
     int block_size;             /* block size in samples */

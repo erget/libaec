@@ -39,7 +39,7 @@ struct internal_state {
     int fs;            /* last fundamental sequence in accumulator */
     int ref;           /* 1 if current block has reference sample */
     int pp;            /* 1 if postprocessor has to be used */
-    int byte_per_sample;
+    int bytes_per_sample;
     int *se_table;
     uint32_t *buf;
     uint32_t buf_i;

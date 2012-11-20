@@ -13,7 +13,7 @@ int check_block_sizes(struct test_state *state)
 
     for (bs = 8; bs <= 64; bs *= 2) {
         state->strm->block_size = bs;
-        state->strm->rsi = state->buf_len / (bs * state->byte_per_sample);
+        state->strm->rsi = state->buf_len / (bs * state->bytes_per_sample);
 
         status = encode_decode_large(state);
         if (status)
@@ -30,7 +30,7 @@ int check_block_sizes_short(struct test_state *state)
     tmp = state->ibuf_len;
     for (bs = 8; bs <= 64; bs *= 2) {
         state->strm->block_size = bs;
-        state->strm->rsi = state->buf_len / (bs * state->byte_per_sample);
+        state->strm->rsi = state->buf_len / (bs * state->bytes_per_sample);
         state->ibuf_len = state->buf_len - 2 * bs + 4;
         status = encode_decode_large(state);
         if (status)
@@ -51,11 +51,11 @@ int check_rsi(struct test_state *state)
     int status, size;
     unsigned char *tmp;
 
-    size = state->byte_per_sample;
+    size = state->bytes_per_sample;
 
     for (tmp = state->ubuf;
          tmp < state->ubuf + state->buf_len;
-         tmp += 2 * state->byte_per_sample) {
+         tmp += 2 * state->bytes_per_sample) {
         state->out(tmp, state->xmax, size);
         state->out(tmp + size, state->xmin, size);
     }
@@ -96,7 +96,7 @@ int main (void)
 
     strm.flags = AEC_DATA_PREPROCESS;
     state.strm = &strm;
-    strm.bit_per_sample = 32;
+    strm.bits_per_sample = 32;
     update_state(&state);
 
     status = check_rsi(&state);

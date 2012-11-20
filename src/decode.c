@@ -35,7 +35,7 @@
                 state->last_out = state->buf[0];                        \
                                                                         \
                 if (strm->flags & AEC_DATA_SIGNED) {                    \
-                    m = 1ULL << (strm->bit_per_sample - 1);             \
+                    m = 1ULL << (strm->bits_per_sample - 1);            \
                     /* Reference samples have to be sign extended */    \
                     state->last_out = (state->last_out ^ m) - m;        \
                 }                                                       \
@@ -136,8 +136,8 @@ static void put_sample(struct aec_stream *strm, uint32_t s)
     struct internal_state *state = strm->state;
 
     state->buf[state->buf_i++] = s;
-    strm->avail_out -= state->byte_per_sample;
-    strm->total_out += state->byte_per_sample;
+    strm->avail_out -= state->bytes_per_sample;
+    strm->total_out += state->bytes_per_sample;
 
     if (state->buf_i == state->buf_size) {
         state->flush_output(strm);
@@ -206,7 +206,7 @@ static void fast_split(struct aec_stream *strm)
     k = state->id - 1;
 
     if (state->ref)
-        put_sample(strm, direct_get(strm, strm->bit_per_sample));
+        put_sample(strm, direct_get(strm, strm->bits_per_sample));
 
     for (i = state->ref; i < strm->block_size; i++)
         state->block[i] = direct_get_fs(strm) << k;
@@ -249,7 +249,7 @@ static void fast_uncomp(struct aec_stream *strm)
     int i;
 
     for (i = 0; i < strm->block_size; i++)
-        put_sample(strm, direct_get(strm, strm->bit_per_sample));
+        put_sample(strm, direct_get(strm, strm->bits_per_sample));
 }
 
 static uint32_t bits_ask(struct aec_stream *strm, int n)
@@ -310,12 +310,12 @@ static void fs_drop(struct aec_stream *strm)
 
 static uint32_t copysample(struct aec_stream *strm)
 {
-    if (bits_ask(strm, strm->bit_per_sample) == 0
+    if (bits_ask(strm, strm->bits_per_sample) == 0
         || strm->avail_out == 0)
         return 0;
 
-    put_sample(strm, bits_get(strm, strm->bit_per_sample));
-    bits_drop(strm, strm->bit_per_sample);
+    put_sample(strm, bits_get(strm, strm->bits_per_sample));
+    bits_drop(strm, strm->bits_per_sample);
     return 1;
 }
 
@@ -429,7 +429,7 @@ static int m_zero_block(struct aec_stream *strm)
     else
         state->i = zero_blocks * strm->block_size;
 
-    if (strm->avail_out >= state->i * state->byte_per_sample) {
+    if (strm->avail_out >= state->i * state->bytes_per_sample) {
         fast_zero(strm);
         state->mode = m_id;
         return M_CONTINUE;
@@ -559,7 +559,7 @@ int aec_decode_init(struct aec_stream *strm)
     int i, modi;
     struct internal_state *state;
 
-    if (strm->bit_per_sample > 32 || strm->bit_per_sample == 0)
+    if (strm->bits_per_sample > 32 || strm->bits_per_sample == 0)
         return AEC_CONF_ERROR;
 
     state = (struct internal_state *) malloc(sizeof(struct internal_state));
@@ -574,27 +574,27 @@ int aec_decode_init(struct aec_stream *strm)
 
     strm->state = state;
 
-    if (strm->bit_per_sample > 16) {
+    if (strm->bits_per_sample > 16) {
         state->id_len = 5;
 
-        if (strm->bit_per_sample <= 24 && strm->flags & AEC_DATA_3BYTE) {
-            state->byte_per_sample = 3;
+        if (strm->bits_per_sample <= 24 && strm->flags & AEC_DATA_3BYTE) {
+            state->bytes_per_sample = 3;
             if (strm->flags & AEC_DATA_MSB)
                 state->flush_output = flush_msb_24;
             else
                 state->flush_output = flush_lsb_24;
         } else {
-            state->byte_per_sample = 4;
+            state->bytes_per_sample = 4;
             if (strm->flags & AEC_DATA_MSB)
                 state->flush_output = flush_msb_32;
             else
                 state->flush_output = flush_lsb_32;
         }
         state->out_blklen = strm->block_size
-            * state->byte_per_sample;
+            * state->bytes_per_sample;
     }
-    else if (strm->bit_per_sample > 8) {
-        state->byte_per_sample = 2;
+    else if (strm->bits_per_sample > 8) {
+        state->bytes_per_sample = 2;
         state->id_len = 4;
         state->out_blklen = strm->block_size * 2;
         if (strm->flags & AEC_DATA_MSB)
@@ -602,22 +602,22 @@ int aec_decode_init(struct aec_stream *strm)
         else
             state->flush_output = flush_lsb_16;
     } else {
-        state->byte_per_sample = 1;
+        state->bytes_per_sample = 1;
         state->id_len = 3;
         state->out_blklen = strm->block_size;
         state->flush_output = flush_8;
     }
 
     if (strm->flags & AEC_DATA_SIGNED) {
-        state->xmin = -(1ULL << (strm->bit_per_sample - 1));
-        state->xmax = (1ULL << (strm->bit_per_sample - 1)) - 1;
+        state->xmin = -(1ULL << (strm->bits_per_sample - 1));
+        state->xmax = (1ULL << (strm->bits_per_sample - 1)) - 1;
     } else {
         state->xmin = 0;
-        state->xmax = (1ULL << strm->bit_per_sample) - 1;
+        state->xmax = (1ULL << strm->bits_per_sample) - 1;
     }
 
     state->ref_int = strm->block_size * strm->rsi;
-    state->in_blklen = (strm->block_size * strm->bit_per_sample
+    state->in_blklen = (strm->block_size * strm->bits_per_sample
                         + state->id_len) / 8 + 1;
 
     modi = 1UL << state->id_len;

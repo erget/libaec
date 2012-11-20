@@ -25,21 +25,21 @@ int update_state(struct test_state *state)
 {
     struct aec_stream *strm = state->strm;
 
-    if (strm->bit_per_sample > 16) {
+    if (strm->bits_per_sample > 16) {
         state->id_len = 5;
 
-        if (strm->bit_per_sample <= 24 && strm->flags & AEC_DATA_3BYTE) {
-            state->byte_per_sample = 3;
+        if (strm->bits_per_sample <= 24 && strm->flags & AEC_DATA_3BYTE) {
+            state->bytes_per_sample = 3;
         } else {
-            state->byte_per_sample = 4;
+            state->bytes_per_sample = 4;
         }
     }
-    else if (strm->bit_per_sample > 8) {
+    else if (strm->bits_per_sample > 8) {
         state->id_len = 4;
-        state->byte_per_sample = 2;
+        state->bytes_per_sample = 2;
     } else {
         state->id_len = 3;
-        state->byte_per_sample = 1;
+        state->bytes_per_sample = 1;
     }
 
     if (strm->flags & AEC_DATA_MSB)
@@ -48,11 +48,11 @@ int update_state(struct test_state *state)
         state->out = out_lsb;
 
     if (strm->flags & AEC_DATA_SIGNED) {
-        state->xmin = -(1ULL << (strm->bit_per_sample - 1));
-        state->xmax = (1ULL << (strm->bit_per_sample - 1)) - 1;
+        state->xmin = -(1ULL << (strm->bits_per_sample - 1));
+        state->xmax = (1ULL << (strm->bits_per_sample - 1)) - 1;
     } else {
         state->xmin = 0;
-        state->xmax = (1ULL << strm->bit_per_sample) - 1;
+        state->xmax = (1ULL << strm->bits_per_sample) - 1;
     }
 
     return 0;
@@ -75,15 +75,15 @@ int encode_decode_small(struct test_state *state)
     avail_out = 1;
     total_out = 0;
     strm->next_in = state->ubuf;
-    strm->avail_in = state->byte_per_sample;
+    strm->avail_in = state->bytes_per_sample;
     strm->avail_out = 1;
     strm->next_out = state->cbuf;
 
     while ((avail_in || avail_out) && total_out < state->cbuf_len) {
         if (strm->avail_in == 0 && avail_in) {
-            n_in += state->byte_per_sample;
+            n_in += state->bytes_per_sample;
             if (n_in < state->buf_len) {
-                strm->avail_in = state->byte_per_sample;
+                strm->avail_in = state->bytes_per_sample;
                 strm->next_in = state->ubuf + n_in;
             } else {
                 avail_in = 0;
@@ -120,7 +120,7 @@ int encode_decode_small(struct test_state *state)
     strm->avail_in = 1;
     strm->next_in = state->cbuf;
 
-    strm->avail_out = state->byte_per_sample;
+    strm->avail_out = state->bytes_per_sample;
     strm->next_out = state->obuf;
 
     status = aec_decode_init(strm);
@@ -135,7 +135,7 @@ int encode_decode_small(struct test_state *state)
     total_out = 0;
     strm->next_in = state->cbuf;
     strm->avail_in = 1;
-    strm->avail_out = state->byte_per_sample;
+    strm->avail_out = state->bytes_per_sample;
     strm->next_out = state->obuf;
 
     while ((avail_in || avail_out) && total_out < state->buf_len) {
@@ -158,7 +158,7 @@ int encode_decode_small(struct test_state *state)
         if (strm->total_out - total_out > 0
             && total_out < state->buf_len) {
             total_out = strm->total_out;
-            strm->avail_out = state->byte_per_sample;
+            strm->avail_out = state->bytes_per_sample;
             strm->next_out = state->obuf + total_out;
             avail_out = 1;
         } else {

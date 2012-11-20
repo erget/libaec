@@ -202,7 +202,7 @@ static void preprocess_signed(struct aec_stream *strm)
     struct internal_state *state = strm->state;
     uint32_t *d = state->data_pp;
     int32_t *x = (int32_t *)state->data_raw;
-    uint64_t m = 1ULL << (strm->bit_per_sample - 1);
+    uint64_t m = 1ULL << (strm->bits_per_sample - 1);
     int64_t xmax = state->xmax;
     int64_t xmin = state->xmin;
     uint32_t rsi = strm->rsi * strm->block_size - 1;
@@ -272,7 +272,7 @@ static int assess_splitting_option(struct aec_stream *strm)
        Length of CDS encoded with splitting option and optimal k.
 
        In Rice coding each sample in a block of samples is split at
-       the same position into k LSB and bit_per_sample - k MSB. The
+       the same position into k LSB and bits_per_sample - k MSB. The
        LSB part is left binary and the MSB part is coded as a
        fundamental sequence a.k.a. unary (see CCSDS 121.0-B-2). The
        function of the length of the Coded Data Set (CDS) depending on
@@ -438,7 +438,7 @@ static int m_encode_splitting(struct aec_stream *strm)
 
     if (state->ref)
     {
-        emit(state, state->block[0], strm->bit_per_sample);
+        emit(state, state->block[0], strm->bits_per_sample);
         emitblock_fs_1(strm, k);
         if (k)
             emitblock_1(strm, k);
@@ -458,7 +458,7 @@ static int m_encode_uncomp(struct aec_stream *strm)
     struct internal_state *state = strm->state;
 
     emit(state, (1U << state->id_len) - 1, state->id_len);
-    emitblock_0(strm, strm->bit_per_sample);
+    emitblock_0(strm, strm->bits_per_sample);
 
     return m_flush_block(strm);
 }
@@ -471,7 +471,7 @@ static int m_encode_se(struct aec_stream *strm)
 
     emit(state, 1, state->id_len + 1);
     if (state->ref)
-        emit(state, state->block[0], strm->bit_per_sample);
+        emit(state, state->block[0], strm->bits_per_sample);
 
     for (i = 0; i < strm->block_size; i+= 2) {
         d = state->block[i] + state->block[i + 1];
@@ -488,7 +488,7 @@ static int m_encode_zero(struct aec_stream *strm)
     emit(state, 0, state->id_len + 1);
 
     if (state->zero_ref)
-        emit(state, state->zero_ref_sample, strm->bit_per_sample);
+        emit(state, state->zero_ref_sample, strm->bits_per_sample);
 
     if (state->zero_blocks == ROS)
         emitfs(state, 4);
@@ -513,7 +513,7 @@ static int m_select_code_option(struct aec_stream *strm)
     struct internal_state *state = strm->state;
 
     uncomp_len = (strm->block_size - state->ref)
-        * strm->bit_per_sample;
+        * strm->bits_per_sample;
     split_len = assess_splitting_option(strm);
     se_len = assess_se_option(split_len, strm);
 
@@ -688,7 +688,7 @@ int aec_encode_init(struct aec_stream *strm)
 {
     struct internal_state *state;
 
-    if (strm->bit_per_sample > 32 || strm->bit_per_sample == 0)
+    if (strm->bits_per_sample > 32 || strm->bits_per_sample == 0)
         return AEC_CONF_ERROR;
 
     if (strm->block_size != 8
@@ -707,11 +707,11 @@ int aec_encode_init(struct aec_stream *strm)
     memset(state, 0, sizeof(struct internal_state));
     strm->state = state;
 
-    if (strm->bit_per_sample > 16) {
+    if (strm->bits_per_sample > 16) {
         /* 24/32 input bit settings */
         state->id_len = 5;
 
-        if (strm->bit_per_sample <= 24
+        if (strm->bits_per_sample <= 24
             && strm->flags & AEC_DATA_3BYTE) {
             state->block_len = 3 * strm->block_size;
             if (strm->flags & AEC_DATA_MSB) {
@@ -732,7 +732,7 @@ int aec_encode_init(struct aec_stream *strm)
             }
         }
     }
-    else if (strm->bit_per_sample > 8) {
+    else if (strm->bits_per_sample > 8) {
         /* 16 bit settings */
         state->id_len = 4;
         state->block_len = 2 * strm->block_size;
@@ -754,12 +754,12 @@ int aec_encode_init(struct aec_stream *strm)
     }
 
     if (strm->flags & AEC_DATA_SIGNED) {
-        state->xmin = -(1ULL << (strm->bit_per_sample - 1));
-        state->xmax = (1ULL << (strm->bit_per_sample - 1)) - 1;
+        state->xmin = -(1ULL << (strm->bits_per_sample - 1));
+        state->xmax = (1ULL << (strm->bits_per_sample - 1)) - 1;
         state->preprocess = preprocess_signed;
     } else {
         state->xmin = 0;
-        state->xmax = (1ULL << strm->bit_per_sample) - 1;
+        state->xmax = (1ULL << strm->bits_per_sample) - 1;
         state->preprocess = preprocess_unsigned;
     }
 

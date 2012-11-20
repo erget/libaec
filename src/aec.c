@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     int dflag = 0;
 
     chunk = CHUNK;
-    strm.bit_per_sample = 8;
+    strm.bits_per_sample = 8;
     strm.block_size = 8;
     strm.rsi = 2;
     strm.flags = AEC_DATA_PREPROCESS;
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
             chunk = atoi(optarg);
             break;
         case 'B':
-            strm.bit_per_sample = atoi(optarg);
+            strm.bits_per_sample = atoi(optarg);
             break;
         case 'J':
             strm.block_size = atoi(optarg);
@@ -85,14 +85,14 @@ int main(int argc, char *argv[])
         exit(-1);
     }
 
-    if (strm.bit_per_sample > 16)
+    if (strm.bits_per_sample > 16)
     {
-        if (strm.bit_per_sample <= 24 && strm.flags & AEC_DATA_3BYTE)
+        if (strm.bits_per_sample <= 24 && strm.flags & AEC_DATA_3BYTE)
             chunk *= 3;
         else
             chunk *= 4;
     }
-    else if (strm.bit_per_sample > 8)
+    else if (strm.bits_per_sample > 8)
     {
         chunk *= 2;
     }
