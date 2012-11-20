@@ -18,7 +18,8 @@ static int convert_options(int sz_opts)
     co[SZ_NN_OPTION_MASK] = AEC_DATA_PREPROCESS;
 
     for (i = 1; i < NOPTS; i <<= 1)
-        opts |= co[i];
+        if (sz_opts & i)
+            opts |= co[i];
 
     return opts;
 }
@@ -101,7 +102,7 @@ static size_t remove_padding(void *buf, size_t total,
             j -= padding_size;
         memcpy((char *)buf + j, (char *)buf + i, pixel_size);
     }
-    if ((i % (line_size + padding_size)) == 0)
+    if (i % (line_size + padding_size) == 0)
         j -= padding_size;
     return j;
 }
