@@ -1,32 +1,182 @@
-libaec - Adaptive Entropy Coding library
+**********************************************************************
+ libaec - Adaptive Entropy Coding library
+**********************************************************************
 
---------------------------------------------------------------------------------
-Copyright 2012
+libaec provides fast lossless compression of 1 up to 32 bit wide
+signed or unsigned integers. The library achieves best results for low
+entropy data as often encountered in space imaging instrument data or
+numerical model output from weather or climate simulations. While
+floating point representations are not directly supported, they can
+also be efficiently coded by grouping exponents and mantissa.
 
-Mathis Rosenhauer,                 Luis Kornblueh
-Moritz Hanke,
-Joerg Behrens
+libaec implements a Space Data System Standard [1], [2].
 
-Deutsches Klimarechenzentrum GmbH  Max-Planck-Institut fuer Meteorologie
-Bundesstr. 45a                     Bundesstr. 53
-20146 Hamburg                      20146 Hamburg
-Germany                            Germany
---------------------------------------------------------------------------------
 
-The implementation is based on:
-
-Consultative Committee for Space Data Systems. Lossless Data
-Compression. Recommendation for Space Data System Standards, CCSDS
-121.0-B-2. Blue Book. Issue 2. Washington, D.C.: CCSDS, May 2012.
-
-http://public.ccsds.org/publications/archive/121x0b2.pdf
-
-Consultative Committee for Space Data Systems. Lossless Data
-Compression.  Recommendation for Space Data System Standards, CCSDS
-120.0-G-2. Green Book. Issue 2. Washington, D.C.: CCSDS, December
-2006.
-
-http://public.ccsds.org/publications/archive/120x0g2.pdf
+**********************************************************************
+ Patents
+**********************************************************************
 
 In doc/license.txt a clarification on potentially applying
 intellectual property rights is given.
+
+
+**********************************************************************
+ Installation
+**********************************************************************
+
+ See INSTALL for details.
+
+
+**********************************************************************
+ Encoding
+**********************************************************************
+
+In this context efficiency refers to the size of the encoded
+data. Performance refers to the time it takes to encode data.
+
+Suppose you have an array of 32 bit signed integers you want to
+compress. The pointer pointing to the data shall be called *source,
+output goes into *dest.
+
+#include <libaec.h>
+
+...
+    struct aec_stream strm;
+    int32_t *source;
+    unsigned char *dest;
+
+    /* input data ist 32 bits wide */
+    strm.bits_per_sample = 32;
+
+    /* define a block size of 16 */
+    strm.block_size = 16;
+
+    /* the reference sample interval is set to 128 blocks */
+    strm.rsi = 128;
+
+    /* input data is signed and needs to be preprocessed */
+    strm.flags = AEC_DATA_SIGNED | AEC_DATA_PREPROCESS;
+
+    /* pointer to input */
+    strm.next_in = (unsigned char *)source;
+
+    /* length of input in bytes */
+    strm.avail_in = source_length * 4;
+
+    /* pointer to output buffer */
+    strm.avail_out = dest;
+
+    /* length of output buffer in bytes */
+    strm.next_out = dest_lenth;
+
+    /* initialize encoding */
+    if (aec_encode_init(&strm) != AEC_OK)
+        return 1;
+
+    /* Perform encoding in one call and flush output. */
+    /* In this example you must be sure that the output */
+    /* buffer is large enough for all compressed output */
+    if (aec_encode(&strm, AEC_FLUSH) != AEC_OK)
+        return 1;
+
+    /* free all resources used by encoder */
+    aec_encode_end(&strm);
+...
+
+block_size can vary from 8 to 64. Smaller blocks allow the compression
+to adapt to rapid changes in entropy. Larger blocks create less
+overhead but can be less efficient.
+
+rsi sets the reference sample interval. A large RSI will improve
+performance and efficiency. It will also increase memory requiremens
+since internal buffering is based on RSI size. Smaller RSI may be
+desirable in situations where each RSI will be packetized and possible
+error propagation has to be minimized (e.g. on board a spacecraft[2]).
+
+Flags:
+
+AEC_DATA_SIGNED: input data are signed integers. Specifying this
+correctly increases compression efficiency. Default is unsigned.
+
+AEC_DATA_PREPROCESS: preprocessing input will almost always improve
+compression efficiency. It may only cost performance for no gain in
+efficiency if the data is already uncorrelated.
+
+AEC_DATA_MSB: input data is stored most significant byte first
+i.e. big endian. You have to specify AEC_DATA_MSB even if your host
+architecture is big endian. Default is little endian on all
+architectures.
+
+AEC_DATA_3BYTE: the 24 bit input data is stored in three bytes.
+
+Data size:
+
+Except for the AEC_DATA_3BYTE case for 24 bit data, the following
+rules apply:
+
+  data size   storage size
+ 1 -  8 bit   1 byte
+ 9 - 16 bit   2 bytes
+17 - 32 bit   4 bytes (also for 24bit if AEC_DATA_3BYTE is not set)
+
+Flushing:
+
+aec_encode can be used in a streaming fashion by chunking input and
+output and specifying AEC_NO_FLUSH. The function will return if either
+the input runs empty or the output buffer is full. The calling
+function can check avail_in and avail_out to see what occcurred. aec.c
+is an example of streaming usage of encoding and decoding.
+
+
+**********************************************************************
+ Decoding
+**********************************************************************
+
+Usage for decoding is very similar to encoding, only the meaning of
+input and output is reversed.
+
+#include <libaec.h>
+
+...
+    struct aec_stream strm;
+    /* this is now the compressed data */
+    unsigned char *source;
+    /* here goes the uncompressed result */
+    int32_t *dest;
+
+    strm.bits_per_sample = 32;
+    strm.block_size = 16;
+    strm.rsi = 128;
+    strm.flags = AEC_DATA_SIGNED | AEC_DATA_PREPROCESS;
+    strm.next_in = source;
+    strm.avail_in = source_length;
+    strm.next_out = (unsigned char *)dest;
+    strm.avail_out = dest_lenth * 4;
+    if (aec_decode_init(&strm) != AEC_OK)
+        return 1;
+    if (aec_decode(&strm, AEC_FLUSH) != AEC_OK)
+        return 1;
+    aec_decode_end(&strm);
+...
+
+It is essential for decoding that parameters like bits_per_sample,
+block_size, rsi, and flags are exactly the same as they were for
+encoding. libaec does not store these parameters in the coded stream
+so it is up to the calling program to keep the correct parameters
+between encoding and decoding.
+
+
+**********************************************************************
+ References
+**********************************************************************
+
+[1] Consultative Committee for Space Data Systems. Lossless Data
+Compression. Recommendation for Space Data System Standards, CCSDS
+121.0-B-2. Blue Book. Issue 2. Washington, D.C.: CCSDS, May 2012.
+http://public.ccsds.org/publications/archive/121x0b2.pdf
+
+[2] Consultative Committee for Space Data Systems. Lossless Data
+Compression.  Recommendation for Space Data System Standards, CCSDS
+120.0-G-2. Green Book. Issue 2. Washington, D.C.: CCSDS, December
+2006.
+http://public.ccsds.org/publications/archive/120x0g2.pdf
