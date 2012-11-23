@@ -3,13 +3,15 @@
 **********************************************************************
 
 libaec provides fast lossless compression of 1 up to 32 bit wide
-signed or unsigned integers. The library achieves best results for low
-entropy data as often encountered in space imaging instrument data or
-numerical model output from weather or climate simulations. While
-floating point representations are not directly supported, they can
-also be efficiently coded by grouping exponents and mantissa.
+signed or unsigned integers (samples). The library achieves best
+results for low entropy data as often encountered in space imaging
+instrument data or numerical model output from weather or climate
+simulations. While floating point representations are not directly
+supported, they can also be efficiently coded by grouping exponents
+and mantissa.
 
-libaec implements a Space Data System Standard [1], [2].
+libaec implements Golomb Rice coding as defined in the Space Data
+System Standard document 121.0-B-2 [1], [2].
 
 
 **********************************************************************
@@ -24,7 +26,7 @@ intellectual property rights is given.
  Installation
 **********************************************************************
 
- See INSTALL for details.
+See INSTALL for details.
 
 
 **********************************************************************
@@ -45,7 +47,7 @@ output goes into *dest.
     int32_t *source;
     unsigned char *dest;
 
-    /* input data ist 32 bits wide */
+    /* input data is 32 bits wide */
     strm.bits_per_sample = 32;
 
     /* define a block size of 16 */
@@ -83,9 +85,10 @@ output goes into *dest.
     aec_encode_end(&strm);
 ...
 
-block_size can vary from 8 to 64. Smaller blocks allow the compression
-to adapt to rapid changes in entropy. Larger blocks create less
-overhead but can be less efficient.
+block_size can vary from 8 to 64 samples. Smaller blocks allow the
+compression to adapt to rapid changes in entropy. Larger blocks create
+less overhead but can be less efficient if entropy changes across the
+block.
 
 rsi sets the reference sample interval. A large RSI will improve
 performance and efficiency. It will also increase memory requiremens
@@ -98,9 +101,10 @@ Flags:
 AEC_DATA_SIGNED: input data are signed integers. Specifying this
 correctly increases compression efficiency. Default is unsigned.
 
-AEC_DATA_PREPROCESS: preprocessing input will almost always improve
-compression efficiency. It may only cost performance for no gain in
-efficiency if the data is already uncorrelated.
+AEC_DATA_PREPROCESS: preprocessing input will improve compression
+efficiency if data samples are correlated. It will only cost
+performance for no gain in efficiency if the data is already
+uncorrelated.
 
 AEC_DATA_MSB: input data is stored most significant byte first
 i.e. big endian. You have to specify AEC_DATA_MSB even if your host
@@ -112,28 +116,36 @@ AEC_DATA_3BYTE: the 24 bit input data is stored in three bytes.
 Data size:
 
 Except for the AEC_DATA_3BYTE case for 24 bit data, the following
-rules apply:
+rules apply for deducing storage size from sample size
+(bits_per_sample):
 
-  data size   storage size
+sample size   storage size
  1 -  8 bit   1 byte
  9 - 16 bit   2 bytes
 17 - 32 bit   4 bytes (also for 24bit if AEC_DATA_3BYTE is not set)
+
+If you use less bits than the storage size provides, then you have to
+make sure that unused bits are not set. libaec does not check this for
+performance reasons and will produce undefined output if unused bits
+are set.
 
 Flushing:
 
 aec_encode can be used in a streaming fashion by chunking input and
 output and specifying AEC_NO_FLUSH. The function will return if either
 the input runs empty or the output buffer is full. The calling
-function can check avail_in and avail_out to see what occcurred. aec.c
-is an example of streaming usage of encoding and decoding.
+function can check avail_in and avail_out to see what occcurred. The
+last call to aec_encode() must set AEC_FLUSH to drain all
+output. aec.c is an example of streaming usage of encoding and
+decoding.
 
 
 **********************************************************************
  Decoding
 **********************************************************************
 
-Usage for decoding is very similar to encoding, only the meaning of
-input and output is reversed.
+Using decoding is very similar to encoding, only the meaning of input
+and output is reversed.
 
 #include <libaec.h>
 
