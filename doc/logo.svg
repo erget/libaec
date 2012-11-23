@@ -7,40 +7,25 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="275.53229"
-   height="108.79642"
-   id="svg2"
    version="1.1"
-   inkscape:version="0.48.3.1 r9886"
-   sodipodi:docname="logo.svg">
+   width="106.29921"
+   height="35.433071"
+   id="svg2">
   <defs
-     id="defs4" />
-  <sodipodi:namedview
-     id="base"
-     pagecolor="#ffffff"
-     bordercolor="#666666"
-     borderopacity="1.0"
-     inkscape:pageopacity="0.0"
-     inkscape:pageshadow="2"
-     inkscape:zoom="3.959798"
-     inkscape:cx="120.99924"
-     inkscape:cy="32.374929"
-     inkscape:document-units="px"
-     inkscape:current-layer="layer1"
-     showgrid="false"
-     showguides="true"
-     inkscape:guide-bbox="true"
-     inkscape:window-width="1855"
-     inkscape:window-height="1176"
-     inkscape:window-x="65"
-     inkscape:window-y="24"
-     inkscape:window-maximized="1"
-     fit-margin-top="5"
-     fit-margin-left="5"
-     fit-margin-right="5"
-     fit-margin-bottom="5" />
+     id="defs4">
+    <filter
+       x="0"
+       y="0"
+       width="1"
+       height="1"
+       color-interpolation-filters="sRGB"
+       id="filter3059">
+      <feColorMatrix
+         values="0"
+         type="saturate"
+         id="feColorMatrix3061" />
+    </filter>
+  </defs>
   <metadata
      id="metadata7">
     <rdf:RDF>
@@ -54,83 +39,76 @@
     </rdf:RDF>
   </metadata>
   <g
-     inkscape:label="Layer 1"
-     inkscape:groupmode="layer"
-     id="layer1"
-     transform="translate(-215.42814,-4.2799437)">
+     transform="translate(-164.92052,-85.529322)"
+     id="layer1">
     <g
-       id="g4169"
-       transform="matrix(2.7831691,0,0.0954063,2.4189341,-339.38321,-142.74803)">
+       transform="translate(-3.0467112,76.68408)"
+       id="g3129">
+      <g
+         transform="matrix(0.901709,0,0.03091035,0.78370181,4.9130249,-39.975056)"
+         id="g4169">
+        <rect
+           width="109.10649"
+           height="36.719337"
+           rx="5.4646072"
+           ry="5.2073698"
+           x="198.73778"
+           y="64.112465"
+           transform="matrix(1,0,-0.1975368,0.98029547,0,0)"
+           id="rect2985-2"
+           style="fill:#155196;fill-opacity:1;stroke:none" />
+      </g>
       <rect
-         rx="5.4646072"
-         ry="5.2073698"
-         transform="matrix(1,0,-0.1975368,0.98029547,0,0)"
-         y="64.112465"
-         x="216.8853"
-         height="36.719337"
-         width="90.958969"
-         id="rect2985-2"
-         style="fill:#155196;fill-opacity:1;stroke:none" />
-    </g>
-    <g
-       id="g160152"
-       transform="matrix(1,0,0,0.91723104,3.2142857,7.9749065)">
-      <rect
-         rx="15.295511"
-         ry="10.556643"
-         transform="matrix(1,0,-0.17475633,0.98461171,0,0)"
-         y="7.5250988"
-         x="407.79227"
-         height="84.252106"
-         width="71.011047"
+         width="19.096596"
+         height="22.124905"
+         rx="2.0100574"
+         ry="1.9240097"
+         x="252.67462"
+         y="12.772587"
+         transform="matrix(1,0,-0.19342198,0.98111566,0,0)"
          id="rect2985-2-9"
          style="fill:#ffffff;fill-opacity:1;stroke:none" />
       <rect
+         width="13.011609"
+         height="22.105217"
          rx="0"
          ry="0"
-         transform="matrix(1,0,-0.17475633,0.98461171,0,0)"
-         y="7.5250988"
-         x="407.64871"
-         height="84.252106"
-         width="46.189617"
+         x="250.59528"
+         y="12.761222"
+         transform="matrix(1,0,-0.18893568,0.98198946,0,0)"
          id="rect2985-2-9-8"
          style="fill:#ffffff;fill-opacity:1;stroke:none" />
-    </g>
-    <g
-       id="g160172">
+      <g
+         transform="matrix(0.32398642,0,-0.00826943,0.32398642,117.59797,6.2733679)"
+         id="g3123">
+        <text
+           x="403.92297"
+           y="79.752693"
+           id="text3773"
+           xml:space="preserve"
+           style="font-size:74px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:129.99999523%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#155196;fill-opacity:1;stroke:none;font-family:DejaVu Sans;-inkscape-font-specification:DejaVu Sans Bold Oblique"><tspan
+             x="403.92297"
+             y="79.752693"
+             id="tspan3775">C</tspan></text>
+        <text
+           x="287.16708"
+           y="80.800545"
+           id="text3773-7"
+           xml:space="preserve"
+           style="font-size:74px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:129.99999523%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none;font-family:DejaVu Sans;-inkscape-font-specification:DejaVu Sans Bold Oblique"><tspan
+             x="287.16708"
+             y="80.800545"
+             id="tspan3775-2">AE</tspan></text>
+      </g>
       <text
-         sodipodi:linespacing="130%"
-         id="text3773"
-         y="83.547607"
-         x="406.44836"
-         style="font-size:84px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:129.99999522999999613%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#155196;fill-opacity:1;stroke:none;font-family:DejaVu Sans;-inkscape-font-specification:DejaVu Sans Bold Oblique"
-         xml:space="preserve"><tspan
-           y="83.547607"
-           x="406.44836"
-           id="tspan3775"
-           sodipodi:role="line">C</tspan></text>
-      <text
-         sodipodi:linespacing="130%"
-         id="text3773-7"
-         y="82.130615"
-         x="280.09604"
-         style="font-size:84px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:129.99999523%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none;font-family:DejaVu Sans;-inkscape-font-specification:DejaVu Sans Bold Oblique"
-         xml:space="preserve"><tspan
-           y="82.130615"
-           x="280.09604"
-           id="tspan3775-2"
-           sodipodi:role="line">AE</tspan></text>
+         x="169.93001"
+         y="42.721142"
+         id="text4165"
+         xml:space="preserve"
+         style="font-size:5.20094204px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:semi-condensed;text-align:start;line-height:129.99999523%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#155196;fill-opacity:1;stroke:none;font-family:DejaVu Sans;-inkscape-font-specification:DejaVu Sans Bold Oblique Semi-Condensed"><tspan
+           x="169.93001"
+           y="42.721142"
+           id="tspan4167">Golomb Rice Adaptive Entropy Coder</tspan></text>
     </g>
-    <text
-       xml:space="preserve"
-       style="font-size:10px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:semi-condensed;text-align:start;line-height:129.99999522999999613%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#155196;fill-opacity:1;stroke:none;font-family:DejaVu Sans;-inkscape-font-specification:DejaVu Sans Bold Oblique Semi-Condensed"
-       x="282.77985"
-       y="105.91817"
-       id="text4165"
-       sodipodi:linespacing="130%"><tspan
-         sodipodi:role="line"
-         id="tspan4167"
-         x="282.77985"
-         y="105.91817">Golomb Rice Adaptive Entropy Coder</tspan></text>
   </g>
 </svg>
