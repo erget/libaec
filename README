@@ -63,13 +63,13 @@ output goes into *dest.
     strm.next_in = (unsigned char *)source;
 
     /* length of input in bytes */
-    strm.avail_in = source_length * 4;
+    strm.avail_in = source_length * sizeof(int32_t);
 
     /* pointer to output buffer */
-    strm.avail_out = dest;
+    strm.next_out = dest;
 
     /* length of output buffer in bytes */
-    strm.next_out = dest_lenth;
+    strm.avail_out = dest_length;
 
     /* initialize encoding */
     if (aec_encode_init(&strm) != AEC_OK)
@@ -91,8 +91,8 @@ less overhead but can be less efficient if entropy changes across the
 block.
 
 rsi sets the reference sample interval. A large RSI will improve
-performance and efficiency. It will also increase memory requiremens
-since internal buffering is based on RSI size. Smaller RSI may be
+performance and efficiency. It will also increase memory requirements
+since internal buffering is based on RSI size. A smaller RSI may be
 desirable in situations where each RSI will be packetized and possible
 error propagation has to be minimized (e.g. on board a spacecraft[2]).
 
@@ -139,6 +139,14 @@ last call to aec_encode() must set AEC_FLUSH to drain all
 output. aec.c is an example of streaming usage of encoding and
 decoding.
 
+Output:
+
+Encoded data will be written to the buffer submitted with
+next_out. The length of the compressed data is total_out.
+
+See libaec.h for a detailed description of all relevant structure
+members and constants.
+
 
 **********************************************************************
  Decoding
@@ -163,7 +171,7 @@ and output is reversed.
     strm.next_in = source;
     strm.avail_in = source_length;
     strm.next_out = (unsigned char *)dest;
-    strm.avail_out = dest_lenth * 4;
+    strm.avail_out = dest_lenth * sizeof(int32_t);
     if (aec_decode_init(&strm) != AEC_OK)
         return 1;
     if (aec_decode(&strm, AEC_FLUSH) != AEC_OK)
@@ -176,6 +184,10 @@ block_size, rsi, and flags are exactly the same as they were for
 encoding. libaec does not store these parameters in the coded stream
 so it is up to the calling program to keep the correct parameters
 between encoding and decoding.
+
+The actual values of coding parameters are in fact only relevant for
+efficiency and performance. Data integrity only depends on consistency
+of the parameters.
 
 
 **********************************************************************
