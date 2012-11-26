@@ -744,7 +744,7 @@ int aec_encode_init(struct aec_stream *strm)
     if (strm->rsi > 4096)
         return AEC_CONF_ERROR;
 
-    state = (struct internal_state *)malloc(sizeof(struct internal_state));
+    state = malloc(sizeof(struct internal_state));
     if (state == NULL)
         return AEC_MEM_ERROR;
 
@@ -809,16 +809,16 @@ int aec_encode_init(struct aec_stream *strm)
 
     state->kmax = (1U << state->id_len) - 3;
 
-    state->data_pp = (uint32_t *)malloc(strm->rsi
-                                         * strm->block_size
-                                         * sizeof(uint32_t));
+    state->data_pp = malloc(strm->rsi
+                            * strm->block_size
+                            * sizeof(uint32_t));
     if (state->data_pp == NULL)
         return AEC_MEM_ERROR;
 
     if (strm->flags & AEC_DATA_PREPROCESS) {
-        state->data_raw = (uint32_t *)malloc(strm->rsi
-                                             * strm->block_size
-                                             * sizeof(uint32_t));
+        state->data_raw = malloc(strm->rsi
+                                 * strm->block_size
+                                 * sizeof(uint32_t));
         if (state->data_raw == NULL)
             return AEC_MEM_ERROR;
     } else {
@@ -829,7 +829,7 @@ int aec_encode_init(struct aec_stream *strm)
 
     /* Largest possible CDS according to specs */
     state->cds_len = (5 + 64 * 32) / 8 + 3;
-    state->cds_buf = (uint8_t *)malloc(state->cds_len);
+    state->cds_buf = malloc(state->cds_len);
     if (state->cds_buf == NULL)
         return AEC_MEM_ERROR;
 

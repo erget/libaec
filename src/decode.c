@@ -69,7 +69,7 @@
     static void flush_##KIND(struct aec_stream *strm)                   \
     {                                                                   \
         int i;                                                          \
-        int64_t x, d, th, D, lower, m, sample;                          \
+        int64_t x, d, th, D, lower, m;                                  \
         int64_t data;                                                   \
         struct internal_state *state = strm->state;                     \
                                                                         \
@@ -605,11 +605,11 @@ int aec_decode_init(struct aec_stream *strm)
     if (strm->bits_per_sample > 32 || strm->bits_per_sample == 0)
         return AEC_CONF_ERROR;
 
-    state = (struct internal_state *) malloc(sizeof(struct internal_state));
+    state = malloc(sizeof(struct internal_state));
     if (state == NULL)
         return AEC_MEM_ERROR;
 
-    state->se_table = (int *) malloc(182 * sizeof(int));
+    state->se_table = malloc(182 * sizeof(int));
     if (state->se_table == NULL)
         return AEC_MEM_ERROR;
 
@@ -674,12 +674,12 @@ int aec_decode_init(struct aec_stream *strm)
     }
     state->id_table[modi - 1] = m_uncomp;
 
-    state->block = (int64_t *)malloc(strm->block_size * sizeof(int64_t));
+    state->block = malloc(strm->block_size * sizeof(int64_t));
     if (state->block == NULL)
         return AEC_MEM_ERROR;
 
     state->buf_size = strm->rsi * strm->block_size;
-    state->buf = (uint32_t *)malloc(state->buf_size * sizeof(uint32_t));
+    state->buf = malloc(state->buf_size * sizeof(uint32_t));
     if (state->buf == NULL)
         return AEC_MEM_ERROR;
 
