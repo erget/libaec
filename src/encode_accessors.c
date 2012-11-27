@@ -68,6 +68,32 @@ uint32_t get_8(struct aec_stream *strm)
     return *strm->next_in++;
 }
 
+uint32_t get_lsb_16(struct aec_stream *strm)
+{
+    uint32_t data;
+
+    data = ((uint32_t)strm->next_in[1] << 8)
+        | (uint32_t)strm->next_in[0];
+
+    strm->next_in += 2;
+    strm->total_in += 2;
+    strm->avail_in -= 2;
+    return data;
+}
+
+uint32_t get_msb_16(struct aec_stream *strm)
+{
+    uint32_t data;
+
+    data = ((uint32_t)strm->next_in[0] << 8)
+        | (uint32_t)strm->next_in[1];
+
+    strm->next_in += 2;
+    strm->total_in += 2;
+    strm->avail_in -= 2;
+    return data;
+}
+
 uint32_t get_lsb_24(struct aec_stream *strm)
 {
     uint32_t data;
@@ -96,44 +122,6 @@ uint32_t get_msb_24(struct aec_stream *strm)
     return data;
 }
 
-#define GET_NATIVE_16(BO)                       \
-uint32_t get_##BO##_16(struct aec_stream *strm) \
-{                                               \
-    uint32_t data;                              \
-                                                \
-    data = *(uint16_t *)strm->next_in;          \
-    strm->next_in += 2;                         \
-    strm->total_in += 2;                        \
-    strm->avail_in -= 2;                        \
-    return data;                                \
-}
-
-#define GET_NATIVE_32(BO)                       \
-uint32_t get_##BO##_32(struct aec_stream *strm) \
-{                                               \
-    uint32_t data;                              \
-                                                \
-    data = *(uint32_t *)strm->next_in;          \
-    strm->next_in += 4;                         \
-    strm->total_in += 4;                        \
-    strm->avail_in -= 4;                        \
-    return data;                                \
-}
-
-#ifdef WORDS_BIGENDIAN
-uint32_t get_lsb_16(struct aec_stream *strm)
-{
-    uint32_t data;
-
-    data = ((uint32_t)strm->next_in[1] << 8)
-        | (uint32_t)strm->next_in[0];
-
-    strm->next_in += 2;
-    strm->total_in += 2;
-    strm->avail_in -= 2;
-    return data;
-}
-
 uint32_t get_lsb_32(struct aec_stream *strm)
 {
     uint32_t data;
@@ -146,23 +134,6 @@ uint32_t get_lsb_32(struct aec_stream *strm)
     strm->next_in += 4;
     strm->total_in += 4;
     strm->avail_in -= 4;
-    return data;
-}
-
-GET_NATIVE_16(msb);
-GET_NATIVE_32(msb);
-
-#else /* !WORDS_BIGENDIAN */
-uint32_t get_msb_16(struct aec_stream *strm)
-{
-    uint32_t data;
-
-    data = ((uint32_t)strm->next_in[0] << 8)
-        | (uint32_t)strm->next_in[1];
-
-    strm->next_in += 2;
-    strm->total_in += 2;
-    strm->avail_in -= 2;
     return data;
 }
 
@@ -180,11 +151,6 @@ uint32_t get_msb_32(struct aec_stream *strm)
     strm->avail_in -= 4;
     return data;
 }
-
-GET_NATIVE_16(lsb);
-GET_NATIVE_32(lsb);
-
-#endif /* !WORDS_BIGENDIAN */
 
 void get_rsi_8(struct aec_stream *strm)
 {
@@ -211,10 +177,76 @@ void get_rsi_8(struct aec_stream *strm)
     }
 }
 
+void get_rsi_lsb_16(struct aec_stream *strm)
+{
+    uint32_t *out = strm->state->data_raw;
+    const unsigned char *in = strm->next_in;
+    int rsi = strm->rsi * strm->block_size;
+
+    strm->next_in += 2 * rsi;
+    strm->total_in += 2 * rsi;
+    strm->avail_in -= 2 * rsi;
+
+    while (rsi) {
+        out[0] = (uint32_t)in[0]
+            | ((uint32_t)in[1] << 8);
+        out[1] = (uint32_t)in[2]
+            | ((uint32_t)in[3] << 8);
+        out[2] = (uint32_t)in[4]
+            | ((uint32_t)in[5] << 8);
+        out[3] = (uint32_t)in[6]
+            | ((uint32_t)in[7] << 8);
+        out[4] = (uint32_t)in[8]
+            | ((uint32_t)in[9] << 8);
+        out[5] = (uint32_t)in[10]
+            | ((uint32_t)in[11] << 8);
+        out[6] = (uint32_t)in[12]
+            | ((uint32_t)in[13] << 8);
+        out[7] = (uint32_t)in[14]
+            | ((uint32_t)in[15] << 8);
+        in += 16;
+        out += 8;
+        rsi -= 8;
+    }
+}
+
+void get_rsi_msb_16(struct aec_stream *strm)
+{
+    uint32_t *out = strm->state->data_raw;
+    const unsigned char *in = strm->next_in;
+    int rsi = strm->rsi * strm->block_size;
+
+    strm->next_in += 2 * rsi;
+    strm->total_in += 2 * rsi;
+    strm->avail_in -= 2 * rsi;
+
+    while (rsi) {
+        out[0] = ((uint32_t)in[0] << 8)
+            | (uint32_t)in[1];
+        out[1] = ((uint32_t)in[2] << 8)
+            | (uint32_t)in[3];
+        out[2] = ((uint32_t)in[4] << 8)
+            | (uint32_t)in[5];
+        out[3] = ((uint32_t)in[6] << 8)
+            | (uint32_t)in[7];
+        out[4] = ((uint32_t)in[8] << 8)
+            | (uint32_t)in[9];
+        out[5] = ((uint32_t)in[10] << 8)
+            | (uint32_t)in[11];
+        out[6] = ((uint32_t)in[12] << 8)
+            | (uint32_t)in[13];
+        out[7] = ((uint32_t)in[14] << 8)
+            | (uint32_t)in[15];
+        in += 16;
+        out += 8;
+        rsi -= 8;
+    }
+}
+
 void get_rsi_lsb_24(struct aec_stream *strm)
 {
     uint32_t *out = strm->state->data_raw;
-    unsigned const char *in = strm->next_in;
+    const unsigned char *in = strm->next_in;
     int rsi = strm->rsi * strm->block_size;
 
     strm->next_in += 3 * rsi;
@@ -255,7 +287,7 @@ void get_rsi_lsb_24(struct aec_stream *strm)
 void get_rsi_msb_24(struct aec_stream *strm)
 {
     uint32_t *out = strm->state->data_raw;
-    unsigned const char *in = strm->next_in;
+    const unsigned char *in = strm->next_in;
     int rsi = strm->rsi * strm->block_size;
 
     strm->next_in += 3 * rsi;
@@ -293,32 +325,6 @@ void get_rsi_msb_24(struct aec_stream *strm)
     }
 }
 
-#define GET_RSI_NATIVE_16(BO)                       \
-    void get_rsi_##BO##_16(struct aec_stream *strm) \
-    {                                               \
-        uint32_t *out = strm->state->data_raw;      \
-        uint16_t *in = (uint16_t *)strm->next_in;   \
-        int rsi = strm->rsi * strm->block_size;     \
-                                                    \
-        strm->next_in += 2 * rsi;                   \
-        strm->total_in += 2 * rsi;                  \
-        strm->avail_in -= 2 * rsi;                  \
-                                                    \
-        while (rsi) {                               \
-            out[0] = (uint32_t)in[0];               \
-            out[1] = (uint32_t)in[1];               \
-            out[2] = (uint32_t)in[2];               \
-            out[3] = (uint32_t)in[3];               \
-            out[4] = (uint32_t)in[4];               \
-            out[5] = (uint32_t)in[5];               \
-            out[6] = (uint32_t)in[6];               \
-            out[7] = (uint32_t)in[7];               \
-            in += 8;                                \
-            out += 8;                               \
-            rsi -= 8;                               \
-        }                                           \
-    }
-
 #define GET_RSI_NATIVE_32(BO)                       \
     void get_rsi_##BO##_32(struct aec_stream *strm) \
     {                                               \
@@ -331,43 +337,10 @@ void get_rsi_msb_24(struct aec_stream *strm)
     }
 
 #ifdef WORDS_BIGENDIAN
-void get_rsi_lsb_16(struct aec_stream *strm)
-{
-    uint32_t *out = strm->state->data_raw;
-    unsigned const char *in = strm->next_in;
-    int rsi = strm->rsi * strm->block_size;
-
-    strm->next_in += 2 * rsi;
-    strm->total_in += 2 * rsi;
-    strm->avail_in -= 2 * rsi;
-
-    while (rsi) {
-        out[0] = (uint32_t)in[0]
-            | ((uint32_t)in[1] << 8);
-        out[1] = (uint32_t)in[2]
-            | ((uint32_t)in[3] << 8);
-        out[2] = (uint32_t)in[4]
-            | ((uint32_t)in[5] << 8);
-        out[3] = (uint32_t)in[6]
-            | ((uint32_t)in[7] << 8);
-        out[4] = (uint32_t)in[8]
-            | ((uint32_t)in[9] << 8);
-        out[5] = (uint32_t)in[10]
-            | ((uint32_t)in[11] << 8);
-        out[6] = (uint32_t)in[12]
-            | ((uint32_t)in[13] << 8);
-        out[7] = (uint32_t)in[14]
-            | ((uint32_t)in[15] << 8);
-        in += 16;
-        out += 8;
-        rsi -= 8;
-    }
-}
-
 void get_rsi_lsb_32(struct aec_stream *strm)
 {
     uint32_t *out = strm->state->data_raw;
-    unsigned const char *in = strm->next_in;
+    const unsigned char *in = strm->next_in;
     int rsi = strm->rsi * strm->block_size;
 
     strm->next_in += 4 * rsi;
@@ -413,47 +386,13 @@ void get_rsi_lsb_32(struct aec_stream *strm)
     }
 }
 
-GET_RSI_NATIVE_16(msb);
 GET_RSI_NATIVE_32(msb);
 
 #else /* !WORDS_BIGENDIAN */
-void get_rsi_msb_16(struct aec_stream *strm)
-{
-    uint32_t *out = strm->state->data_raw;
-    unsigned const char *in = strm->next_in;
-    int rsi = strm->rsi * strm->block_size;
-
-    strm->next_in += 2 * rsi;
-    strm->total_in += 2 * rsi;
-    strm->avail_in -= 2 * rsi;
-
-    while (rsi) {
-        out[0] = ((uint32_t)in[0] << 8)
-            | (uint32_t)in[1];
-        out[1] = ((uint32_t)in[2] << 8)
-            | (uint32_t)in[3];
-        out[2] = ((uint32_t)in[4] << 8)
-            | (uint32_t)in[5];
-        out[3] = ((uint32_t)in[6] << 8)
-            | (uint32_t)in[7];
-        out[4] = ((uint32_t)in[8] << 8)
-            | (uint32_t)in[9];
-        out[5] = ((uint32_t)in[10] << 8)
-            | (uint32_t)in[11];
-        out[6] = ((uint32_t)in[12] << 8)
-            | (uint32_t)in[13];
-        out[7] = ((uint32_t)in[14] << 8)
-            | (uint32_t)in[15];
-        in += 16;
-        out += 8;
-        rsi -= 8;
-    }
-}
-
 void get_rsi_msb_32(struct aec_stream *strm)
 {
     uint32_t *out = strm->state->data_raw;
-    unsigned const char *in = strm->next_in;
+    const unsigned char *in = strm->next_in;
     int rsi = strm->rsi * strm->block_size;
 
     strm->next_in += 4 * rsi;
@@ -499,7 +438,6 @@ void get_rsi_msb_32(struct aec_stream *strm)
     }
 }
 
-GET_RSI_NATIVE_16(lsb);
 GET_RSI_NATIVE_32(lsb);
 
 #endif /* !WORDS_BIGENDIAN */

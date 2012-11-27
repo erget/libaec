@@ -2,7 +2,7 @@
  libaec - Adaptive Entropy Coding library
 **********************************************************************
 
-libaec provides fast lossless compression of 1 up to 32 bit wide
+Libaec provides fast lossless compression of 1 up to 32 bit wide
 signed or unsigned integers (samples). The library achieves best
 results for low entropy data as often encountered in space imaging
 instrument data or numerical model output from weather or climate
@@ -10,7 +10,7 @@ simulations. While floating point representations are not directly
 supported, they can also be efficiently coded by grouping exponents
 and mantissa.
 
-libaec implements Golomb Rice coding as defined in the Space Data
+Libaec implements Golomb Rice coding as defined in the Space Data
 System Standard document 121.0-B-2 [1], [2].
 
 
@@ -125,9 +125,12 @@ sample size   storage size
 17 - 32 bit   4 bytes (also for 24bit if AEC_DATA_3BYTE is not set)
 
 If you use less bits than the storage size provides, then you have to
-make sure that unused bits are not set. libaec does not check this for
+make sure that unused bits are not set. Libaec does not check this for
 performance reasons and will produce undefined output if unused bits
 are set.
+
+Libaec accesses next_in and next_out buffers only bytewise. There are
+no alignment requirements for these buffers.
 
 Flushing:
 
@@ -181,7 +184,7 @@ and output is reversed.
 
 It is essential for decoding that parameters like bits_per_sample,
 block_size, rsi, and flags are exactly the same as they were for
-encoding. libaec does not store these parameters in the coded stream
+encoding. Libaec does not store these parameters in the coded stream
 so it is up to the calling program to keep the correct parameters
 between encoding and decoding.
 
