@@ -230,6 +230,7 @@ int check_byte_orderings(struct test_state *state)
     status = check_bps(state);
     if (status)
         return status;
+    return 0;
 }
 
 int main (void)

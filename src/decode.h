@@ -65,10 +65,6 @@
 #define M_CONTINUE 1
 #define M_EXIT 0
 
-#define SAFE(strm) (strm->avail_in >= strm->state->in_blklen    \
-              && strm->avail_out >= strm->state->out_blklen)
-
-#define ROS 5
 #define MIN(a, b) (((a) < (b))? (a): (b))
 
 struct internal_state {
@@ -85,7 +81,7 @@ struct internal_state {
                           should be the longest possible block */
     int out_blklen;    /* length of output block in bytes */
     int n, i;          /* counter for samples */
-    int64_t *block;    /* block buffer for split-sample options */
+    uint32_t *block;   /* block buffer for split-sample options */
     int se;            /* set if second extension option is selected */
     uint64_t acc;      /* accumulator for currently used bit sequence */
     int bitp;          /* bit pointer to the next unused bit in accumulator */
