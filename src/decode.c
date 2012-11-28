@@ -70,7 +70,7 @@
 #define BUFFERSPACE(strm) (strm->avail_in >= strm->state->in_blklen     \
                            && strm->avail_out >= strm->state->out_blklen)
 
-#define FLUSH(KIND, PUTBLOCK)                                           \
+#define FLUSH(KIND)                                                     \
     static void flush_##KIND(struct aec_stream *strm)                   \
     {                                                                   \
         int i;                                                          \
@@ -87,9 +87,7 @@
                     /* Reference samples have to be sign extended */    \
                     state->last_out = (state->last_out ^ m) - m;        \
                 }                                                       \
-                                                                        \
-                data = state->last_out;                                 \
-                PUTBLOCK;                                               \
+                put_##KIND(strm, state->last_out);                      \
                 state->flush_start = 1;                                 \
             }                                                           \
                                                                         \
@@ -112,13 +110,11 @@
                 }                                                       \
                 data = x + D;                                           \
                 state->last_out = data;                                 \
-                PUTBLOCK;                                               \
+                put_##KIND(strm, data);                                 \
             }                                                           \
         } else {                                                        \
-            for (i = state->flush_start; i < state->buf_i; i++) {       \
-                data = state->buf[i];                                   \
-                PUTBLOCK;                                               \
-            }                                                           \
+            for (i = state->flush_start; i < state->buf_i; i++)         \
+                put_##KIND(strm, state->buf[i]);                        \
         }                                                               \
         if (state->buf_i == state->buf_size) {                          \
             state->flush_start = 0;                                     \
@@ -127,57 +123,61 @@
         }                                                               \
     }
 
-FLUSH(msb_32,
-      do {
-          *strm->next_out++ = data >> 24;
-          *strm->next_out++ = data >> 16;
-          *strm->next_out++ = data >> 8;
-          *strm->next_out++ = data;
-      } while(0)
-    )
 
-FLUSH(msb_24,
-      do {
-          *strm->next_out++ = data >> 16;
-          *strm->next_out++ = data >> 8;
-          *strm->next_out++ = data;
-      } while(0)
-    )
+static inline void put_msb_32(struct aec_stream *strm, uint32_t data)
+{
+    *strm->next_out++ = data >> 24;
+    *strm->next_out++ = data >> 16;
+    *strm->next_out++ = data >> 8;
+    *strm->next_out++ = data;
+}
 
-FLUSH(msb_16,
-      do {
-          *strm->next_out++ = data >> 8;
-          *strm->next_out++ = data;
-      } while(0)
-    )
+static inline void put_msb_24(struct aec_stream *strm, uint32_t data)
+{
+    *strm->next_out++ = data >> 16;
+    *strm->next_out++ = data >> 8;
+    *strm->next_out++ = data;
+}
 
-FLUSH(lsb_32,
-      do {
-          *strm->next_out++ = data;
-          *strm->next_out++ = data >> 8;
-          *strm->next_out++ = data >> 16;
-          *strm->next_out++ = data >> 24;
-      } while(0)
-    )
+static inline void put_msb_16(struct aec_stream *strm, uint32_t data)
+{
+    *strm->next_out++ = data >> 8;
+    *strm->next_out++ = data;
+}
 
-FLUSH(lsb_24,
-      do {
-          *strm->next_out++ = data;
-          *strm->next_out++ = data >> 8;
-          *strm->next_out++ = data >> 16;
-      } while(0)
-    )
+static inline void put_lsb_32(struct aec_stream *strm, uint32_t data)
+{
+    *strm->next_out++ = data;
+    *strm->next_out++ = data >> 8;
+    *strm->next_out++ = data >> 16;
+    *strm->next_out++ = data >> 24;
+}
 
-FLUSH(lsb_16,
-      do {
-          *strm->next_out++ = data;
-          *strm->next_out++ = data >> 8;
-      } while(0)
-    )
+static inline void put_lsb_24(struct aec_stream *strm, uint32_t data)
+{
+    *strm->next_out++ = data;
+    *strm->next_out++ = data >> 8;
+    *strm->next_out++ = data >> 16;
+}
 
-FLUSH(8,
-      *strm->next_out++ = data;
-    )
+static inline void put_lsb_16(struct aec_stream *strm, uint32_t data)
+{
+    *strm->next_out++ = data;
+    *strm->next_out++ = data >> 8;
+}
+
+static inline void put_8(struct aec_stream *strm, uint32_t data)
+{
+    *strm->next_out++ = data;
+}
+
+FLUSH(msb_32);
+FLUSH(msb_24);
+FLUSH(msb_16);
+FLUSH(lsb_32);
+FLUSH(lsb_24);
+FLUSH(lsb_16);
+FLUSH(8);
 
 static inline void put_sample(struct aec_stream *strm, uint32_t s)
 {
