@@ -113,8 +113,8 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
 {
     struct aec_stream strm;
     int status;
-    void *padbuf;
-    void *buf;
+    void *padbuf = 0;
+    void *buf = 0;
     size_t padding_size;
     size_t padded_length;
     size_t scanlines;
@@ -178,10 +178,10 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
 
     *destLen = strm.total_out;
 
-    if (pad_scanline)
+    if (pad_scanline && padbuf)
         free(padbuf);
 
-    if (interleave)
+    if (interleave && buf)
         free(buf);
 
     return SZ_OK;
@@ -193,7 +193,7 @@ int SZ_BufftoBuffDecompress(void *dest, size_t *destLen,
 {
     struct aec_stream strm;
     int status;
-    void *buf;
+    void *buf = 0;
     size_t padding_size;
     size_t scanlines;
     size_t buf_size, total_out;
@@ -263,7 +263,7 @@ int SZ_BufftoBuffDecompress(void *dest, size_t *destLen,
     else if (pad_scanline)
         memcpy(dest, buf, *destLen);
 
-    if (extra_buffer)
+    if (extra_buffer && buf)
         free(buf);
 
     return SZ_OK;
