@@ -22,5 +22,5 @@ int update_state(struct test_state *state);
 int encode_decode_small(struct test_state *state);
 int encode_decode_large(struct test_state *state);
 
-
+#define CHECK_OK ""
 #endif /* CHECK_AEC_H */

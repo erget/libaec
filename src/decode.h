@@ -91,9 +91,9 @@ struct internal_state {
     int bytes_per_sample;
     int *se_table;
     uint32_t *buf;
-    uint32_t buf_i;
+    uint32_t *bufp;
     uint32_t buf_size;
-    uint32_t flush_start;
+    uint32_t *flush_start;
 } decode_state;
 
 #endif /* DECODE_H */
