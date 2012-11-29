@@ -73,9 +73,9 @@
 #define FLUSH(KIND)                                                     \
     static void flush_##KIND(struct aec_stream *strm)                   \
     {                                                                   \
-        int64_t x, d, th, lower, m;                                     \
-        int64_t data;                                                   \
-        uint32_t *bp, *bend, *flush_end;                                \
+        uint32_t *bp, *flush_end;                                       \
+        int64_t d, m, th2;                                              \
+        int64_t data, med;                                              \
         struct internal_state *state = strm->state;                     \
                                                                         \
         flush_end = state->bufp;                                        \
@@ -93,26 +93,28 @@
                 state->flush_start++;                                   \
             }                                                           \
                                                                         \
+            data = state->last_out;                                     \
+            if (strm->flags & AEC_DATA_SIGNED)                          \
+                med = 0;                                                \
+            else                                                        \
+                med = (state->xmax - state->xmin) / 2 + 1;              \
+                                                                        \
             for (bp = state->flush_start; bp < flush_end; bp++) {       \
                 d = *bp;                                                \
-                x = state->last_out;                                    \
-                lower = x - state->xmin;                                \
-                th = MIN(lower, state->xmax - x);                       \
-                                                                        \
-                if (d <= 2 * th) {                                      \
-                    if (d & 1)                                          \
-                        data = x - (d + 1) / 2;                         \
-                    else                                                \
-                        data = x + d / 2;                               \
+                th2 = (data < med ?                                     \
+                       data - state->xmin :                             \
+                       state->xmax - data) << 1;                        \
+                if (d <= th2) {                                         \
+                    data += ((d + 1) / 2 ^ -(d & 1)) + (d & 1);         \
                 } else {                                                \
-                    if (th == lower)                                    \
-                        data = x + d - th;                              \
+                    if (data < med)                                     \
+                        data = d + state->xmin;                         \
                     else                                                \
-                        data = x + th - d;                              \
+                        data = state->xmax - d;                         \
                 }                                                       \
                 put_##KIND(strm, data);                                 \
-                state->last_out = data;                                 \
             }                                                           \
+            state->last_out = data;                                     \
         } else {                                                        \
             for (bp = state->flush_start; bp < flush_end; bp++)         \
                 put_##KIND(strm, *bp);                                  \
