@@ -25,8 +25,8 @@ int check_block_sizes(struct test_state *state, int id, int id_len)
                 return status;
 
             if ((state->cbuf[0] >> (8 - id_len)) != id) {
-                printf("FAIL: Unexpected block of size %i created ID:%x.\n",
-                       bs, state->cbuf[0] >> (8 - id_len));
+                printf("%s: Unexpected block of size %i created ID:%x.\n",
+                       CHECK_FAIL, bs, state->cbuf[0] >> (8 - id_len));
                 return 99;
             }
         }
@@ -45,7 +45,7 @@ int check_zero(struct test_state *state)
     if (status)
         return status;
 
-    printf ("OK\n");
+    printf ("%s\n", CHECK_PASS);
     return 0;
 }
 
@@ -70,7 +70,7 @@ int check_splitting(struct test_state *state, int k)
     if (status)
         return status;
 
-    printf ("OK\n");
+    printf ("%s\n", CHECK_PASS);
     return 0;
 }
 
@@ -95,7 +95,7 @@ int check_uncompressed(struct test_state *state)
     if (status)
         return status;
 
-    printf ("OK\n");
+    printf ("%s\n", CHECK_PASS);
     return 0;
 }
 
@@ -120,7 +120,7 @@ int check_fs(struct test_state *state)
     if (status)
         return status;
 
-    printf ("OK\n");
+    printf ("%s\n", CHECK_PASS);
     return 0;
 }
 
@@ -149,7 +149,7 @@ int check_se(struct test_state *state)
     if (status)
         return status;
 
-    printf ("OK\n");
+    printf ("%s\n", CHECK_PASS);
     return 0;
 }
 

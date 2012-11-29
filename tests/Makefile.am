@@ -1,3 +1,4 @@
+AUTOMAKE_OPTIONS = color-tests
 AM_CPPFLAGS = -I$(top_srcdir)/src
 TESTS = check_code_options check_buffer_sizes
 check_LTLIBRARIES = libcheck_aec.la

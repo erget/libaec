@@ -173,7 +173,7 @@ int encode_decode_small(struct test_state *state)
     }
 
     if (memcmp(state->ubuf, state->obuf, state->ibuf_len)) {
-        printf("FAIL: Uncompressed output differs from input.\n");
+        printf("\n%s: Uncompressed output differs from input.\n", CHECK_FAIL);
 
         printf("\nuncompressed buf");
         for (i = 0; i < 80; i++) {
@@ -243,7 +243,7 @@ int encode_decode_large(struct test_state *state)
     }
 
     if (memcmp(state->ubuf, state->obuf, state->ibuf_len)) {
-        printf("FAIL: Uncompressed output differs from input.\n");
+        printf("\n%s: Uncompressed output differs from input.\n", CHECK_FAIL);
 
         printf("\nuncompressed buf");
         for (i = 0; i < 80; i++) {

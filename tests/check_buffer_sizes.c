@@ -65,14 +65,14 @@ int check_rsi(struct test_state *state)
     if (status)
         return status;
 
-    printf ("OK\n");
+    printf ("%s\n", CHECK_PASS);
 
     printf("Checking short rsi ... ");
     status = check_block_sizes_short(state);
     if (status)
         return status;
 
-    printf ("OK\n");
+    printf ("%s\n", CHECK_PASS);
     return 0;
 }
 
