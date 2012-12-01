@@ -69,31 +69,32 @@
 
 struct internal_state {
     int (*mode)(struct aec_stream *);
-    int id;            /* option ID */
-    int id_len;        /* bit length of code option identification key */
+    int id;                 /* option ID */
+    int id_len;             /* bit length of code option identification key */
     int (**id_table)(struct aec_stream *); /* table maps IDs to states */
     void (*flush_output)(struct aec_stream *);
-    int ref_int;       /* reference sample is every ref_int samples */
-    int64_t last_out;  /* previous output for post-processing */
-    int64_t xmin;      /* minimum integer for post-processing */
-    int64_t xmax;      /* maximum integer for post-processing */
-    int in_blklen;     /* length of uncompressed input block
-                          should be the longest possible block */
-    int out_blklen;    /* length of output block in bytes */
-    int n, i;          /* counter for samples */
-    uint32_t *block;   /* block buffer for split-sample options */
-    int se;            /* set if second extension option is selected */
-    uint64_t acc;      /* accumulator for currently used bit sequence */
-    int bitp;          /* bit pointer to the next unused bit in accumulator */
-    int fs;            /* last fundamental sequence in accumulator */
-    int ref;           /* 1 if current block has reference sample */
-    int pp;            /* 1 if postprocessor has to be used */
-    int bytes_per_sample;
-    int *se_table;
-    uint32_t *buf;
-    uint32_t *bufp;
-    uint32_t buf_size;
-    uint32_t *flush_start;
+    int ref_int;            /* reference sample is every ref_int samples */
+    int64_t last_out;       /* previous output for post-processing */
+    int64_t xmin;           /* minimum integer for post-processing */
+    int64_t xmax;           /* maximum integer for post-processing */
+    int in_blklen;          /* length of uncompressed input block
+                               should be the longest possible block */
+    int out_blklen;         /* length of output block in bytes */
+    int n, i;               /* counter for samples */
+    int se;                 /* set if second extension option is selected */
+    uint64_t acc;           /* accumulator for currently used bit sequence */
+    int bitp;               /* bit pointer to the next unused bit in
+                               accumulator */
+    int fs;                 /* last fundamental sequence in accumulator */
+    int ref;                /* 1 if current block has reference sample */
+    int pp;                 /* 1 if postprocessor has to be used */
+    int bytes_per_sample;   /* storage size of samples in bytes */
+    int *se_table;          /* table for decoding second extension option */
+    uint32_t *rsi_buffer;   /* output buffer holding one reference
+                               sample interval */
+    uint32_t *rsip;         /* current position of output in rsi_buffer */
+    size_t rsi_size;        /* rsi in bytes */
+    uint32_t *flush_start;  /* first not yet flushed byte in rsi_buffer */
 } decode_state;
 
 #endif /* DECODE_H */
