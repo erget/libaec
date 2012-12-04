@@ -10,5 +10,4 @@ $(top_builddir)/src/libaec.h
 check_buffer_sizes_SOURCES = check_buffer_sizes.c check_aec.h \
 $(top_builddir)/src/libaec.h
 
-check_code_options_LDADD = libcheck_aec.la $(top_builddir)/src/libaec.la
-check_buffer_sizes_LDADD = libcheck_aec.la $(top_builddir)/src/libaec.la
+LDADD = libcheck_aec.la $(top_builddir)/src/libaec.la

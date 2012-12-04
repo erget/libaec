@@ -73,7 +73,6 @@ struct internal_state {
     int id_len;             /* bit length of code option identification key */
     int (**id_table)(struct aec_stream *); /* table maps IDs to states */
     void (*flush_output)(struct aec_stream *);
-    int ref_int;            /* reference sample is every ref_int samples */
     int64_t last_out;       /* previous output for post-processing */
     int64_t xmin;           /* minimum integer for post-processing */
     int64_t xmax;           /* maximum integer for post-processing */
@@ -81,7 +80,6 @@ struct internal_state {
                                should be the longest possible block */
     int out_blklen;         /* length of output block in bytes */
     int n, i;               /* counter for samples */
-    int se;                 /* set if second extension option is selected */
     uint64_t acc;           /* accumulator for currently used bit sequence */
     int bitp;               /* bit pointer to the next unused bit in
                                accumulator */

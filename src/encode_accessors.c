@@ -61,14 +61,14 @@
 #include "encode.h"
 #include "encode_accessors.h"
 
-uint32_t get_8(struct aec_stream *strm)
+uint32_t aec_get_8(struct aec_stream *strm)
 {
     strm->avail_in--;
     strm->total_in++;
     return *strm->next_in++;
 }
 
-uint32_t get_lsb_16(struct aec_stream *strm)
+uint32_t aec_get_lsb_16(struct aec_stream *strm)
 {
     uint32_t data;
 
@@ -81,7 +81,7 @@ uint32_t get_lsb_16(struct aec_stream *strm)
     return data;
 }
 
-uint32_t get_msb_16(struct aec_stream *strm)
+uint32_t aec_get_msb_16(struct aec_stream *strm)
 {
     uint32_t data;
 
@@ -94,7 +94,7 @@ uint32_t get_msb_16(struct aec_stream *strm)
     return data;
 }
 
-uint32_t get_lsb_24(struct aec_stream *strm)
+uint32_t aec_get_lsb_24(struct aec_stream *strm)
 {
     uint32_t data;
 
@@ -108,7 +108,7 @@ uint32_t get_lsb_24(struct aec_stream *strm)
     return data;
 }
 
-uint32_t get_msb_24(struct aec_stream *strm)
+uint32_t aec_get_msb_24(struct aec_stream *strm)
 {
     uint32_t data;
 
@@ -122,7 +122,7 @@ uint32_t get_msb_24(struct aec_stream *strm)
     return data;
 }
 
-uint32_t get_lsb_32(struct aec_stream *strm)
+uint32_t aec_get_lsb_32(struct aec_stream *strm)
 {
     uint32_t data;
 
@@ -137,7 +137,7 @@ uint32_t get_lsb_32(struct aec_stream *strm)
     return data;
 }
 
-uint32_t get_msb_32(struct aec_stream *strm)
+uint32_t aec_get_msb_32(struct aec_stream *strm)
 {
     uint32_t data;
 
@@ -152,7 +152,7 @@ uint32_t get_msb_32(struct aec_stream *strm)
     return data;
 }
 
-void get_rsi_8(struct aec_stream *strm)
+void aec_get_rsi_8(struct aec_stream *strm)
 {
     uint32_t *out = strm->state->data_raw;
     unsigned const char *in = strm->next_in;
@@ -177,7 +177,7 @@ void get_rsi_8(struct aec_stream *strm)
     }
 }
 
-void get_rsi_lsb_16(struct aec_stream *strm)
+void aec_get_rsi_lsb_16(struct aec_stream *strm)
 {
     uint32_t *out = strm->state->data_raw;
     const unsigned char *in = strm->next_in;
@@ -210,7 +210,7 @@ void get_rsi_lsb_16(struct aec_stream *strm)
     }
 }
 
-void get_rsi_msb_16(struct aec_stream *strm)
+void aec_get_rsi_msb_16(struct aec_stream *strm)
 {
     uint32_t *out = strm->state->data_raw;
     const unsigned char *in = strm->next_in;
@@ -243,7 +243,7 @@ void get_rsi_msb_16(struct aec_stream *strm)
     }
 }
 
-void get_rsi_lsb_24(struct aec_stream *strm)
+void aec_get_rsi_lsb_24(struct aec_stream *strm)
 {
     uint32_t *out = strm->state->data_raw;
     const unsigned char *in = strm->next_in;
@@ -284,7 +284,7 @@ void get_rsi_lsb_24(struct aec_stream *strm)
     }
 }
 
-void get_rsi_msb_24(struct aec_stream *strm)
+void aec_get_rsi_msb_24(struct aec_stream *strm)
 {
     uint32_t *out = strm->state->data_raw;
     const unsigned char *in = strm->next_in;
@@ -325,8 +325,8 @@ void get_rsi_msb_24(struct aec_stream *strm)
     }
 }
 
-#define GET_RSI_NATIVE_32(BO)                       \
-    void get_rsi_##BO##_32(struct aec_stream *strm) \
+#define AEC_GET_RSI_NATIVE_32(BO)                       \
+    void aec_get_rsi_##BO##_32(struct aec_stream *strm) \
     {                                               \
         int rsi = strm->rsi * strm->block_size;     \
         memcpy(strm->state->data_raw,               \
@@ -337,7 +337,7 @@ void get_rsi_msb_24(struct aec_stream *strm)
     }
 
 #ifdef WORDS_BIGENDIAN
-void get_rsi_lsb_32(struct aec_stream *strm)
+void aec_get_rsi_lsb_32(struct aec_stream *strm)
 {
     uint32_t *out = strm->state->data_raw;
     const unsigned char *in = strm->next_in;
@@ -386,10 +386,10 @@ void get_rsi_lsb_32(struct aec_stream *strm)
     }
 }
 
-GET_RSI_NATIVE_32(msb);
+AEC_GET_RSI_NATIVE_32(msb);
 
 #else /* !WORDS_BIGENDIAN */
-void get_rsi_msb_32(struct aec_stream *strm)
+void aec_get_rsi_msb_32(struct aec_stream *strm)
 {
     uint32_t *out = strm->state->data_raw;
     const unsigned char *in = strm->next_in;
@@ -438,6 +438,6 @@ void get_rsi_msb_32(struct aec_stream *strm)
     }
 }
 
-GET_RSI_NATIVE_32(lsb);
+AEC_GET_RSI_NATIVE_32(lsb);
 
 #endif /* !WORDS_BIGENDIAN */

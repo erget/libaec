@@ -79,7 +79,7 @@ struct internal_state {
     uint32_t *data_raw;     /* RSI blocks of input */
     int blocks_avail;       /* remaining blocks in buffer */
     uint32_t *block;        /* current (preprocessed) input block */
-    int block_len;          /* input block length in byte */
+    int rsi_len;            /* reference sample interval in byte */
     uint8_t *cds;           /* current Coded Data Set output */
     uint8_t *cds_buf;       /* buffer for one CDS (only used if
                              * strm->next_out cannot hold full CDS) */

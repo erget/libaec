@@ -204,9 +204,12 @@ static void preprocess_unsigned(struct aec_stream *strm)
 {
     /**
        Preprocess RSI of unsigned samples.
+
+       Combining preprocessing and converting to uint32_t in one loop
+       is slower due to the data dependance on x_i-1.
     */
 
-    int64_t D;
+    uint32_t D;
     struct internal_state *state = strm->state;
     const uint32_t *x = state->data_raw;
     uint32_t *d = state->data_pp;
@@ -217,22 +220,21 @@ static void preprocess_unsigned(struct aec_stream *strm)
     while (rsi--) {
         if (x[1] >= x[0]) {
             D = x[1] - x[0];
-            if (D <= x[0]) {
+            if (D <= x[0])
                 *d = 2 * D;
-            } else {
+            else
                 *d = x[1];
-            }
         } else {
             D = x[0] - x[1];
-            if (D <= xmax - x[0]) {
+            if (D <= xmax - x[0])
                 *d = 2 * D - 1;
-            } else {
+            else
                 *d = xmax - x[1];
-            }
         }
         d++;
         x++;
     }
+    state->ref = 1;
 }
 
 static void preprocess_signed(struct aec_stream *strm)
@@ -271,6 +273,7 @@ static void preprocess_signed(struct aec_stream *strm)
         x++;
         d++;
     }
+    state->ref = 1;
 }
 
 static uint64_t block_fs(struct aec_stream *strm, int k)
@@ -649,7 +652,7 @@ static int m_get_rsi_resumable(struct aec_stream *strm)
 
                     emit(state, 0, state->bits);
                     if (strm->avail_out > 0) {
-                        if (state->direct_out == 0)
+                        if (!state->direct_out)
                             *strm->next_out++ = *state->cds;
                         strm->avail_out--;
                         strm->total_out++;
@@ -662,11 +665,8 @@ static int m_get_rsi_resumable(struct aec_stream *strm)
         }
     } while (++state->i < strm->rsi * strm->block_size);
 
-    state->blocks_avail = strm->rsi - 1;
-    if (strm->flags & AEC_DATA_PREPROCESS) {
+    if (strm->flags & AEC_DATA_PREPROCESS)
         state->preprocess(strm);
-        state->ref = 1;
-    }
 
     return m_check_zero_block(strm);
 }
@@ -698,16 +698,14 @@ static int m_get_block(struct aec_stream *strm)
     }
 
     if (state->blocks_avail == 0) {
+        state->blocks_avail = strm->rsi - 1;
         state->block = state->data_pp;
 
-        if (strm->avail_in >= state->block_len * strm->rsi) {
+        if (strm->avail_in >= state->rsi_len) {
             state->get_rsi(strm);
-            state->blocks_avail = strm->rsi - 1;
-
-            if (strm->flags & AEC_DATA_PREPROCESS) {
+            if (strm->flags & AEC_DATA_PREPROCESS)
                 state->preprocess(strm);
-                state->ref = 1;
-            }
+
             return m_check_zero_block(strm);
         } else {
             state->i = 0;
@@ -757,45 +755,46 @@ int aec_encode_init(struct aec_stream *strm)
 
         if (strm->bits_per_sample <= 24
             && strm->flags & AEC_DATA_3BYTE) {
-            state->block_len = 3 * strm->block_size;
+            state->rsi_len = 3;
             if (strm->flags & AEC_DATA_MSB) {
-                state->get_sample = get_msb_24;
-                state->get_rsi = get_rsi_msb_24;
+                state->get_sample = aec_get_msb_24;
+                state->get_rsi = aec_get_rsi_msb_24;
             } else {
-                state->get_sample = get_lsb_24;
-                state->get_rsi = get_rsi_lsb_24;
+                state->get_sample = aec_get_lsb_24;
+                state->get_rsi = aec_get_rsi_lsb_24;
             }
         } else {
-            state->block_len = 4 * strm->block_size;
+            state->rsi_len = 4;
             if (strm->flags & AEC_DATA_MSB) {
-                state->get_sample = get_msb_32;
-                state->get_rsi = get_rsi_msb_32;
+                state->get_sample = aec_get_msb_32;
+                state->get_rsi = aec_get_rsi_msb_32;
             } else {
-                state->get_sample = get_lsb_32;
-                state->get_rsi = get_rsi_lsb_32;
+                state->get_sample = aec_get_lsb_32;
+                state->get_rsi = aec_get_rsi_lsb_32;
             }
         }
     }
     else if (strm->bits_per_sample > 8) {
         /* 16 bit settings */
         state->id_len = 4;
-        state->block_len = 2 * strm->block_size;
+        state->rsi_len = 2;
 
         if (strm->flags & AEC_DATA_MSB) {
-            state->get_sample = get_msb_16;
-            state->get_rsi = get_rsi_msb_16;
+            state->get_sample = aec_get_msb_16;
+            state->get_rsi = aec_get_rsi_msb_16;
         } else {
-            state->get_sample = get_lsb_16;
-            state->get_rsi = get_rsi_lsb_16;
+            state->get_sample = aec_get_lsb_16;
+            state->get_rsi = aec_get_rsi_lsb_16;
         }
     } else {
         /* 8 bit settings */
         state->id_len = 3;
-        state->block_len = strm->block_size;
+        state->rsi_len = 1;
 
-        state->get_sample = get_8;
-        state->get_rsi = get_rsi_8;
+        state->get_sample = aec_get_8;
+        state->get_rsi = aec_get_rsi_8;
     }
+    state->rsi_len *= strm->rsi * strm->block_size;
 
     if (strm->flags & AEC_DATA_SIGNED) {
         state->xmin = -(1ULL << (strm->bits_per_sample - 1));
