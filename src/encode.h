@@ -95,6 +95,8 @@ struct internal_state {
     int zero_ref;           /* current zero block has a reference sample */
     int64_t zero_ref_sample;/* reference sample of zero block */
     int zero_blocks;        /* number of contiguous zero blocks */
+    int block_nonzero;      /* 1 if this is the first non-zero block
+                             * after one or more zero blocks */
     int k;                  /* splitting position */
     int kmax;               /* maximum number for k depending on id_len */
     int flush;              /* flush option copied from argument */

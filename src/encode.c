@@ -425,6 +425,31 @@ static int assess_se_option(uint64_t limit, struct aec_stream *strm)
     return len;
 }
 
+static void init_output(struct aec_stream *strm)
+{
+    /**
+       Direct output to next_out if next_out can hold a Coded Data
+       Set, use internal buffer otherwise.
+    */
+
+    struct internal_state *state = strm->state;
+
+    if (strm->avail_out > state->cds_len) {
+        if (!state->direct_out) {
+            state->direct_out = 1;
+            *strm->next_out = *state->cds;
+            state->cds = strm->next_out;
+        }
+    } else {
+        if (state->zero_blocks == 0 || state->direct_out) {
+            /* copy leftover from last block */
+            *state->cds_buf = *state->cds;
+            state->cds = state->cds_buf;
+        }
+        state->direct_out = 0;
+    }
+}
+
 /*
  *
  * FSM functions
@@ -596,10 +621,9 @@ static int m_check_zero_block(struct aec_stream *strm)
         if (state->zero_blocks) {
             /* The current block isn't zero but we have to emit a
              * previous zero block first. The current block will be
-             * handled later.
+             * flagged and handled later.
              */
-            state->block -= strm->block_size;
-            state->blocks_avail++;
+            state->block_nonzero = 1;
             state->mode = m_encode_zero;
             return M_CONTINUE;
         }
@@ -682,19 +706,12 @@ static int m_get_block(struct aec_stream *strm)
 
     struct internal_state *state = strm->state;
 
-    if (strm->avail_out > state->cds_len) {
-        if (!state->direct_out) {
-            state->direct_out = 1;
-            *strm->next_out = *state->cds;
-            state->cds = strm->next_out;
-        }
-    } else {
-        if (state->zero_blocks == 0 || state->direct_out) {
-            /* copy leftover from last block */
-            *state->cds_buf = *state->cds;
-            state->cds = state->cds_buf;
-        }
-        state->direct_out = 0;
+    init_output(strm);
+
+    if (state->block_nonzero) {
+        state->block_nonzero = 0;
+        state->mode = m_select_code_option;
+        return M_CONTINUE;
     }
 
     if (state->blocks_avail == 0) {
