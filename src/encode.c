@@ -469,7 +469,6 @@ static int m_flush_block_resumable(struct aec_stream *strm)
 
         *strm->next_out++ = state->cds_buf[state->i];
         strm->avail_out--;
-        strm->total_out++;
         state->i++;
     }
     state->mode = m_get_block;
@@ -490,7 +489,6 @@ static int m_flush_block(struct aec_stream *strm)
         n = state->cds - strm->next_out;
         strm->next_out += n;
         strm->avail_out -= n;
-        strm->total_out += n;
         state->mode = m_get_block;
         return M_CONTINUE;
     }
@@ -679,7 +677,6 @@ static int m_get_rsi_resumable(struct aec_stream *strm)
                         if (!state->direct_out)
                             *strm->next_out++ = *state->cds;
                         strm->avail_out--;
-                        strm->total_out++;
                     }
                     return M_EXIT;
                 }
@@ -870,6 +867,8 @@ int aec_encode(struct aec_stream *strm, int flush)
     struct internal_state *state = strm->state;
 
     state->flush = flush;
+    strm->total_in += strm->avail_in;
+    strm->total_out += strm->avail_out;
 
     while (state->mode(strm) == M_CONTINUE);
 
@@ -877,12 +876,13 @@ int aec_encode(struct aec_stream *strm, int flush)
         n = state->cds - strm->next_out;
         strm->next_out += n;
         strm->avail_out -= n;
-        strm->total_out += n;
 
         *state->cds_buf = *state->cds;
         state->cds = state->cds_buf;
         state->direct_out = 0;
     }
+    strm->total_in -= strm->avail_in;
+    strm->total_out -= strm->avail_out;
     return AEC_OK;
 }
 

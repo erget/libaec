@@ -64,7 +64,6 @@
 uint32_t aec_get_8(struct aec_stream *strm)
 {
     strm->avail_in--;
-    strm->total_in++;
     return *strm->next_in++;
 }
 
@@ -76,7 +75,6 @@ uint32_t aec_get_lsb_16(struct aec_stream *strm)
         | (uint32_t)strm->next_in[0];
 
     strm->next_in += 2;
-    strm->total_in += 2;
     strm->avail_in -= 2;
     return data;
 }
@@ -89,7 +87,6 @@ uint32_t aec_get_msb_16(struct aec_stream *strm)
         | (uint32_t)strm->next_in[1];
 
     strm->next_in += 2;
-    strm->total_in += 2;
     strm->avail_in -= 2;
     return data;
 }
@@ -103,7 +100,6 @@ uint32_t aec_get_lsb_24(struct aec_stream *strm)
         | (uint32_t)strm->next_in[0];
 
     strm->next_in += 3;
-    strm->total_in += 3;
     strm->avail_in -= 3;
     return data;
 }
@@ -117,7 +113,6 @@ uint32_t aec_get_msb_24(struct aec_stream *strm)
         | (uint32_t)strm->next_in[2];
 
     strm->next_in += 3;
-    strm->total_in += 3;
     strm->avail_in -= 3;
     return data;
 }
@@ -132,7 +127,6 @@ uint32_t aec_get_lsb_32(struct aec_stream *strm)
         | (uint32_t)strm->next_in[0];
 
     strm->next_in += 4;
-    strm->total_in += 4;
     strm->avail_in -= 4;
     return data;
 }
@@ -147,7 +141,6 @@ uint32_t aec_get_msb_32(struct aec_stream *strm)
         | (uint32_t)strm->next_in[3];
 
     strm->next_in += 4;
-    strm->total_in += 4;
     strm->avail_in -= 4;
     return data;
 }
@@ -159,7 +152,6 @@ void aec_get_rsi_8(struct aec_stream *strm)
     int rsi = strm->rsi * strm->block_size;
 
     strm->next_in += rsi;
-    strm->total_in += rsi;
     strm->avail_in -= rsi;
 
     while (rsi) {
@@ -184,7 +176,6 @@ void aec_get_rsi_lsb_16(struct aec_stream *strm)
     int rsi = strm->rsi * strm->block_size;
 
     strm->next_in += 2 * rsi;
-    strm->total_in += 2 * rsi;
     strm->avail_in -= 2 * rsi;
 
     while (rsi) {
@@ -217,7 +208,6 @@ void aec_get_rsi_msb_16(struct aec_stream *strm)
     int rsi = strm->rsi * strm->block_size;
 
     strm->next_in += 2 * rsi;
-    strm->total_in += 2 * rsi;
     strm->avail_in -= 2 * rsi;
 
     while (rsi) {
@@ -250,7 +240,6 @@ void aec_get_rsi_lsb_24(struct aec_stream *strm)
     int rsi = strm->rsi * strm->block_size;
 
     strm->next_in += 3 * rsi;
-    strm->total_in += 3 * rsi;
     strm->avail_in -= 3 * rsi;
 
     while (rsi) {
@@ -291,7 +280,6 @@ void aec_get_rsi_msb_24(struct aec_stream *strm)
     int rsi = strm->rsi * strm->block_size;
 
     strm->next_in += 3 * rsi;
-    strm->total_in += 3 * rsi;
     strm->avail_in -= 3 * rsi;
 
     while (rsi) {
@@ -332,7 +320,6 @@ void aec_get_rsi_msb_24(struct aec_stream *strm)
         memcpy(strm->state->data_raw,               \
                strm->next_in, 4 * rsi);             \
         strm->next_in += 4 * rsi;                   \
-        strm->total_in += 4 * rsi;                  \
         strm->avail_in -= 4 * rsi;                  \
     }
 
@@ -344,7 +331,6 @@ void aec_get_rsi_lsb_32(struct aec_stream *strm)
     int rsi = strm->rsi * strm->block_size;
 
     strm->next_in += 4 * rsi;
-    strm->total_in += 4 * rsi;
     strm->avail_in -= 4 * rsi;
 
     while (rsi) {
@@ -396,7 +382,6 @@ void aec_get_rsi_msb_32(struct aec_stream *strm)
     int rsi = strm->rsi * strm->block_size;
 
     strm->next_in += 4 * rsi;
-    strm->total_in += 4 * rsi;
     strm->avail_in -= 4 * rsi;
 
     while (rsi) {
