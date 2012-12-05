@@ -906,7 +906,7 @@ int aec_buffer_encode(struct aec_stream *strm)
     if (status != AEC_OK)
         return status;
     status = aec_encode(strm, AEC_FLUSH);
-    if (strm->avail_in > 0 || strm->avail_out == 0)
+    if (strm->avail_in > 0)
         status = AEC_DATA_ERROR;
 
     aec_encode_end(strm);
