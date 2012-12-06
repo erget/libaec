@@ -463,16 +463,18 @@ static int m_flush_block_resumable(struct aec_stream *strm)
     */
     struct internal_state *state = strm->state;
 
-    while(state->cds_buf + state->i < state->cds) {
-        if (strm->avail_out == 0)
-            return M_EXIT;
+    int n = MIN(state->cds - state->cds_buf - state->i, strm->avail_out);
+    memcpy(strm->next_out, state->cds_buf + state->i, n);
+    strm->next_out += n;
+    strm->avail_out -= n;
+    state->i += n;
 
-        *strm->next_out++ = state->cds_buf[state->i];
-        strm->avail_out--;
-        state->i++;
+    if (strm->avail_out == 0) {
+        return M_EXIT;
+    } else {
+        state->mode = m_get_block;
+        return M_CONTINUE;
     }
-    state->mode = m_get_block;
-    return M_CONTINUE;
 }
 
 static int m_flush_block(struct aec_stream *strm)
@@ -654,7 +656,6 @@ static int m_get_rsi_resumable(struct aec_stream *strm)
        to full RSI.
     */
 
-    int j;
     struct internal_state *state = strm->state;
 
     do {
@@ -663,15 +664,11 @@ static int m_get_rsi_resumable(struct aec_stream *strm)
         } else {
             if (state->flush == AEC_FLUSH) {
                 if (state->i > 0) {
-                    for (j = state->i; j < strm->rsi * strm->block_size; j++)
-                        state->data_raw[j] = state->data_raw[state->i - 1];
-                    state->i = strm->rsi * strm->block_size;
+                    do
+                        state->data_raw[state->i] =
+                            state->data_raw[state->i - 1];
+                    while(++state->i < strm->rsi * strm->block_size);
                 } else {
-                    if (state->zero_blocks) {
-                        state->mode = m_encode_zero;
-                        return M_CONTINUE;
-                    }
-
                     emit(state, 0, state->bits);
                     if (strm->avail_out > 0) {
                         if (!state->direct_out)

@@ -64,6 +64,7 @@
 
 #define M_CONTINUE 1
 #define M_EXIT 0
+#define MIN(a, b) (((a) < (b))? (a): (b))
 
 struct internal_state {
     int (*mode)(struct aec_stream *);
