@@ -75,7 +75,7 @@
     {                                                                   \
         uint32_t *bp, *flush_end;                                       \
         int64_t d, m, th2;                                              \
-        int64_t data, med;                                              \
+        int64_t data, med, half_d, xmin, xmax;                          \
         struct internal_state *state = strm->state;                     \
                                                                         \
         flush_end = state->rsip;                                        \
@@ -99,18 +99,31 @@
             else                                                        \
                 med = (state->xmax - state->xmin) / 2 + 1;              \
                                                                         \
+            xmin = state->xmin;                                         \
+            xmax = state->xmax;                                         \
+                                                                        \
             for (bp = state->flush_start; bp < flush_end; bp++) {       \
                 d = *bp;                                                \
-                th2 = (data < med ?                                     \
-                       data - state->xmin :                             \
-                       state->xmax - data) << 1;                        \
-                if (d <= th2) {                                         \
-                    data += ((d + 1) / 2 ^ -(d & 1)) + (d & 1);         \
+                half_d = (d + 1) >> 1;                                  \
+                                                                        \
+                if (data < med) {                                       \
+                    if (half_d <= data - xmin) {                        \
+                        if (d & 1)                                      \
+                            data -= half_d;                             \
+                        else                                            \
+                            data += half_d;                             \
+                    } else {                                            \
+                        data = xmin + d;                                \
+                    }                                                   \
                 } else {                                                \
-                    if (data < med)                                     \
-                        data = state->xmin + d;                         \
-                    else                                                \
-                        data = state->xmax - d;                         \
+                    if (half_d <= xmax - data) {                        \
+                        if (d & 1)                                      \
+                            data -= half_d;                             \
+                        else                                            \
+                            data += half_d;                             \
+                    } else {                                            \
+                        data = xmax - d;                                \
+                    }                                                   \
                 }                                                       \
                 put_##KIND(strm, data);                                 \
             }                                                           \
