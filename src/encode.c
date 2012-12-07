@@ -235,6 +235,7 @@ static void preprocess_unsigned(struct aec_stream *strm)
         x++;
     }
     state->ref = 1;
+    state->uncomp_len = (strm->block_size - 1) * strm->bits_per_sample;
 }
 
 static void preprocess_signed(struct aec_stream *strm)
@@ -274,6 +275,7 @@ static void preprocess_signed(struct aec_stream *strm)
         d++;
     }
     state->ref = 1;
+    state->uncomp_len = (strm->block_size - 1) * strm->bits_per_sample;
 }
 
 static uint64_t block_fs(struct aec_stream *strm, int k)
@@ -312,7 +314,7 @@ static uint64_t block_fs(struct aec_stream *strm, int k)
     return fs;
 }
 
-static int assess_splitting_option(struct aec_stream *strm)
+static uint32_t assess_splitting_option(struct aec_stream *strm)
 {
     /**
        Length of CDS encoded with splitting option and optimal k.
@@ -395,17 +397,17 @@ static int assess_splitting_option(struct aec_stream *strm)
     return len_min;
 }
 
-static int assess_se_option(uint64_t limit, struct aec_stream *strm)
+static uint32_t assess_se_option(struct aec_stream *strm)
 {
     /**
        Length of CDS encoded with Second Extension option.
 
-       If length is above limit just return UINT64_MAX.
+       If length is above limit just return UINT32_MAX.
     */
 
     int i;
     uint64_t d;
-    uint64_t len;
+    uint32_t len;
     struct internal_state *state = strm->state;
 
     len = 1;
@@ -414,12 +416,11 @@ static int assess_se_option(uint64_t limit, struct aec_stream *strm)
         d = (uint64_t)state->block[i]
             + (uint64_t)state->block[i + 1];
         /* we have to worry about overflow here */
-        if (d > limit) {
-            len = UINT64_MAX;
+        if (d > state->uncomp_len) {
+            len = UINT32_MAX;
             break;
         } else {
-            len += d * (d + 1) / 2
-                + (uint64_t)state->block[i + 1];
+            len += d * (d + 1) / 2 + state->block[i + 1];
         }
     }
     return len;
@@ -578,23 +579,20 @@ static int m_select_code_option(struct aec_stream *strm)
        Decide which code option to use.
     */
 
-    uint64_t uncomp_len;
-    uint64_t split_len;
-    uint64_t se_len;
+    uint32_t split_len;
+    uint32_t se_len;
     struct internal_state *state = strm->state;
 
-    uncomp_len = (strm->block_size - state->ref)
-        * strm->bits_per_sample;
     split_len = assess_splitting_option(strm);
-    se_len = assess_se_option(split_len, strm);
+    se_len = assess_se_option(strm);
 
-    if (split_len < uncomp_len) {
+    if (split_len < state->uncomp_len) {
         if (split_len < se_len)
             return m_encode_splitting(strm);
         else
             return m_encode_se(strm);
     } else {
-        if (uncomp_len <= se_len)
+        if (state->uncomp_len <= se_len)
             return m_encode_uncomp(strm);
         else
             return m_encode_se(strm);
@@ -723,7 +721,10 @@ static int m_get_block(struct aec_stream *strm)
             state->mode = m_get_rsi_resumable;
         }
     } else {
-        state->ref = 0;
+        if (state->ref) {
+            state->ref = 0;
+            state->uncomp_len = strm->block_size * strm->bits_per_sample;
+        }
         state->block += strm->block_size;
         state->blocks_avail--;
         return m_check_zero_block(strm);

@@ -101,6 +101,7 @@ struct internal_state {
     int k;                  /* splitting position */
     int kmax;               /* maximum number for k depending on id_len */
     int flush;              /* flush option copied from argument */
+    uint32_t uncomp_len;    /* length of uncompressed CDS */
 };
 
 #endif /* ENCODE_H */
