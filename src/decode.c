@@ -255,15 +255,21 @@ static inline uint32_t direct_get_fs(struct aec_stream *strm)
     uint32_t fs = 0;
     struct internal_state *state = strm->state;
 
-    if ((state->acc & ((1ULL << state->bitp) - 1)) == 0)
+    state->acc &= ((1ULL << state->bitp) - 1);
+
+    if (state->acc == 0)
         fill_acc(strm);
 
+#ifdef AEC_HAVE___BUILTIN_CLZL
+    fs = __builtin_clzll(state->acc) - (64 - state->bitp);
+    state->bitp -= fs + 1;
+#else
     state->bitp--;
     while ((state->acc & (1ULL << state->bitp)) == 0) {
         state->bitp--;
         fs++;
     }
-
+#endif
     return fs;
 }
 
