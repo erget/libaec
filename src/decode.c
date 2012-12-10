@@ -220,8 +220,25 @@ static inline void fill_acc(struct aec_stream *strm)
 
     strm->avail_in -= b;
     strm->state->bitp += b << 3;
-    while (b--)
+
+    switch (b) {
+
+      case (7):
         strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
+      case (6):
+        strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
+      case (5):
+        strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
+      case (4):
+        strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
+      case (3):
+        strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
+      case (2):
+        strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
+      case (1):
+        strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
+    };
+
 }
 
 static inline uint32_t direct_get(struct aec_stream *strm, unsigned int n)
