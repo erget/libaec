@@ -30,12 +30,12 @@ AC_TYPE_UINT8_T
 
 # Checks for library functions.
 AC_CHECK_FUNCS([memset strstr])
-AC_MSG_CHECKING(for __builtin_clzl)
+AC_MSG_CHECKING(for __builtin_clzll)
 AC_TRY_LINK([],[
-  __builtin_clzl(1);
+  __builtin_clzll(1);
 ],[
-  AC_DEFINE(AEC_HAVE___BUILTIN_CLZL, 1, \
-  [Define to 1 if you have the '__builtin__clzl' function.])
+  AC_DEFINE(AEC_HAVE___BUILTIN_CLZLL, 1, \
+  [Define to 1 if you have the '__builtin__clzll' function.])
   AC_MSG_RESULT(yes)
 ],[
   AC_MSG_RESULT(no)
