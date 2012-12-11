@@ -277,7 +277,7 @@ static inline uint32_t direct_get_fs(struct aec_stream *strm)
     if (state->acc == 0)
         fill_acc(strm);
 
-#ifdef AEC_HAVE___BUILTIN_CLZLL
+#ifdef HAVE_DECL___BUILTIN_CLZLL
     fs = __builtin_clzll(state->acc) - (64 - state->bitp);
     state->bitp -= fs + 1;
 #else
