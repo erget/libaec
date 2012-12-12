@@ -492,7 +492,7 @@ static int m_zero_block(struct aec_stream *strm)
         return M_CONTINUE;
     }
 
-    strm->state->i = i;
+    state->i = i;
     state->mode = m_zero_output;
     return M_CONTINUE;
 }
@@ -735,7 +735,7 @@ int aec_decode(struct aec_stream *strm, int flush)
        of the states are called. Inspired by zlib.
     */
 
-    struct internal_state *state= strm->state;
+    struct internal_state *state = strm->state;
 
     strm->total_in += strm->avail_in;
     strm->total_out += strm->avail_out;
@@ -751,7 +751,7 @@ int aec_decode(struct aec_stream *strm, int flush)
 
 int aec_decode_end(struct aec_stream *strm)
 {
-    struct internal_state *state= strm->state;
+    struct internal_state *state = strm->state;
 
     free(state->id_table);
     free(state->se_table);
