@@ -284,32 +284,23 @@ static uint64_t block_fs(struct aec_stream *strm, int k)
        Sum FS of all samples in block for given splitting position.
     */
 
-    int j;
-    uint64_t fs;
+    int i;
+    uint64_t fs = 0;
     struct internal_state *state = strm->state;
 
-    fs = (uint64_t)(state->block[1] >> k)
-        + (uint64_t)(state->block[2] >> k)
-        + (uint64_t)(state->block[3] >> k)
-        + (uint64_t)(state->block[4] >> k)
-        + (uint64_t)(state->block[5] >> k)
-        + (uint64_t)(state->block[6] >> k)
-        + (uint64_t)(state->block[7] >> k);
+    for (i = 0; i < strm->block_size; i += 8)
+        fs +=
+            (uint64_t)(state->block[i + 0] >> k)
+            + (uint64_t)(state->block[i + 1] >> k)
+            + (uint64_t)(state->block[i + 2] >> k)
+            + (uint64_t)(state->block[i + 3] >> k)
+            + (uint64_t)(state->block[i + 4] >> k)
+            + (uint64_t)(state->block[i + 5] >> k)
+            + (uint64_t)(state->block[i + 6] >> k)
+            + (uint64_t)(state->block[i + 7] >> k);
 
-    if (strm->block_size > 8)
-        for (j = 8; j < strm->block_size; j += 8)
-            fs +=
-                (uint64_t)(state->block[j + 0] >> k)
-                + (uint64_t)(state->block[j + 1] >> k)
-                + (uint64_t)(state->block[j + 2] >> k)
-                + (uint64_t)(state->block[j + 3] >> k)
-                + (uint64_t)(state->block[j + 4] >> k)
-                + (uint64_t)(state->block[j + 5] >> k)
-                + (uint64_t)(state->block[j + 6] >> k)
-                + (uint64_t)(state->block[j + 7] >> k);
-
-    if (!state->ref)
-        fs += (uint64_t)(state->block[0] >> k);
+    if (state->ref)
+        fs -= (uint64_t)(state->block[0] >> k);
 
     return fs;
 }
@@ -355,7 +346,7 @@ static uint32_t assess_splitting_option(struct aec_stream *strm)
     this_bs = strm->block_size - state->ref;
     len_min = UINT64_MAX;
     k = k_min = state->k;
-    no_turn = (k == 0) ? 1 : 0;
+    no_turn = k == 0;
     dir = 1;
 
     for (;;) {
