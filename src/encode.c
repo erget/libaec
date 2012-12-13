@@ -167,7 +167,6 @@ EMITBLOCK_FS(1);
            Emit the k LSB of a whole block of input data.           \
         */                                                          \
                                                                     \
-        int b;                                                      \
         uint64_t a;                                                 \
         struct internal_state *state = strm->state;                 \
         uint32_t *in = state->block + ref;                          \
@@ -187,9 +186,65 @@ EMITBLOCK_FS(1);
                 a += ((uint64_t)(*in++) & mask) << p;               \
             }                                                       \
                                                                     \
-            for (b = 56; b > (p & ~7); b -= 8)                      \
-                *o++ = a >> b;                                      \
-            a >>= b;                                                \
+            switch (p & ~ 7) {                                      \
+            case 0:                                                 \
+                o[0] = a >> 56;                                     \
+                o[1] = a >> 48;                                     \
+                o[2] = a >> 40;                                     \
+                o[3] = a >> 32;                                     \
+                o[4] = a >> 24;                                     \
+                o[5] = a >> 16;                                     \
+                o[6] = a >> 8;                                      \
+                o += 7;                                             \
+                break;                                              \
+            case 8:                                                 \
+                o[0] = a >> 56;                                     \
+                o[1] = a >> 48;                                     \
+                o[2] = a >> 40;                                     \
+                o[3] = a >> 32;                                     \
+                o[4] = a >> 24;                                     \
+                o[5] = a >> 16;                                     \
+                a >>= 8;                                            \
+                o += 6;                                             \
+                break;                                              \
+            case 16:                                                \
+                o[0] = a >> 56;                                     \
+                o[1] = a >> 48;                                     \
+                o[2] = a >> 40;                                     \
+                o[3] = a >> 32;                                     \
+                o[4] = a >> 24;                                     \
+                a >>= 16;                                           \
+                o += 5;                                             \
+                break;                                              \
+            case 24:                                                \
+                o[0] = a >> 56;                                     \
+                o[1] = a >> 48;                                     \
+                o[2] = a >> 40;                                     \
+                o[3] = a >> 32;                                     \
+                a >>= 24;                                           \
+                o += 4;                                             \
+                break;                                              \
+            case 32:                                                \
+                o[0] = a >> 56;                                     \
+                o[1] = a >> 48;                                     \
+                o[2] = a >> 40;                                     \
+                a >>= 32;                                           \
+                o += 3;                                             \
+                break;                                              \
+            case 40:                                                \
+                o[0] = a >> 56;                                     \
+                o[1] = a >> 48;                                     \
+                a >>= 40;                                           \
+                o += 2;                                             \
+                break;                                              \
+            case 48:                                                \
+                *o++ = a >> 56;                                     \
+                a >>= 48;                                           \
+                break;                                              \
+            default:                                                \
+                a >>= 56;                                           \
+                break;                                              \
+            }                                                       \
         }                                                           \
                                                                     \
         *o = a;                                                     \
