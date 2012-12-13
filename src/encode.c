@@ -278,33 +278,6 @@ static void preprocess_signed(struct aec_stream *strm)
     state->uncomp_len = (strm->block_size - 1) * strm->bits_per_sample;
 }
 
-static uint64_t block_fs(struct aec_stream *strm, int k)
-{
-    /**
-       Sum FS of all samples in block for given splitting position.
-    */
-
-    int i;
-    uint64_t fs = 0;
-    struct internal_state *state = strm->state;
-
-    for (i = 0; i < strm->block_size; i += 8)
-        fs +=
-            (uint64_t)(state->block[i + 0] >> k)
-            + (uint64_t)(state->block[i + 1] >> k)
-            + (uint64_t)(state->block[i + 2] >> k)
-            + (uint64_t)(state->block[i + 3] >> k)
-            + (uint64_t)(state->block[i + 4] >> k)
-            + (uint64_t)(state->block[i + 5] >> k)
-            + (uint64_t)(state->block[i + 6] >> k)
-            + (uint64_t)(state->block[i + 7] >> k);
-
-    if (state->ref)
-        fs -= (uint64_t)(state->block[0] >> k);
-
-    return fs;
-}
-
 static uint32_t assess_splitting_option(struct aec_stream *strm)
 {
     /**
@@ -332,7 +305,7 @@ static uint32_t assess_splitting_option(struct aec_stream *strm)
        analogue check can be done for decreasing k.
      */
 
-    int k;
+    int i, k;
     int k_min;
     int this_bs; /* Block size of current block */
     int no_turn; /* 1 if we shouldn't reverse */
@@ -350,7 +323,9 @@ static uint32_t assess_splitting_option(struct aec_stream *strm)
     dir = 1;
 
     for (;;) {
-        fs_len = block_fs(strm, k);
+        fs_len = 0;
+        for (i = state->ref; i < strm->block_size; i++)
+            fs_len += (uint64_t)(state->block[i] >> k);
         len = fs_len + this_bs * (k + 1);
 
         if (len < len_min) {
