@@ -128,36 +128,31 @@ static inline void copy64(uint8_t *dst, uint64_t src)
     dst[7] = src;
 }
 
-#define EMITBLOCK_FS(ref)                                           \
-    static inline void emitblock_fs_##ref(struct aec_stream *strm,  \
-                                          int k)                    \
-    {                                                               \
-        int i;                                                      \
-        int used; /* used bits in 64 bit accumulator */             \
-        uint64_t acc; /* accumulator */                             \
-        struct internal_state *state = strm->state;                 \
-                                                                    \
-        acc = (uint64_t)*state->cds << 56;                          \
-        used = 7 - state->bits;                                     \
-                                                                    \
-        for (i = ref; i < strm->block_size; i++) {                  \
-            used += (state->block[i] >> k) + 1;                     \
-            if (used > 63) {                                        \
-                copy64(state->cds, acc);                            \
-                state->cds += 8;                                    \
-                acc = 0;                                            \
-                used &= 0x3f;                                       \
-            }                                                       \
-            acc |= 1ULL << (63 - used);                             \
-        }                                                           \
-                                                                    \
-        copy64(state->cds, acc);                                    \
-        state->cds += used >> 3;                                    \
-        state->bits = 7 - (used & 7);                               \
+static inline void emitblock_fs(struct aec_stream *strm, int k, int ref)
+{
+    int i;
+    int used; /* used bits in 64 bit accumulator */
+    uint64_t acc; /* accumulator */
+    struct internal_state *state = strm->state;
+
+    acc = (uint64_t)*state->cds << 56;
+    used = 7 - state->bits;
+
+    for (i = ref; i < strm->block_size; i++) {
+        used += (state->block[i] >> k) + 1;
+        if (used > 63) {
+            copy64(state->cds, acc);
+            state->cds += 8;
+            acc = 0;
+            used &= 0x3f;
+        }
+        acc |= 1ULL << (63 - used);
     }
 
-EMITBLOCK_FS(0);
-EMITBLOCK_FS(1);
+    copy64(state->cds, acc);
+    state->cds += used >> 3;
+    state->bits = 7 - (used & 7);
+}
 
 static inline void emitblock(struct aec_stream *strm, int k, int ref)
 {
@@ -550,18 +545,11 @@ static int m_encode_splitting(struct aec_stream *strm)
     emit(state, k + 1, state->id_len);
 
     if (state->ref)
-    {
         emit(state, state->block[0], strm->bits_per_sample);
-        emitblock_fs_1(strm, k);
-        if (k)
-            emitblock(strm, k, 1);
-    }
-    else
-    {
-        emitblock_fs_0(strm, k);
-        if (k)
-            emitblock(strm, k, 0);
-    }
+
+    emitblock_fs(strm, k, state->ref);
+    if (k)
+        emitblock(strm, k, state->ref);
 
     return m_flush_block(strm);
 }
