@@ -159,101 +159,96 @@ static inline void copy64(uint8_t *dst, uint64_t src)
 EMITBLOCK_FS(0);
 EMITBLOCK_FS(1);
 
-#define EMITBLOCK(ref)                                              \
-    static inline void emitblock_##ref(struct aec_stream *strm,     \
-                                       int k)                       \
-    {                                                               \
-        /**                                                         \
-           Emit the k LSB of a whole block of input data.           \
-        */                                                          \
-                                                                    \
-        uint64_t a;                                                 \
-        struct internal_state *state = strm->state;                 \
-        uint32_t *in = state->block + ref;                          \
-        uint32_t *in_end = state->block + strm->block_size;         \
-        uint64_t mask = (1ULL << k) - 1;                            \
-        uint8_t *o = state->cds;                                    \
-        int p = state->bits;                                        \
-                                                                    \
-        a = *o;                                                     \
-                                                                    \
-        while(in < in_end) {                                        \
-            a <<= 56;                                               \
-            p = (p % 8) + 56;                                       \
-                                                                    \
-            while (p > k && in < in_end) {                          \
-                p -= k;                                             \
-                a += ((uint64_t)(*in++) & mask) << p;               \
-            }                                                       \
-                                                                    \
-            switch (p & ~ 7) {                                      \
-            case 0:                                                 \
-                o[0] = a >> 56;                                     \
-                o[1] = a >> 48;                                     \
-                o[2] = a >> 40;                                     \
-                o[3] = a >> 32;                                     \
-                o[4] = a >> 24;                                     \
-                o[5] = a >> 16;                                     \
-                o[6] = a >> 8;                                      \
-                o += 7;                                             \
-                break;                                              \
-            case 8:                                                 \
-                o[0] = a >> 56;                                     \
-                o[1] = a >> 48;                                     \
-                o[2] = a >> 40;                                     \
-                o[3] = a >> 32;                                     \
-                o[4] = a >> 24;                                     \
-                o[5] = a >> 16;                                     \
-                a >>= 8;                                            \
-                o += 6;                                             \
-                break;                                              \
-            case 16:                                                \
-                o[0] = a >> 56;                                     \
-                o[1] = a >> 48;                                     \
-                o[2] = a >> 40;                                     \
-                o[3] = a >> 32;                                     \
-                o[4] = a >> 24;                                     \
-                a >>= 16;                                           \
-                o += 5;                                             \
-                break;                                              \
-            case 24:                                                \
-                o[0] = a >> 56;                                     \
-                o[1] = a >> 48;                                     \
-                o[2] = a >> 40;                                     \
-                o[3] = a >> 32;                                     \
-                a >>= 24;                                           \
-                o += 4;                                             \
-                break;                                              \
-            case 32:                                                \
-                o[0] = a >> 56;                                     \
-                o[1] = a >> 48;                                     \
-                o[2] = a >> 40;                                     \
-                a >>= 32;                                           \
-                o += 3;                                             \
-                break;                                              \
-            case 40:                                                \
-                o[0] = a >> 56;                                     \
-                o[1] = a >> 48;                                     \
-                a >>= 40;                                           \
-                o += 2;                                             \
-                break;                                              \
-            case 48:                                                \
-                *o++ = a >> 56;                                     \
-                a >>= 48;                                           \
-                break;                                              \
-            default:                                                \
-                a >>= 56;                                           \
-                break;                                              \
-            }                                                       \
-        }                                                           \
-                                                                    \
-        *o = a;                                                     \
-        state->cds = o;                                             \
-        state->bits = p % 8;                                        \
+static inline void emitblock(struct aec_stream *strm, int k, int ref)
+{
+    /**
+       Emit the k LSB of a whole block of input data.
+    */
+
+    uint64_t a;
+    struct internal_state *state = strm->state;
+    uint32_t *in = state->block + ref;
+    uint32_t *in_end = state->block + strm->block_size;
+    uint64_t mask = (1ULL << k) - 1;
+    uint8_t *o = state->cds;
+    int p = state->bits;
+
+    a = *o;
+
+    while(in < in_end) {
+        a <<= 56;
+        p = (p % 8) + 56;
+
+        while (p > k && in < in_end) {
+            p -= k;
+            a += ((uint64_t)(*in++) & mask) << p;
+        }
+
+        switch (p & ~ 7) {
+        case 0:
+            o[0] = a >> 56;
+            o[1] = a >> 48;
+            o[2] = a >> 40;
+            o[3] = a >> 32;
+            o[4] = a >> 24;
+            o[5] = a >> 16;
+            o[6] = a >> 8;
+            o += 7;
+            break;
+        case 8:
+            o[0] = a >> 56;
+            o[1] = a >> 48;
+            o[2] = a >> 40;
+            o[3] = a >> 32;
+            o[4] = a >> 24;
+            o[5] = a >> 16;
+            a >>= 8;
+            o += 6;
+            break;
+        case 16:
+            o[0] = a >> 56;
+            o[1] = a >> 48;
+            o[2] = a >> 40;
+            o[3] = a >> 32;
+            o[4] = a >> 24;
+            a >>= 16;
+            o += 5;
+            break;
+        case 24:
+            o[0] = a >> 56;
+            o[1] = a >> 48;
+            o[2] = a >> 40;
+            o[3] = a >> 32;
+            a >>= 24;
+            o += 4;
+            break;
+        case 32:
+            o[0] = a >> 56;
+            o[1] = a >> 48;
+            o[2] = a >> 40;
+            a >>= 32;
+            o += 3;
+            break;
+        case 40:
+            o[0] = a >> 56;
+            o[1] = a >> 48;
+            a >>= 40;
+            o += 2;
+            break;
+        case 48:
+            *o++ = a >> 56;
+            a >>= 48;
+            break;
+        default:
+            a >>= 56;
+            break;
+        }
     }
 
-EMITBLOCK(0);
-EMITBLOCK(1);
+    *o = a;
+    state->cds = o;
+    state->bits = p % 8;
+}
 
 static void preprocess_unsigned(struct aec_stream *strm)
 {
@@ -559,13 +554,13 @@ static int m_encode_splitting(struct aec_stream *strm)
         emit(state, state->block[0], strm->bits_per_sample);
         emitblock_fs_1(strm, k);
         if (k)
-            emitblock_1(strm, k);
+            emitblock(strm, k, 1);
     }
     else
     {
         emitblock_fs_0(strm, k);
         if (k)
-            emitblock_0(strm, k);
+            emitblock(strm, k, 0);
     }
 
     return m_flush_block(strm);
@@ -576,7 +571,7 @@ static int m_encode_uncomp(struct aec_stream *strm)
     struct internal_state *state = strm->state;
 
     emit(state, (1U << state->id_len) - 1, state->id_len);
-    emitblock_0(strm, strm->bits_per_sample);
+    emitblock(strm, strm->bits_per_sample, 0);
 
     return m_flush_block(strm);
 }
