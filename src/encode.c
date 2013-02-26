@@ -686,7 +686,7 @@ static int m_get_rsi_resumable(struct aec_stream *strm)
     struct internal_state *state = strm->state;
 
     do {
-        if (strm->avail_in > 0) {
+        if (strm->avail_in >= state->bytes_per_sample) {
             state->data_raw[state->i] = state->get_sample(strm);
         } else {
             if (state->flush == AEC_FLUSH) {
@@ -796,7 +796,7 @@ int aec_encode_init(struct aec_stream *strm)
 
         if (strm->bits_per_sample <= 24
             && strm->flags & AEC_DATA_3BYTE) {
-            state->rsi_len = 3;
+            state->bytes_per_sample = 3;
             if (strm->flags & AEC_DATA_MSB) {
                 state->get_sample = aec_get_msb_24;
                 state->get_rsi = aec_get_rsi_msb_24;
@@ -805,7 +805,7 @@ int aec_encode_init(struct aec_stream *strm)
                 state->get_rsi = aec_get_rsi_lsb_24;
             }
         } else {
-            state->rsi_len = 4;
+            state->bytes_per_sample = 4;
             if (strm->flags & AEC_DATA_MSB) {
                 state->get_sample = aec_get_msb_32;
                 state->get_rsi = aec_get_rsi_msb_32;
@@ -818,7 +818,7 @@ int aec_encode_init(struct aec_stream *strm)
     else if (strm->bits_per_sample > 8) {
         /* 16 bit settings */
         state->id_len = 4;
-        state->rsi_len = 2;
+        state->bytes_per_sample = 2;
 
         if (strm->flags & AEC_DATA_MSB) {
             state->get_sample = aec_get_msb_16;
@@ -830,12 +830,12 @@ int aec_encode_init(struct aec_stream *strm)
     } else {
         /* 8 bit settings */
         state->id_len = 3;
-        state->rsi_len = 1;
+        state->bytes_per_sample = 1;
 
         state->get_sample = aec_get_8;
         state->get_rsi = aec_get_rsi_8;
     }
-    state->rsi_len *= strm->rsi * strm->block_size;
+    state->rsi_len = strm->rsi * strm->block_size * state->bytes_per_sample;
 
     if (strm->flags & AEC_DATA_SIGNED) {
         state->xmin = -(1ULL << (strm->bits_per_sample - 1));

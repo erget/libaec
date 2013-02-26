@@ -124,10 +124,12 @@ sample size   storage size
  9 - 16 bit   2 bytes
 17 - 32 bit   4 bytes (also for 24bit if AEC_DATA_3BYTE is not set)
 
-If you use less bits than the storage size provides, then you have to
-make sure that unused bits are not set. Libaec does not check this for
-performance reasons and will produce undefined output if unused bits
-are set.
+If a sample requires less bits than the storage size provides, then
+you have to make sure that unused bits are not set. Libaec does not
+check this for performance reasons and will produce undefined output
+if unused bits are set. All input data must be a multiple of the
+storage size in bytes. Remaining bytes which do not form a complete
+sample will be ignored.
 
 Libaec accesses next_in and next_out buffers only bytewise. There are
 no alignment requirements for these buffers.

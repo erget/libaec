@@ -95,6 +95,7 @@ struct internal_state {
                              * not */
     int zero_ref;           /* current zero block has a reference sample */
     uint32_t zero_ref_sample;/* reference sample of zero block */
+    int bytes_per_sample;   /* storage size of samples in bytes */
     int zero_blocks;        /* number of contiguous zero blocks */
     int block_nonzero;      /* 1 if this is the first non-zero block
                              * after one or more zero blocks */
