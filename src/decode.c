@@ -74,7 +74,7 @@
     static void flush_##KIND(struct aec_stream *strm)                   \
     {                                                                   \
         uint32_t *bp, *flush_end;                                       \
-        int64_t d, m, th2;                                              \
+        int64_t d, m;                                                   \
         int64_t data, med, half_d, xmin, xmax;                          \
         struct internal_state *state = strm->state;                     \
                                                                         \
@@ -222,7 +222,6 @@ static inline void fill_acc(struct aec_stream *strm)
     strm->state->bitp += b << 3;
 
     switch (b) {
-
       case (7):
         strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
       case (6):
@@ -333,11 +332,6 @@ static inline uint32_t fs_ask(struct aec_stream *strm)
     return 1;
 }
 
-static inline uint32_t fs_get(struct aec_stream *strm)
-{
-    return strm->state->fs;
-}
-
 static inline void fs_drop(struct aec_stream *strm)
 {
     strm->state->fs = 0;
@@ -399,7 +393,7 @@ static int m_split_fs(struct aec_stream *strm)
     do {
         if (fs_ask(strm) == 0)
             return M_EXIT;
-        state->rsip[state->i] = fs_get(strm) << k;
+        state->rsip[state->i] = state->fs << k;
         fs_drop(strm);
     } while(++state->i < state->n);
 
@@ -466,7 +460,7 @@ static int m_zero_block(struct aec_stream *strm)
 
     if (fs_ask(strm) == 0)
         return M_EXIT;
-    zero_blocks = fs_get(strm) + 1;
+    zero_blocks = state->fs + 1;
     fs_drop(strm);
 
     if (zero_blocks == ROS) {
@@ -505,7 +499,7 @@ static int m_se_decode(struct aec_stream *strm)
     while(state->i < strm->block_size) {
         if (fs_ask(strm) == 0)
             return M_EXIT;
-        m = fs_get(strm);
+        m = state->fs;
         d1 = m - state->se_table[2 * m + 1];
 
         if ((state->i & 1) == 0) {
