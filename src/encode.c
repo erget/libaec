@@ -66,9 +66,6 @@
 #include "encode.h"
 #include "encode_accessors.h"
 
-/* Marker for Remainder Of Segment condition in zero block encoding */
-#define ROS -1
-
 static int m_get_block(struct aec_stream *strm);
 
 static inline void emit(struct internal_state *state,
@@ -471,7 +468,7 @@ static void init_output(struct aec_stream *strm)
 
     struct internal_state *state = strm->state;
 
-    if (strm->avail_out > state->cds_len) {
+    if (strm->avail_out > CDSLEN) {
         if (!state->direct_out) {
             state->direct_out = 1;
             *strm->next_out = *state->cds;
@@ -867,12 +864,6 @@ int aec_encode_init(struct aec_stream *strm)
 
     state->block = state->data_pp;
 
-    /* Largest possible CDS according to specs */
-    state->cds_len = (5 + 64 * 32) / 8 + 3;
-    state->cds_buf = malloc(state->cds_len);
-    if (state->cds_buf == NULL)
-        return AEC_MEM_ERROR;
-
     strm->total_in = 0;
     strm->total_out = 0;
 
@@ -920,7 +911,6 @@ int aec_encode_end(struct aec_stream *strm)
     if (strm->flags & AEC_DATA_PREPROCESS)
         free(state->data_raw);
     free(state->data_pp);
-    free(state->cds_buf);
     free(state);
     return AEC_OK;
 }
