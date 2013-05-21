@@ -11,7 +11,7 @@ supported, they can also be efficiently coded by grouping exponents
 and mantissa.
 
 Libaec implements Golomb Rice coding as defined in the Space Data
-System Standard document 121.0-B-2 [1], [2].
+System Standard documents 121.0-B-2 [1] and 120.0-G-2[2].
 
 
 **********************************************************************
@@ -120,9 +120,9 @@ rules apply for deducing storage size from sample size
 (bits_per_sample):
 
 sample size   storage size
- 1 -  8 bit   1 byte
- 9 - 16 bit   2 bytes
-17 - 32 bit   4 bytes (also for 24bit if AEC_DATA_3BYTE is not set)
+ 1 -  8 bits  1 byte
+ 9 - 16 bits  2 bytes
+17 - 32 bits  4 bytes (also for 24bit if AEC_DATA_3BYTE is not set)
 
 If a sample requires less bits than the storage size provides, then
 you have to make sure that unused bits are not set. Libaec does not
@@ -208,4 +208,4 @@ http://public.ccsds.org/publications/archive/121x0b2.pdf
 Compression.  Recommendation for Space Data System Standards, CCSDS
 120.0-G-2. Green Book. Issue 2. Washington, D.C.: CCSDS, December
 2006.
-http://public.ccsds.org/publications/archive/120x0g2.pdf
+http://public.ccsds.org/publications/archive/120x0g2s.pdf
