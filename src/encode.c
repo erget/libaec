@@ -257,24 +257,23 @@ static void preprocess_unsigned(struct aec_stream *strm)
     uint32_t *d = state->data_pp;
     uint32_t xmax = state->xmax;
     uint32_t rsi = strm->rsi * strm->block_size - 1;
+    int i;
 
-    *d++ = x[0];
-    while (rsi--) {
-        if (x[1] >= x[0]) {
-            D = x[1] - x[0];
-            if (D <= x[0])
-                *d = 2 * D;
+    d[0] = x[0];
+    for (i = 0; i < rsi; i++) {
+        if (x[i+1] >= x[i]) {
+            D = x[i+1] - x[i];
+            if (D <= x[i])
+                d[i+1] = 2 * D;
             else
-                *d = x[1];
+                d[i+1] = x[i+1];
         } else {
-            D = x[0] - x[1];
-            if (D <= xmax - x[0])
-                *d = 2 * D - 1;
+            D = x[i] - x[i+1];
+            if (D <= xmax - x[i])
+                d[i+1] = 2 * D - 1;
             else
-                *d = xmax - x[1];
+                d[i+1] = xmax - x[i+1];
         }
-        d++;
-        x++;
     }
     state->ref = 1;
     state->uncomp_len = (strm->block_size - 1) * strm->bits_per_sample;
@@ -294,27 +293,26 @@ static void preprocess_signed(struct aec_stream *strm)
     int64_t xmax = state->xmax;
     int64_t xmin = state->xmin;
     uint32_t rsi = strm->rsi * strm->block_size - 1;
+    int i;
 
-    *d++ = (uint32_t)x[0];
+    d[0] = (uint32_t)x[0];
     x[0] = (x[0] ^ m) - m;
 
-    while (rsi--) {
-        x[1] = (x[1] ^ m) - m;
-        if (x[1] < x[0]) {
-            D = (int64_t)x[0] - x[1];
-            if (D <= xmax - x[0])
-                *d = 2 * D - 1;
+    for (i = 0; i < rsi; i++) {
+        x[i+1] = (x[i+1] ^ m) - m;
+        if (x[i+1] < x[i]) {
+            D = (int64_t)x[i] - x[i+1];
+            if (D <= xmax - x[i])
+                d[i + 1] = 2 * D - 1;
             else
-                *d = xmax - x[1];
+                d[i + 1] = xmax - x[i+1];
         } else {
-            D = (int64_t)x[1] - x[0];
-            if (D <= x[0] - xmin)
-                *d = 2 * D;
+            D = (int64_t)x[i+1] - x[i];
+            if (D <= x[i] - xmin)
+                d[i + 1] = 2 * D;
             else
-                *d = x[1] - xmin;
+                d[i + 1] = x[i+1] - xmin;
         }
-        x++;
-        d++;
     }
     state->ref = 1;
     state->uncomp_len = (strm->block_size - 1) * strm->bits_per_sample;
