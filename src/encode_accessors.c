@@ -171,34 +171,16 @@ void aec_get_rsi_8(struct aec_stream *strm)
 
 void aec_get_rsi_lsb_16(struct aec_stream *strm)
 {
+    int i;
     uint32_t *out = strm->state->data_raw;
     const unsigned char *in = strm->next_in;
     int rsi = strm->rsi * strm->block_size;
 
+    for (i = 0; i < rsi; i++)
+        out[i] = (uint32_t)in[2 * i] | ((uint32_t)in[2 * i + 1] << 8);
+
     strm->next_in += 2 * rsi;
     strm->avail_in -= 2 * rsi;
-
-    while (rsi) {
-        out[0] = (uint32_t)in[0]
-            | ((uint32_t)in[1] << 8);
-        out[1] = (uint32_t)in[2]
-            | ((uint32_t)in[3] << 8);
-        out[2] = (uint32_t)in[4]
-            | ((uint32_t)in[5] << 8);
-        out[3] = (uint32_t)in[6]
-            | ((uint32_t)in[7] << 8);
-        out[4] = (uint32_t)in[8]
-            | ((uint32_t)in[9] << 8);
-        out[5] = (uint32_t)in[10]
-            | ((uint32_t)in[11] << 8);
-        out[6] = (uint32_t)in[12]
-            | ((uint32_t)in[13] << 8);
-        out[7] = (uint32_t)in[14]
-            | ((uint32_t)in[15] << 8);
-        in += 16;
-        out += 8;
-        rsi -= 8;
-    }
 }
 
 void aec_get_rsi_msb_16(struct aec_stream *strm)

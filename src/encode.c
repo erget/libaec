@@ -82,7 +82,7 @@ static inline void emit(struct internal_state *state,
         bits -= state->bits;
         *state->cds++ += (uint64_t)data >> bits;
 
-        while (bits & ~7) {
+        while (bits > 8) {
             bits -= 8;
             *state->cds++ = data >> bits;
         }
@@ -176,7 +176,7 @@ static inline void emitblock(struct aec_stream *strm, int k, int ref)
             a += ((uint64_t)(*in++) & mask) << p;
         }
 
-        switch (p & ~ 7) {
+        switch (p & ~7) {
         case 0:
             o[0] = a >> 56;
             o[1] = a >> 48;
@@ -253,26 +253,26 @@ static void preprocess_unsigned(struct aec_stream *strm)
 
     uint32_t D;
     struct internal_state *state = strm->state;
-    const uint32_t *x = state->data_raw;
-    uint32_t *d = state->data_pp;
+    const uint32_t *restrict x = state->data_raw;
+    uint32_t *restrict d = state->data_pp;
     uint32_t xmax = state->xmax;
     uint32_t rsi = strm->rsi * strm->block_size - 1;
     int i;
 
     d[0] = x[0];
     for (i = 0; i < rsi; i++) {
-        if (x[i+1] >= x[i]) {
-            D = x[i+1] - x[i];
+        if (x[i + 1] >= x[i]) {
+            D = x[i + 1] - x[i];
             if (D <= x[i])
-                d[i+1] = 2 * D;
+                d[i + 1] = 2 * D;
             else
-                d[i+1] = x[i+1];
+                d[i + 1] = x[i + 1];
         } else {
-            D = x[i] - x[i+1];
+            D = x[i] - x[i + 1];
             if (D <= xmax - x[i])
-                d[i+1] = 2 * D - 1;
+                d[i + 1] = 2 * D - 1;
             else
-                d[i+1] = xmax - x[i+1];
+                d[i + 1] = xmax - x[i + 1];
         }
     }
     state->ref = 1;
@@ -287,8 +287,8 @@ static void preprocess_signed(struct aec_stream *strm)
 
     int64_t D;
     struct internal_state *state = strm->state;
-    uint32_t *d = state->data_pp;
-    int32_t *x = (int32_t *)state->data_raw;
+    uint32_t *restrict d = state->data_pp;
+    int32_t *restrict x = (int32_t *)state->data_raw;
     uint64_t m = 1ULL << (strm->bits_per_sample - 1);
     int64_t xmax = state->xmax;
     int64_t xmin = state->xmin;
@@ -299,26 +299,26 @@ static void preprocess_signed(struct aec_stream *strm)
     x[0] = (x[0] ^ m) - m;
 
     for (i = 0; i < rsi; i++) {
-        x[i+1] = (x[i+1] ^ m) - m;
-        if (x[i+1] < x[i]) {
-            D = (int64_t)x[i] - x[i+1];
+        x[i + 1] = (x[i + 1] ^ m) - m;
+        if (x[i + 1] < x[i]) {
+            D = (int64_t)x[i] - x[i + 1];
             if (D <= xmax - x[i])
                 d[i + 1] = 2 * D - 1;
             else
-                d[i + 1] = xmax - x[i+1];
+                d[i + 1] = xmax - x[i + 1];
         } else {
-            D = (int64_t)x[i+1] - x[i];
+            D = (int64_t)x[i + 1] - x[i];
             if (D <= x[i] - xmin)
                 d[i + 1] = 2 * D;
             else
-                d[i + 1] = x[i+1] - xmin;
+                d[i + 1] = x[i + 1] - xmin;
         }
     }
     state->ref = 1;
     state->uncomp_len = (strm->block_size - 1) * strm->bits_per_sample;
 }
 
-static uint64_t block_fs(struct aec_stream *strm, int k)
+static inline uint64_t block_fs(struct aec_stream *strm, int k)
 {
     /**
        Sum FS of all samples in block for given splitting position.
@@ -328,16 +328,8 @@ static uint64_t block_fs(struct aec_stream *strm, int k)
     uint64_t fs = 0;
     struct internal_state *state = strm->state;
 
-    for (i = 0; i < strm->block_size; i += 8)
-        fs +=
-            (uint64_t)(state->block[i + 0] >> k)
-            + (uint64_t)(state->block[i + 1] >> k)
-            + (uint64_t)(state->block[i + 2] >> k)
-            + (uint64_t)(state->block[i + 3] >> k)
-            + (uint64_t)(state->block[i + 4] >> k)
-            + (uint64_t)(state->block[i + 5] >> k)
-            + (uint64_t)(state->block[i + 6] >> k)
-            + (uint64_t)(state->block[i + 7] >> k);
+    for (i = 0; i < strm->block_size; i++)
+        fs += (uint64_t)(state->block[i] >> k);
 
     if (state->ref)
         fs -= (uint64_t)(state->block[0] >> k);
@@ -632,14 +624,15 @@ static int m_check_zero_block(struct aec_stream *strm)
        end of a segment or RSI.
     */
 
+    int i;
     struct internal_state *state = strm->state;
-    uint32_t *p = state->block + state->ref;
-    uint32_t *end = state->block + strm->block_size;
+    uint32_t *p = state->block;
 
-    while(p < end && *p == 0)
-        p++;
+    for (i = state->ref; i < strm->block_size; i++)
+        if (p[i] != 0)
+            break;
 
-    if (p < end) {
+    if (i < strm->block_size) {
         if (state->zero_blocks) {
             /* The current block isn't zero but we have to emit a
              * previous zero block first. The current block will be
