@@ -69,7 +69,8 @@ int main(int argc, char *argv[])
     struct aec_stream strm;
     unsigned char *in;
     unsigned char *out;
-    int chunk, total_out, status, c;
+    size_t total_out;
+    int chunk, status, c;
     int input_avail, output_avail;
     char *outfn, *infn, *ext;
     FILE *infp, *outfp;
