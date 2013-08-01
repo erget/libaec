@@ -1,6 +1,23 @@
+============
+Installation
+============
+
 The most common installation procedure looks as follows.
 
 Unpack the tar archive and change into the unpacked directory.
 
   ./configure
   make check install
+
+
+=======================
+Intel compiler settings
+=======================
+
+The Intel compiler can improve performance by vectorizing certain
+parts of the code on x86 architectures.
+
+  ./configure CC=icc
+  make CFLAGS="-O3 -xCORE-AVX2"
+
+This assumes that you have a CPU which supports AVX2.
