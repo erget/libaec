@@ -87,12 +87,12 @@ struct internal_state {
     int ref;                /* 1 if current block has reference sample */
     int pp;                 /* 1 if postprocessor has to be used */
     int bytes_per_sample;   /* storage size of samples in bytes */
-    int *se_table;          /* table for decoding second extension option */
     uint32_t *rsi_buffer;   /* output buffer holding one reference
                                sample interval */
     uint32_t *rsip;         /* current position of output in rsi_buffer */
     size_t rsi_size;        /* rsi in bytes */
     uint32_t *flush_start;  /* first not yet flushed byte in rsi_buffer */
+    int se_table[182];      /* table for decoding second extension option */
 } decode_state;
 
 #endif /* DECODE_H */

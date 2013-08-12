@@ -637,10 +637,6 @@ int aec_decode_init(struct aec_stream *strm)
     if (state == NULL)
         return AEC_MEM_ERROR;
 
-    state->se_table = malloc(182 * sizeof(int));
-    if (state->se_table == NULL)
-        return AEC_MEM_ERROR;
-
     create_se_table(state->se_table);
 
     strm->state = state;
@@ -748,7 +744,6 @@ int aec_decode_end(struct aec_stream *strm)
     struct internal_state *state = strm->state;
 
     free(state->id_table);
-    free(state->se_table);
     free(state->rsi_buffer);
     free(state);
     return AEC_OK;
