@@ -94,6 +94,7 @@ struct aec_stream {
                                   * of the host. Default is LSB.
                                   */
 #define AEC_DATA_PREPROCESS 8    /* Set if preprocessor should be used */
+#define AEC_DATA_RESTRICT 16     /* Use restricted set of code options */
 
 /* Return codes of library functions */
 #define AEC_OK            0

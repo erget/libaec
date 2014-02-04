@@ -113,6 +113,8 @@ architectures.
 
 AEC_DATA_3BYTE: the 24 bit input data is stored in three bytes.
 
+AEC_DATA_RESTRICT: use a restricted set of code options.
+
 Data size:
 
 Except for the AEC_DATA_3BYTE case for 24 bit data, the following

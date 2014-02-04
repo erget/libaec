@@ -817,7 +817,18 @@ int aec_encode_init(struct aec_stream *strm)
         }
     } else {
         /* 8 bit settings */
-        state->id_len = 3;
+        if (strm->flags & AEC_DATA_RESTRICT) {
+            if (strm->bits_per_sample <= 4) {
+                if (strm->bits_per_sample <= 2)
+                    state->id_len = 1;
+                else
+                    state->id_len = 2;
+            } else {
+                return AEC_CONF_ERROR;
+            }
+        } else {
+            state->id_len = 3;
+        }
         state->bytes_per_sample = 1;
 
         state->get_sample = aec_get_8;

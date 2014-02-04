@@ -84,34 +84,37 @@ int main(int argc, char *argv[])
     strm.flags = AEC_DATA_PREPROCESS;
     opterr = 0;
 
-    while ((c = getopt (argc, argv, "d3Mscb:B:R:J:")) != -1)
+    while ((c = getopt (argc, argv, "3b:cdj:mn:r:st")) != -1)
         switch (c) {
-        case 'd':
-            dflag = 1;
+        case '3':
+            strm.flags |= AEC_DATA_3BYTE;
             break;
         case 'b':
             chunk = atoi(optarg);
             break;
-        case 'n':
-            strm.bits_per_sample = atoi(optarg);
+        case 'c':
+            cflag = 1;
+            break;
+        case 'd':
+            dflag = 1;
             break;
         case 'j':
             strm.block_size = atoi(optarg);
             break;
+        case 'm':
+            strm.flags |= AEC_DATA_MSB;
+            break;
+        case 'n':
+            strm.bits_per_sample = atoi(optarg);
+            break;
         case 'r':
             strm.rsi = atoi(optarg);
-            break;
-        case 'c':
-            cflag = 1;
             break;
         case 's':
             strm.flags |= AEC_DATA_SIGNED;
             break;
-        case 'm':
-            strm.flags |= AEC_DATA_MSB;
-            break;
-        case '3':
-            strm.flags |= AEC_DATA_3BYTE;
+        case 't':
+            strm.flags |= AEC_DATA_RESTRICT;
             break;
         case '?':
             if (optopt == 'b')
@@ -140,7 +143,8 @@ int main(int argc, char *argv[])
         fprintf(stderr, "-m\n   samples are MSB first. Default is LSB\n");
         fprintf(stderr, "-n\n   bits per sample\n");
         fprintf(stderr, "-r\n   reference sample interval in blocks\n");
-        fprintf(stderr, "-s\n   samples are signed. Default is unsigned\n\n");
+        fprintf(stderr, "-s\n   samples are signed. Default is unsigned\n");
+        fprintf(stderr, "-t\n   use restricted set of code options\n\n");
         exit(-1);
     }
 
@@ -180,7 +184,7 @@ int main(int argc, char *argv[])
 
         if (dflag) {
             if ((ext = strstr(infn, ".rz")) == NULL) {
-                fprintf(stderr, "Error: input file needs to end with .rz\n");
+                fprintf(stderr, "ERROR: input file needs to end with .rz\n");
                 exit(-1);
             }
             strncpy(outfn, infn, ext - infn);
@@ -193,11 +197,15 @@ int main(int argc, char *argv[])
     }
 
     if (dflag) {
-        if (aec_decode_init(&strm) != AEC_OK)
+        if (aec_decode_init(&strm) != AEC_OK) {
+            fprintf(stderr, "ERROR: Initialization failed\n");
             return 1;
+        }
     } else {
-        if (aec_encode_init(&strm) != AEC_OK)
+        if (aec_encode_init(&strm) != AEC_OK) {
+            fprintf(stderr, "ERROR: Initialization failed\n");
             return 1;
+        }
     }
 
     while(input_avail || output_avail) {
@@ -214,7 +222,7 @@ int main(int argc, char *argv[])
             status = aec_encode(&strm, AEC_NO_FLUSH);
 
         if (status != AEC_OK) {
-            fprintf(stderr, "error is %i\n", status);
+            fprintf(stderr, "ERROR: %i\n", status);
             return 1;
         }
 
@@ -234,7 +242,7 @@ int main(int argc, char *argv[])
         aec_decode_end(&strm);
     } else {
         if ((status = aec_encode(&strm, AEC_FLUSH)) != AEC_OK) {
-            fprintf(stderr, "error is %i\n", status);
+            fprintf(stderr, "ERROR: %i\n", status);
             return 1;
         }
 
