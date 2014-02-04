@@ -7,7 +7,7 @@
  * @author Luis Kornblueh, Max-Planck-Institut fuer Meteorologie
  *
  * @section LICENSE
- * Copyright 2012
+ * Copyright 2012 - 2014
  *
  * Mathis Rosenhauer,                 Luis Kornblueh
  * Moritz Hanke,
