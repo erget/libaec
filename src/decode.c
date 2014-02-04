@@ -478,7 +478,11 @@ static int m_zero_block(struct aec_stream *strm)
         i = zero_blocks * strm->block_size;
 
     zero_bytes = i * state->bytes_per_sample;
+
     if (strm->avail_out >= zero_bytes) {
+        if (state->rsi_size - (state->rsip - state->rsi_buffer) < i)
+            return M_ERROR;
+
         memset(state->rsip, 0, i * sizeof(uint32_t));
         state->rsip += i;
         strm->avail_out -= zero_bytes;
@@ -740,11 +744,18 @@ int aec_decode(struct aec_stream *strm, int flush)
     */
 
     struct internal_state *state = strm->state;
+    int status;
 
     strm->total_in += strm->avail_in;
     strm->total_out += strm->avail_out;
 
-    while (state->mode(strm) == M_CONTINUE);
+    do {
+        status = state->mode(strm);
+    } while (status == M_CONTINUE);
+
+    if (status == M_ERROR)
+        return AEC_DATA_ERROR;
+
     state->flush_output(strm);
 
     strm->total_in -= strm->avail_in;

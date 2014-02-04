@@ -64,6 +64,7 @@
 
 #define M_CONTINUE 1
 #define M_EXIT 0
+#define M_ERROR (-1)
 
 #define MIN(a, b) (((a) < (b))? (a): (b))
 

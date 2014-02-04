@@ -94,7 +94,7 @@ rsi sets the reference sample interval. A large RSI will improve
 performance and efficiency. It will also increase memory requirements
 since internal buffering is based on RSI size. A smaller RSI may be
 desirable in situations where each RSI will be packetized and possible
-error propagation has to be minimized (e.g. on board a spacecraft[2]).
+error propagation has to be minimized.
 
 Flags:
 
@@ -208,6 +208,6 @@ http://public.ccsds.org/publications/archive/121x0b2.pdf
 
 [2] Consultative Committee for Space Data Systems. Lossless Data
 Compression.  Recommendation for Space Data System Standards, CCSDS
-120.0-G-2. Green Book. Issue 2. Washington, D.C.: CCSDS, December
-2006.
-http://public.ccsds.org/publications/archive/120x0g2s.pdf
+120.0-G-3. Green Book. Issue 3. Washington, D.C.: CCSDS, April
+2013.
+http://public.ccsds.org/publications/archive/120x0g3.pdf

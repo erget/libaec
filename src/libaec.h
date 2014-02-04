@@ -72,9 +72,10 @@ struct aec_stream {
                                  * 1, ..., 32)
                                  */
     int block_size;             /* block size in samples */
-    int rsi;                    /* Reference sample interval, the number
-                                 * of _blocks_ between consecutive
-                                 * reference samples (up to 4096).
+    int rsi;                    /* Reference sample interval, the
+                                 * number of Coded Data Sets between
+                                 * consecutive reference samples (up
+                                 * to 4096).
                                  */
     int flags;
 
