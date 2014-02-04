@@ -180,16 +180,16 @@ int main(int argc, char *argv[])
 
         if (dflag)
         {
-            if ((ext = strstr(infn, ".aec")) == NULL)
+            if ((ext = strstr(infn, ".rz")) == NULL)
             {
-                fprintf(stderr, "Error: input file needs to end with .aec\n");
+                fprintf(stderr, "Error: input file needs to end with .rz\n");
                 exit(-1);
             }
             strncpy(outfn, infn, ext - infn);
         }
         else
         {
-            sprintf(outfn, "%s.aec", infn);
+            sprintf(outfn, "%s.rz", infn);
         }
 
         if ((outfp = fopen(outfn, "w")) == NULL)
