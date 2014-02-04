@@ -85,21 +85,20 @@ int main(int argc, char *argv[])
     opterr = 0;
 
     while ((c = getopt (argc, argv, "d3Mscb:B:R:J:")) != -1)
-        switch (c)
-        {
+        switch (c) {
         case 'd':
             dflag = 1;
             break;
         case 'b':
             chunk = atoi(optarg);
             break;
-        case 'B':
+        case 'n':
             strm.bits_per_sample = atoi(optarg);
             break;
-        case 'J':
+        case 'j':
             strm.block_size = atoi(optarg);
             break;
-        case 'R':
+        case 'r':
             strm.rsi = atoi(optarg);
             break;
         case 'c':
@@ -108,7 +107,7 @@ int main(int argc, char *argv[])
         case 's':
             strm.flags |= AEC_DATA_SIGNED;
             break;
-        case 'M':
+        case 'm':
             strm.flags |= AEC_DATA_MSB;
             break;
         case '3':
@@ -128,25 +127,29 @@ int main(int argc, char *argv[])
             abort ();
         }
 
-    if (optind < argc)
-    {
+    if (optind < argc) {
         infn = argv[optind];
-    }
-    else
-    {
-        fprintf(stderr, "Usage: %s [ -c ] [ -b chunksize ] name\n", argv[0]);
+    } else {
+        fprintf(stderr, "Usage: %s [OPTION] SOURCE\n", argv[0]);
+        fprintf(stderr, "\nOPTIONS\n");
+        fprintf(stderr, "-3\n   24 bit samples are sored in 3 bytes\n");
+        fprintf(stderr, "-b\n   internal buffer size\n");
+        fprintf(stderr, "-c\n   write output on standard output\n");
+        fprintf(stderr, "-d\n   decode SOURCE. If -d is not specified encode.\n");
+        fprintf(stderr, "-j\n   block size in samples\n");
+        fprintf(stderr, "-m\n   samples are MSB first. Default is LSB\n");
+        fprintf(stderr, "-n\n   bits per sample\n");
+        fprintf(stderr, "-r\n   reference sample interval in blocks\n");
+        fprintf(stderr, "-s\n   samples are signed. Default is unsigned\n\n");
         exit(-1);
     }
 
-    if (strm.bits_per_sample > 16)
-    {
+    if (strm.bits_per_sample > 16) {
         if (strm.bits_per_sample <= 24 && strm.flags & AEC_DATA_3BYTE)
             chunk *= 3;
         else
             chunk *= 4;
-    }
-    else if (strm.bits_per_sample > 8)
-    {
+    } else if (strm.bits_per_sample > 8) {
         chunk *= 2;
     }
 
@@ -168,27 +171,20 @@ int main(int argc, char *argv[])
     if ((infp = fopen(infn, "r")) == NULL)
         exit(-1);
 
-    if (cflag)
-    {
+    if (cflag) {
         outfp = stdout;
-    }
-    else
-    {
+    } else {
         outfn = malloc(strlen(infn) + 4);
         if (outfn == NULL)
             exit(-1);
 
-        if (dflag)
-        {
-            if ((ext = strstr(infn, ".rz")) == NULL)
-            {
+        if (dflag) {
+            if ((ext = strstr(infn, ".rz")) == NULL) {
                 fprintf(stderr, "Error: input file needs to end with .rz\n");
                 exit(-1);
             }
             strncpy(outfn, infn, ext - infn);
-        }
-        else
-        {
+        } else {
             sprintf(outfn, "%s.rz", infn);
         }
 
@@ -196,21 +192,16 @@ int main(int argc, char *argv[])
             exit(-1);
     }
 
-    if (dflag)
-    {
+    if (dflag) {
         if (aec_decode_init(&strm) != AEC_OK)
             return 1;
-    }
-    else
-    {
+    } else {
         if (aec_encode_init(&strm) != AEC_OK)
             return 1;
     }
 
-    while(input_avail || output_avail)
-    {
-        if (strm.avail_in == 0 && input_avail)
-        {
+    while(input_avail || output_avail) {
+        if (strm.avail_in == 0 && input_avail) {
             strm.avail_in = fread(in, 1, chunk, infp);
             if (strm.avail_in != chunk)
                 input_avail = 0;
@@ -222,43 +213,33 @@ int main(int argc, char *argv[])
         else
             status = aec_encode(&strm, AEC_NO_FLUSH);
 
-        if (status != AEC_OK)
-        {
+        if (status != AEC_OK) {
             fprintf(stderr, "error is %i\n", status);
             return 1;
         }
 
-        if (strm.total_out - total_out > 0)
-        {
+        if (strm.total_out - total_out > 0) {
             fwrite(out, strm.total_out - total_out, 1, outfp);
             total_out = strm.total_out;
             output_avail = 1;
             strm.next_out = out;
             strm.avail_out = chunk;
-        }
-        else
-        {
+        } else {
             output_avail = 0;
         }
 
     }
 
-    if (dflag)
-    {
+    if (dflag) {
         aec_decode_end(&strm);
-    }
-    else
-    {
-        if ((status = aec_encode(&strm, AEC_FLUSH)) != AEC_OK)
-        {
+    } else {
+        if ((status = aec_encode(&strm, AEC_FLUSH)) != AEC_OK) {
             fprintf(stderr, "error is %i\n", status);
             return 1;
         }
 
         if (strm.total_out - total_out > 0)
-        {
             fwrite(out, strm.total_out - total_out, 1, outfp);
-        }
 
         aec_encode_end(&strm);
     }
@@ -267,8 +248,7 @@ int main(int argc, char *argv[])
     fclose(outfp);
     free(in);
     free(out);
-    if (!cflag)
-    {
+    if (!cflag) {
         unlink(infn);
         free(outfn);
     }
