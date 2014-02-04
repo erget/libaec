@@ -202,6 +202,8 @@ static inline void check_rsi_end(struct aec_stream *strm)
         state->flush_output(strm);
         state->flush_start = state->rsi_buffer;
         state->rsip = state->rsi_buffer;
+        if (strm->flags & AEC_PAD_RSI)
+            state->bitp -= state->bitp % 8;
     }
 }
 
@@ -669,7 +671,7 @@ int aec_decode_init(struct aec_stream *strm)
         else
             state->flush_output = flush_lsb_16;
     } else {
-        if (strm->flags & AEC_DATA_RESTRICT) {
+        if (strm->flags & AEC_RESTRICTED) {
             if (strm->bits_per_sample <= 4) {
                 if (strm->bits_per_sample <= 2)
                     state->id_len = 1;

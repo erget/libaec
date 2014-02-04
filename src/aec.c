@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
     strm.flags = AEC_DATA_PREPROCESS;
     opterr = 0;
 
-    while ((c = getopt (argc, argv, "3b:cdj:mn:r:st")) != -1)
+    while ((c = getopt (argc, argv, "3b:cdj:mn:pr:st")) != -1)
         switch (c) {
         case '3':
             strm.flags |= AEC_DATA_3BYTE;
@@ -107,6 +107,9 @@ int main(int argc, char *argv[])
         case 'n':
             strm.bits_per_sample = atoi(optarg);
             break;
+        case 'p':
+            strm.flags |= AEC_PAD_RSI;
+            break;
         case 'r':
             strm.rsi = atoi(optarg);
             break;
@@ -114,7 +117,7 @@ int main(int argc, char *argv[])
             strm.flags |= AEC_DATA_SIGNED;
             break;
         case 't':
-            strm.flags |= AEC_DATA_RESTRICT;
+            strm.flags |= AEC_RESTRICTED;
             break;
         case '?':
             if (optopt == 'b')
@@ -136,13 +139,14 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Usage: %s [OPTION] SOURCE\n", argv[0]);
         fprintf(stderr, "\nOPTIONS\n");
         fprintf(stderr, "-3\n   24 bit samples are sored in 3 bytes\n");
-        fprintf(stderr, "-b\n   internal buffer size\n");
+        fprintf(stderr, "-b size\n   internal buffer sizein bytes\n");
         fprintf(stderr, "-c\n   write output on standard output\n");
-        fprintf(stderr, "-d\n   decode SOURCE. If -d is not specified encode.\n");
-        fprintf(stderr, "-j\n   block size in samples\n");
+        fprintf(stderr, "-d\n   decode SOURCE. If -d is not used: encode.\n");
+        fprintf(stderr, "-j samples\n   block size in samples\n");
         fprintf(stderr, "-m\n   samples are MSB first. Default is LSB\n");
-        fprintf(stderr, "-n\n   bits per sample\n");
-        fprintf(stderr, "-r\n   reference sample interval in blocks\n");
+        fprintf(stderr, "-n bits\n   bits per sample\n");
+        fprintf(stderr, "-p\n   pad RSI to byte boundary\n");
+        fprintf(stderr, "-r blocks\n   reference sample interval in blocks\n");
         fprintf(stderr, "-s\n   samples are signed. Default is unsigned\n");
         fprintf(stderr, "-t\n   use restricted set of code options\n\n");
         exit(-1);

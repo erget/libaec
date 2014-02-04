@@ -94,7 +94,10 @@ struct aec_stream {
                                   * of the host. Default is LSB.
                                   */
 #define AEC_DATA_PREPROCESS 8    /* Set if preprocessor should be used */
-#define AEC_DATA_RESTRICT 16     /* Use restricted set of code options */
+
+#define AEC_RESTRICTED 16        /* Use restricted set of code options */
+#define AEC_PAD_RSI 32           /* Pad RSI to byte boundary. Only for
+                                  * decoding CCSDS sample data. */
 
 /* Return codes of library functions */
 #define AEC_OK            0
