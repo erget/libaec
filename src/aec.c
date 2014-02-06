@@ -138,8 +138,8 @@ int main(int argc, char *argv[])
     } else {
         fprintf(stderr, "Usage: %s [OPTION] SOURCE\n", argv[0]);
         fprintf(stderr, "\nOPTIONS\n");
-        fprintf(stderr, "-3\n   24 bit samples are sored in 3 bytes\n");
-        fprintf(stderr, "-b size\n   internal buffer sizein bytes\n");
+        fprintf(stderr, "-3\n   24 bit samples are stored in 3 bytes\n");
+        fprintf(stderr, "-b size\n   internal buffer size in bytes\n");
         fprintf(stderr, "-c\n   write output on standard output\n");
         fprintf(stderr, "-d\n   decode SOURCE. If -d is not used: encode.\n");
         fprintf(stderr, "-j samples\n   block size in samples\n");
