@@ -271,16 +271,23 @@ static inline uint32_t direct_get_fs(struct aec_stream *strm)
      */
 
     uint32_t fs = 0;
+#ifdef HAVE_DECL___BUILTIN_CLZLL
+    uint32_t clz;
+#endif
     struct internal_state *state = strm->state;
 
     state->acc &= ((1ULL << state->bitp) - 1);
 
-    if (state->acc == 0)
+    while (state->acc == 0) {
+        fs += state->bitp;
+        state->bitp = 0;
         fill_acc(strm);
+    }
 
 #ifdef HAVE_DECL___BUILTIN_CLZLL
-    fs = __builtin_clzll(state->acc) - (64 - state->bitp);
-    state->bitp -= fs + 1;
+    clz = __builtin_clzll(state->acc);
+    fs += clz + state->bitp - 64;
+    state->bitp = 63 - clz;
 #else
     state->bitp--;
     while ((state->acc & (1ULL << state->bitp)) == 0) {
