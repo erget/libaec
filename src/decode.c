@@ -265,14 +265,12 @@ static inline uint32_t direct_get_fs(struct aec_stream *strm)
        Interpret a Fundamental Sequence from the input buffer.
 
        Essentially counts the number of 0 bits until a 1 is
-       encountered. The longest FS we can safely detect is 56 bits. If
-       no FS is found in accumulator then we top it up to at least 56
-       bits.
+       encountered.
      */
 
     uint32_t fs = 0;
 #ifdef HAVE_DECL___BUILTIN_CLZLL
-    uint32_t clz;
+    uint32_t lz;
 #endif
     struct internal_state *state = strm->state;
 
@@ -285,9 +283,9 @@ static inline uint32_t direct_get_fs(struct aec_stream *strm)
     }
 
 #ifdef HAVE_DECL___BUILTIN_CLZLL
-    clz = __builtin_clzll(state->acc);
-    fs += clz + state->bitp - 64;
-    state->bitp = 63 - clz;
+    lz = __builtin_clzll(state->acc);
+    fs += lz + state->bitp - 64;
+    state->bitp = 63 - lz;
 #else
     state->bitp--;
     while ((state->acc & (1ULL << state->bitp)) == 0) {
