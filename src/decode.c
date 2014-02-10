@@ -358,14 +358,14 @@ static int m_id(struct aec_stream *strm)
 {
     struct internal_state *state = strm->state;
 
-    if (state->pp && state->rsip == state->rsi_buffer) {
-        state->ref = 1;
-        if (strm->flags & AEC_PAD_RSI)
+    if (state->rsip == state->rsi_buffer) {
+        if(strm->flags & AEC_PAD_RSI)
             state->bitp -= state->bitp % 8;
-    }
-    else
+        if (state->pp)
+            state->ref = 1;
+    } else {
         state->ref = 0;
-
+    }
     if (bits_ask(strm, state->id_len) == 0)
         return M_EXIT;
     state->id = bits_get(strm, state->id_len);
