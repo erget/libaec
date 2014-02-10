@@ -5,23 +5,19 @@
 #include "libaec.h"
 #include "check_aec.h"
 
-#define BUF_SIZE (4 * 64 * 4)
+#define BUF_SIZE (64 * 4)
 
 int check_long_fs(struct test_state *state)
 {
-    int status, size;
-    unsigned char *tmp;
+    int status, size, i, bs;
 
     size = state->bytes_per_sample;
+    bs = state->strm->block_size;
 
-    for (tmp = state->ubuf;
-         tmp < state->ubuf + state->buf_len;
-         tmp += 2 * size) {
-        state->out(tmp, state->xmin, size);
-        state->out(tmp + size, state->xmin + 2, size);
+    for (i = 0; i < bs / 2; i++) {
+        state->out(state->ubuf + size * i, state->xmin, size);
+        state->out(state->ubuf + bs * size / 2 + size * i, 65000, size);
     }
-
-    state->out(state->ubuf + (64 + 1) * size, state->xmax-1, size);
 
     printf("Checking long fs ... ");
 
@@ -53,9 +49,9 @@ int main (void)
 
     strm.flags = AEC_DATA_PREPROCESS;
     state.strm = &strm;
-    strm.bits_per_sample = 32;
+    strm.bits_per_sample = 16;
     strm.block_size = 64;
-    strm.rsi = 64;
+    strm.rsi = 1;
     state.codec = encode_decode_large;
     update_state(&state);
 

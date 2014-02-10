@@ -137,11 +137,11 @@ static inline void emitblock_fs(struct aec_stream *strm, int k, int ref)
 
     for (i = ref; i < strm->block_size; i++) {
         used += (state->block[i] >> k) + 1;
-        if (used > 63) {
+        while (used > 63) {
             copy64(state->cds, acc);
             state->cds += 8;
             acc = 0;
-            used &= 0x3f;
+            used -= 64;
         }
         acc |= 1ULL << (63 - used);
     }
