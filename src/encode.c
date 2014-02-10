@@ -511,6 +511,12 @@ static int m_flush_block(struct aec_stream *strm)
     int n;
     struct internal_state *state = strm->state;
 
+    if (state->blocks_avail == 0
+        && strm->flags & AEC_PAD_RSI
+        && state->block_nonzero == 0
+        )
+        emit(state, 0, state->bits % 8);
+
     if (state->direct_out) {
         n = state->cds - strm->next_out;
         strm->next_out += n;

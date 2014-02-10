@@ -202,8 +202,6 @@ static inline void check_rsi_end(struct aec_stream *strm)
         state->flush_output(strm);
         state->flush_start = state->rsi_buffer;
         state->rsip = state->rsi_buffer;
-        if (strm->flags & AEC_PAD_RSI)
-            state->bitp -= state->bitp % 8;
     }
 }
 
@@ -360,8 +358,11 @@ static int m_id(struct aec_stream *strm)
 {
     struct internal_state *state = strm->state;
 
-    if (state->pp && state->rsip == state->rsi_buffer)
+    if (state->pp && state->rsip == state->rsi_buffer) {
         state->ref = 1;
+        if (strm->flags & AEC_PAD_RSI)
+            state->bitp -= state->bitp % 8;
+    }
     else
         state->ref = 0;
 
