@@ -138,9 +138,9 @@ int check_se(struct test_state *state)
         state->out(tmp + size, 0, size);
         state->out(tmp + 2 * size, 0, size);
         state->out(tmp + 3 * size, 0, size);
-        state->out(tmp + 4 * size, 0, size);
-        state->out(tmp + 5 * size, 0, size);
-        state->out(tmp + 6 * size, 0, size);
+        state->out(tmp + 4 * size, 1, size);
+        state->out(tmp + 5 * size, 1, size);
+        state->out(tmp + 6 * size, 1, size);
         state->out(tmp + 7 * size, 1, size);
     }
 

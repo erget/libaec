@@ -443,7 +443,7 @@ static uint32_t assess_se_option(struct aec_stream *strm)
             len = UINT32_MAX;
             break;
         } else {
-            len += d * (d + 1) / 2 + state->block[i + 1];
+            len += d * (d + 1) / 2 + state->block[i + 1] + 1;
         }
     }
     return len;
