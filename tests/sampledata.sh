@@ -20,8 +20,13 @@ do
     ref=$ALLO/test_p256n${i}.dat
     refsize=$(stat -c "%s" $ref)
     cmp -n $refsize $ref test.dat
+    $AEC -c -n$i -j16 -r16  $ref > test.rz
+    cmp $ALLO/test_p256n${i}-basic.rz test.rz
+
     $AEC -c -d -n$i -j16 -r16 -t $ALLO/test_p256n${i}-restricted.rz > test.dat
     cmp -n $refsize $ref test.dat
+    $AEC -c -n$i -j16 -r16  -t $ref > test.rz
+    cmp $ALLO/test_p256n${i}-restricted.rz test.rz
 done
 for i in 05 06 07 08 09 10 11 12 13 14 15 16
 do
