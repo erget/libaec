@@ -113,7 +113,13 @@ architectures.
 
 AEC_DATA_3BYTE: the 24 bit input data is stored in three bytes.
 
-AEC_DATA_RESTRICT: use a restricted set of code options.
+AEC_RESTRICTED: use a restricted set of code options. This option is
+only valid for bits_per_sample <= 4.
+
+AEC_PAD_RSI: assume that the encoded RSI is padded to the next byte
+boundary while decoding. The preprocessor macro ENABLE_RSI_PADDING
+needs to be defined while compiling for the encoder to honour this
+flag.
 
 Data size:
 

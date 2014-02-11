@@ -47,7 +47,7 @@
  * @section DESCRIPTION
  *
  * Adaptive Entropy Encoder
- * Based on CCSDS documents 121.0-B-2 and 120.0-G-2
+ * Based on CCSDS documents 121.0-B-2 and 120.0-G-3
  *
  */
 
