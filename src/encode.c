@@ -607,7 +607,10 @@ static int m_select_code_option(struct aec_stream *strm)
     uint32_t se_len;
     struct internal_state *state = strm->state;
 
-    split_len = assess_splitting_option(strm);
+    if (state->id_len > 1)
+        split_len = assess_splitting_option(strm);
+    else
+        split_len = UINT32_MAX;
     se_len = assess_se_option(strm);
 
     if (split_len < state->uncomp_len) {
