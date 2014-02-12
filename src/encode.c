@@ -690,6 +690,9 @@ static int m_get_rsi_resumable(struct aec_stream *strm)
         } else {
             if (state->flush == AEC_FLUSH) {
                 if (state->i > 0) {
+                    state->blocks_avail = state->i / strm->block_size - 1;
+                    if (state->i % strm->block_size)
+                        state->blocks_avail++;
                     do
                         state->data_raw[state->i] =
                             state->data_raw[state->i - 1];
