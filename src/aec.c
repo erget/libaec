@@ -62,7 +62,7 @@
 
 #include <libaec.h>
 
-#define CHUNK 1024
+#define CHUNK 10485760
 
 int main(int argc, char *argv[])
 {
