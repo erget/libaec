@@ -84,10 +84,13 @@ int main(int argc, char *argv[])
     strm.flags = AEC_DATA_PREPROCESS;
     opterr = 0;
 
-    while ((c = getopt (argc, argv, "3b:cdj:mn:pr:st")) != -1)
+    while ((c = getopt (argc, argv, "3Nb:cdj:mn:pr:st")) != -1)
         switch (c) {
         case '3':
             strm.flags |= AEC_DATA_3BYTE;
+            break;
+        case 'N':
+            strm.flags &= ~AEC_DATA_PREPROCESS;
             break;
         case 'b':
             chunk = atoi(optarg);
@@ -139,6 +142,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Usage: %s [OPTION] SOURCE\n", argv[0]);
         fprintf(stderr, "\nOPTIONS\n");
         fprintf(stderr, "-3\n   24 bit samples are stored in 3 bytes\n");
+        fprintf(stderr, "-N\n   disable pre/post processing\n");
         fprintf(stderr, "-b size\n   internal buffer size in bytes\n");
         fprintf(stderr, "-c\n   write output on standard output\n");
         fprintf(stderr, "-d\n   decode SOURCE. If -d is not used: encode.\n");
