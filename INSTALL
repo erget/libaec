@@ -15,9 +15,13 @@ Intel compiler settings
 =======================
 
 The Intel compiler can improve performance by vectorizing certain
-parts of the code on x86 architectures.
+parts of the code on x86 architectures. Assuming your CPU supports
+AVX2, the following options will increase encoding speed.
 
   ./configure CC=icc
-  make CFLAGS="-O3 -xCORE-AVX2"
+  make CFLAGS="-O3 -xCORE-AVX2" bench
 
-This assumes that you have a CPU which supports AVX2.
+On a 3.4 GHz E3-1240 v3 we see more than 400 MiB/s for encoding
+typical data.
+
+Using other SIMD instruction sets on older CPUs may also help.
