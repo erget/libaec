@@ -1,5 +1,5 @@
 #!/bin/sh
-
+set -e
 AEC=../src/aec
 
 if [ ! -f bench.rz ]; then

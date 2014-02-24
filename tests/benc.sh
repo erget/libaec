@@ -1,9 +1,11 @@
 #!/bin/sh
-
+set -e
 AEC=../src/aec
 
-if [ ! -f  typical.dat ]; then
-    wget https://www.dkrz.de/redmine/attachments/download/441/typical.dat
+if [ ! -f  typical.rz ]; then
+    wget https://www.dkrz.de/redmine/attachments/download/442/typical.rz
+    $AEC -d -n16 -j64 -r256 -m -c typical.rz > typical.dat
+    rm -f bench.dat
 fi
 if [ ! -f  bench.dat ]; then
     for i in $(seq 0 499);
