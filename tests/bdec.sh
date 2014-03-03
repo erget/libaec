@@ -4,7 +4,8 @@ AEC=../src/aec
 
 if [ ! -f bench.rz ]; then
     echo "No encoded file found. Encoding now..."
-    ./benc.sh
+    path=$(echo $0 | sed -e 's:[^/]*$::')
+    "${path}"/benc.sh
 fi
 rm -f dec.dat
 bsize=$(stat -c "%s" bench.dat)

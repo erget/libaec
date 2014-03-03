@@ -17,7 +17,7 @@ LDADD = libcheck_aec.la $(top_builddir)/src/libaec.la
 EXTRA_DIST = sampledata.sh benc.sh bdec.sh
 bench: benc bdec
 benc:
-	./benc.sh
+	$(srcdir)/benc.sh
 bdec:
-	./bdec.sh
+	$(srcdir)/bdec.sh
 .PHONY: bench benc bdec
