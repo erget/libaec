@@ -7,5 +7,7 @@ libsz_la_LIBADD = libaec.la
 include_HEADERS = libaec.h szlib.h
 
 bin_PROGRAMS = aec
+noinst_PROGRAMS = utime
+utime_SOURCES = utime.c
 aec_LDADD = libaec.la
 aec_SOURCES = aec.c
