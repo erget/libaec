@@ -83,6 +83,7 @@ int main(int argc, char *argv[])
     strm.rsi = 2;
     strm.flags = AEC_DATA_PREPROCESS;
     opterr = 0;
+    outfn = 0;
 
     while ((c = getopt (argc, argv, "3Nb:cdj:mn:pr:st")) != -1)
         switch (c) {
