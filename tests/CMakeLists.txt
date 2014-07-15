@@ -18,3 +18,9 @@ add_dependencies(check
   check_code_options
   check_buffer_sizes
   check_long_fs)
+
+add_custom_target(bench
+    COMMAND ${CMAKE_SOURCE_DIR}/tests/benc.sh
+    COMMAND ${CMAKE_SOURCE_DIR}/tests/bdec.sh
+    DEPENDS aec_client utime
+)

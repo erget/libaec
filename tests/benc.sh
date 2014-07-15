@@ -2,7 +2,8 @@
 set -e
 AEC=../src/aec
 
-if [ ! -f  typical.rz ]; then
+if [ ! -f  typical.dat ]; then
+    rm -f typical.rz
     wget https://www.dkrz.de/redmine/attachments/download/442/typical.rz
     $AEC -d -n16 -j64 -r256 -m -c typical.rz > typical.dat
     rm -f bench.dat
