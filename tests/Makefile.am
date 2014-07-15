@@ -14,7 +14,7 @@ check_long_fs_SOURCES = check_long_fs.c check_aec.h \
 $(top_builddir)/src/libaec.h
 
 LDADD = libcheck_aec.la $(top_builddir)/src/libaec.la
-EXTRA_DIST = sampledata.sh benc.sh bdec.sh
+EXTRA_DIST = sampledata.sh benc.sh bdec.sh CMakeLists.txt
 bench: benc bdec
 benc:
 	$(srcdir)/benc.sh

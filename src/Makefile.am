@@ -11,3 +11,5 @@ noinst_PROGRAMS = utime
 utime_SOURCES = utime.c
 aec_LDADD = libaec.la
 aec_SOURCES = aec.c
+
+EXTRA_DIST = CMakeLists.txt
