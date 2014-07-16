@@ -50,17 +50,11 @@
  *
  */
 
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 
-#ifndef _AIX
-#include <getopt.h>
-#endif
-
-#include <libaec.h>
+#include "libaec.h"
 
 #define CHUNK 10485760
 
@@ -74,19 +68,29 @@ int main(int argc, char *argv[])
     int input_avail, output_avail;
     char *outfn, *infn, *ext;
     FILE *infp, *outfp;
-    int cflag = 0;
-    int dflag = 0;
+    int cflag;
+    int dflag;
+    char *opt;
+    int iarg;
 
     chunk = CHUNK;
     strm.bits_per_sample = 8;
     strm.block_size = 8;
     strm.rsi = 2;
     strm.flags = AEC_DATA_PREPROCESS;
-    opterr = 0;
     outfn = 0;
+    cflag = 0;
+    dflag = 0;
+    iarg = 1;
 
-    while ((c = getopt (argc, argv, "3Nb:cdj:mn:pr:st")) != -1)
-        switch (c) {
+    if (argc == 1 || (argc == 2 && argv[1][0] == '-'))
+        goto FAIL;
+
+    while (iarg < argc - 1) {
+        opt = argv[iarg];
+        if (opt[0] != '-')
+            goto FAIL;
+        switch (opt[1]) {
         case '3':
             strm.flags |= AEC_DATA_3BYTE;
             break;
@@ -94,7 +98,7 @@ int main(int argc, char *argv[])
             strm.flags &= ~AEC_DATA_PREPROCESS;
             break;
         case 'b':
-            chunk = atoi(optarg);
+            chunk = atoi(&opt[2]);
             break;
         case 'c':
             cflag = 1;
@@ -103,19 +107,19 @@ int main(int argc, char *argv[])
             dflag = 1;
             break;
         case 'j':
-            strm.block_size = atoi(optarg);
+            strm.block_size = atoi(&opt[2]);
             break;
         case 'm':
             strm.flags |= AEC_DATA_MSB;
             break;
         case 'n':
-            strm.bits_per_sample = atoi(optarg);
+            strm.bits_per_sample = atoi(&opt[2]);
             break;
         case 'p':
             strm.flags |= AEC_PAD_RSI;
             break;
         case 'r':
-            strm.rsi = atoi(optarg);
+            strm.rsi = atoi(&opt[2]);
             break;
         case 's':
             strm.flags |= AEC_DATA_SIGNED;
@@ -123,39 +127,13 @@ int main(int argc, char *argv[])
         case 't':
             strm.flags |= AEC_RESTRICTED;
             break;
-        case '?':
-            if (optopt == 'b')
-                fprintf (stderr, "Option -%c requires an argument.\n", optopt);
-            else if (isprint (optopt))
-                fprintf (stderr, "Unknown option `-%c'.\n", optopt);
-            else
-                fprintf (stderr,
-                         "Unknown option character `\\x%x'.\n",
-                         optopt);
-            return 1;
         default:
-            abort ();
+            goto FAIL;
         }
-
-    if (optind < argc) {
-        infn = argv[optind];
-    } else {
-        fprintf(stderr, "Usage: %s [OPTION] SOURCE\n", argv[0]);
-        fprintf(stderr, "\nOPTIONS\n");
-        fprintf(stderr, "-3\n   24 bit samples are stored in 3 bytes\n");
-        fprintf(stderr, "-N\n   disable pre/post processing\n");
-        fprintf(stderr, "-b size\n   internal buffer size in bytes\n");
-        fprintf(stderr, "-c\n   write output on standard output\n");
-        fprintf(stderr, "-d\n   decode SOURCE. If -d is not used: encode.\n");
-        fprintf(stderr, "-j samples\n   block size in samples\n");
-        fprintf(stderr, "-m\n   samples are MSB first. Default is LSB\n");
-        fprintf(stderr, "-n bits\n   bits per sample\n");
-        fprintf(stderr, "-p\n   pad RSI to byte boundary\n");
-        fprintf(stderr, "-r blocks\n   reference sample interval in blocks\n");
-        fprintf(stderr, "-s\n   samples are signed. Default is unsigned\n");
-        fprintf(stderr, "-t\n   use restricted set of code options\n\n");
-        exit(-1);
+        iarg++;
     }
+
+    infn = argv[iarg];
 
     if (strm.bits_per_sample > 16) {
         if (strm.bits_per_sample <= 24 && strm.flags & AEC_DATA_3BYTE)
@@ -181,8 +159,10 @@ int main(int argc, char *argv[])
     input_avail = 1;
     output_avail = 1;
 
-    if ((infp = fopen(infn, "r")) == NULL)
+    if ((infp = fopen(infn, "r")) == NULL) {
+        fprintf(stderr, "ERROR: cannot open file %s\n", infn);
         exit(-1);
+    }
 
     if (cflag) {
         outfp = stdout;
@@ -270,4 +250,21 @@ int main(int argc, char *argv[])
         free(outfn);
     }
     return 0;
+
+FAIL:
+    fprintf(stderr, "Usage: %s [OPTION] SOURCE\n", argv[0]);
+    fprintf(stderr, "\nOPTIONS (No spaces between option and parameter!)\n");
+    fprintf(stderr, "-3           24 bit samples are stored in 3 bytes\n");
+    fprintf(stderr, "-N           disable pre/post processing\n");
+    fprintf(stderr, "-b<size>     internal buffer size in bytes\n");
+    fprintf(stderr, "-c           write output on standard output\n");
+    fprintf(stderr, "-d           decode SOURCE. If -d is not used: encode.\n");
+    fprintf(stderr, "-j<samples>  block size in samples\n");
+    fprintf(stderr, "-m           samples are MSB first. Default is LSB\n");
+    fprintf(stderr, "-n<bits>     bits per sample\n");
+    fprintf(stderr, "-p           pad RSI to byte boundary\n");
+    fprintf(stderr, "-r<blocks>   reference sample interval in blocks\n");
+    fprintf(stderr, "-s           samples are signed. Default is unsigned\n");
+    fprintf(stderr, "-t           use restricted set of code options\n\n");
+    return 1;
 }
