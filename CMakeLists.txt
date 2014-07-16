@@ -13,7 +13,7 @@ CHECK_INCLUDE_FILES(stdint.h HAVE_STDINT_H)
 TEST_BIG_ENDIAN(WORDS_BIGENDIAN)
 CHECK_C_SOURCE_COMPILES(
   "int main(int argc, char *argv[])
-{return __builtin_clzll(1LL)\;}"
+{return __builtin_clzll(1LL);}"
   HAVE_DECL___BUILTIN_CLZLL
   )
 
