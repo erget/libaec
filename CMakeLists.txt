@@ -1,31 +1,80 @@
-cmake_minimum_required(VERSION 2.6)
-include(CheckIncludeFiles)
-include(TestBigEndian)
-include(CheckCSourceCompiles)
-project(libaec)
-set(libaec_VERSION_MAJOR 0)
-set(libaec_VERSION_MINOR 2)
-set(CMAKE_BUILD_TYPE Release)
-enable_testing()
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+INCLUDE(CheckIncludeFiles)
+INCLUDE(TestBigEndian)
+INCLUDE(CheckCSourceCompiles)
+PROJECT(libaec)
+SET(libaec_VERSION_MAJOR 0)
+SET(libaec_VERSION_MINOR 2)
+SET(CMAKE_BUILD_TYPE Release)
+ENABLE_TESTING()
 
-if(CMAKE_COMPILER_IS_GNUCC)
-  set(CMAKE_C_FLAGS "-Wall -std=gnu99 ${CMAKE_C_FLAGS}")
-endif(CMAKE_COMPILER_IS_GNUCC)
-
-check_include_files(malloc.h HAVE_MALLOC_H)
-check_include_files(stdint.h HAVE_STDINT_H)
-test_big_endian(WORDS_BIGENDIAN)
-check_c_source_compiles(
-  "int main(void) { return __builtin_clzll(1LL); }"
+CHECK_INCLUDE_FILES(malloc.h HAVE_MALLOC_H)
+CHECK_INCLUDE_FILES(stdint.h HAVE_STDINT_H)
+TEST_BIG_ENDIAN(WORDS_BIGENDIAN)
+CHECK_C_SOURCE_COMPILES(
+  "int main(int argc, char *argv[])
+{return __builtin_clzll(1LL)\;}"
   HAVE_DECL___BUILTIN_CLZLL
   )
 
-configure_file(
+#Inspired from http://www.cmake.org/Wiki/CMakeTestInline
+SET(INLINE_TEST_SRC "/* Inspired by autoconf's c.m4 */
+static inline int static_foo(){return 0\;}
+int main(int argc, char *argv[]){return 0\;}
+")
+FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/CMakeTestCInline.c
+  ${INLINE_TEST_SRC})
+
+FOREACH(KEYWORD "inline" "__inline__" "__inline")
+   IF(NOT DEFINED C_INLINE)
+     TRY_COMPILE(C_HAS_${KEYWORD}
+       ${CMAKE_CURRENT_BINARY_DIR}
+       ${CMAKE_CURRENT_BINARY_DIR}/CMakeTestCInline.c
+       COMPILE_DEFINITIONS "-Dinline=${KEYWORD}"
+       )
+     IF(C_HAS_${KEYWORD})
+       SET(C_INLINE TRUE)
+       ADD_DEFINITIONS("-Dinline=${KEYWORD}")
+     ENDIF(C_HAS_${KEYWORD})
+   ENDIF(NOT DEFINED C_INLINE)
+ENDFOREACH(KEYWORD)
+
+IF(NOT DEFINED C_INLINE)
+   ADD_DEFINITIONS("-Dinline=")
+ENDIF(NOT DEFINED C_INLINE)
+
+SET(RESTRICT_TEST_SRC "/* Inspired by autoconf's c.m4 */
+int foo (int * restrict ip){return ip[0]\;}
+int main(int argc, char *argv[]){int s[1]\;
+int * restrict t = s\; t[0] = 0\; return foo(t)\;}
+")
+
+FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/CMakeTestCRestrict.c
+  ${RESTRICT_TEST_SRC})
+
+FOREACH(KEYWORD "restrict" "__restrict" "__restrict__" "_Restrict")
+   IF(NOT DEFINED C_RESTRICT)
+     TRY_COMPILE(C_HAS_${KEYWORD}
+       ${CMAKE_CURRENT_BINARY_DIR}
+       ${CMAKE_CURRENT_BINARY_DIR}/CMakeTestCRestrict.c
+       COMPILE_DEFINITIONS "-Drestrict=${KEYWORD}"
+       )
+     IF(C_HAS_${KEYWORD})
+       SET(C_RESTRICT TRUE)
+       ADD_DEFINITIONS("-Drestrict=${KEYWORD}")
+     ENDIF(C_HAS_${KEYWORD})
+   ENDIF(NOT DEFINED C_RESTRICT)
+ENDFOREACH(KEYWORD)
+
+IF(NOT DEFINED C_RESTRICT)
+   ADD_DEFINITIONS("-Drestrict=")
+ENDIF(NOT DEFINED C_RESTRICT)
+
+CONFIGURE_FILE(
   ${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/config.h
   )
 
-include_directories("${PROJECT_BINARY_DIR}")
-
-add_subdirectory(src)
-add_subdirectory(tests EXCLUDE_FROM_ALL)
+INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}")
+ADD_SUBDIRECTORY(src)
+ADD_SUBDIRECTORY(tests EXCLUDE_FROM_ALL)

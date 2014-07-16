@@ -1,25 +1,25 @@
-set(libaec_SRCS encode.c encode_accessors.c decode.c)
-add_library(aec SHARED ${libaec_SRCS})
-set_target_properties(aec PROPERTIES
+SET(libaec_SRCS encode.c encode_accessors.c decode.c)
+ADD_LIBRARY(aec SHARED ${libaec_SRCS})
+SET_TARGET_PROPERTIES(aec PROPERTIES
   VERSION 0
   SOVERSION 0.0
   )
-add_library(sz SHARED sz_compat.c)
-set_target_properties(sz PROPERTIES
+ADD_LIBRARY(sz SHARED sz_compat.c)
+SET_TARGET_PROPERTIES(sz PROPERTIES
   VERSION 0
   SOVERSION 0.0
   )
-target_link_libraries(sz aec)
+TARGET_LINK_LIBRARIES(sz aec)
 
-add_executable(aec_client aec.c)
-set_target_properties(aec_client PROPERTIES OUTPUT_NAME "aec")
-target_link_libraries(aec_client aec)
-add_executable(utime EXCLUDE_FROM_ALL utime.c)
+ADD_EXECUTABLE(aec_client aec.c)
+SET_TARGET_PROPERTIES(aec_client PROPERTIES OUTPUT_NAME "aec")
+TARGET_LINK_LIBRARIES(aec_client aec)
+ADD_EXECUTABLE(utime EXCLUDE_FROM_ALL utime.c)
 
-install(FILES libaec.h szlib.h DESTINATION include)
-install(TARGETS aec sz
+INSTALL(FILES libaec.h szlib.h DESTINATION include)
+INSTALL(TARGETS aec sz
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   )
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/aec DESTINATION bin)
+INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/aec DESTINATION bin)
