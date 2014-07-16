@@ -12,7 +12,6 @@ AM_INIT_AUTOMAKE
 
 # Checks for programs.
 AC_PROG_CC
-AC_PROG_CC_C99
 
 # Checks for libraries.
 AC_CHECK_LIB([aec], [aec_decode])
@@ -28,6 +27,8 @@ AC_TYPE_SIZE_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
+AC_C_INLINE
+AC_C_RESTRICT
 
 # Checks for library functions.
 AC_CHECK_FUNCS([memset strstr])
