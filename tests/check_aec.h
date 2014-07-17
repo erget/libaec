@@ -22,7 +22,12 @@ int update_state(struct test_state *state);
 int encode_decode_small(struct test_state *state);
 int encode_decode_large(struct test_state *state);
 
+#ifdef _WIN32
+#define CHECK_PASS "PASS"
+#define CHECK_FAIL "FAIL"
+#else
 #define CHECK_PASS "[0;32mPASS[0m"
 #define CHECK_FAIL "[0;31mFAIL[0m"
+#endif
 
 #endif /* CHECK_AEC_H */
