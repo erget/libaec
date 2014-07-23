@@ -13,17 +13,17 @@ fi
 unzip -oq $archive
 
 decode () {
-    $AEC -c -d $3 $1 > test.dat
+    $AEC -d $3 $1 test.dat
     cmp -n $(stat -c "%s" $2) $2 test.dat
 }
 
 code () {
-    $AEC -c $3 $2 > test.rz
+    $AEC $3 $2 test.rz
     cmp $1 test.rz
 }
 
 code_size () {
-    $AEC -c $3 $2 > test.rz
+    $AEC $3 $2 test.rz
     if [ ! $(stat -c "%s" test.rz) -eq $(stat -c "%s" $1) ]; then
         echo "$1 size mismatch"
         exit 1
