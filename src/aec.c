@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
     unsigned char *in;
     unsigned char *out;
     size_t total_out;
-    int chunk, status, c;
+    int chunk, status;
     int input_avail, output_avail;
     char *outfn, *infn, *ext;
     FILE *infp, *outfp;

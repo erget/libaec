@@ -2,6 +2,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.6)
 INCLUDE(CheckIncludeFiles)
 INCLUDE(TestBigEndian)
 INCLUDE(CheckCSourceCompiles)
+INCLUDE(GenerateExportHeader)
 PROJECT(libaec)
 SET(libaec_VERSION_MAJOR 0)
 SET(libaec_VERSION_MINOR 2)
@@ -16,6 +17,14 @@ CHECK_C_SOURCE_COMPILES(
 {return __builtin_clzll(1LL);}"
   HAVE_DECL___BUILTIN_CLZLL
   )
+IF (NOT HAVE_DECL___BUILTIN_CLZLL)
+  CHECK_C_SOURCE_COMPILES(
+    "int main(int argc, char *argv[])
+{unsigned long foo; unsigned __int64 bar=1LL;
+return _BitScanReverse64(&foo, bar);}"
+    HAVE_BSR64
+  )
+ENDIF (NOT HAVE_DECL___BUILTIN_CLZLL)
 
 #Inspired from http://www.cmake.org/Wiki/CMakeTestInline
 SET(INLINE_TEST_SRC "/* Inspired by autoconf's c.m4 */
@@ -75,7 +84,13 @@ CONFIGURE_FILE(
   ${CMAKE_CURRENT_BINARY_DIR}/config.h
   )
 
-SET(BUILD_SHARED_LIBS TRUE)
+SET(BUILD_SHARED_LIBS FALSE)
 INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}")
+INCLUDE_DIRECTORIES("${PROJECT_SOURCE_DIR}/src")
+
 ADD_SUBDIRECTORY(src)
-ADD_SUBDIRECTORY(tests EXCLUDE_FROM_ALL)
+IF(WIN32)
+  ADD_SUBDIRECTORY(tests)
+ELSE(WIN32)
+  ADD_SUBDIRECTORY(tests EXCLUDE_FROM_ALL)
+ENDIF(WIN32)

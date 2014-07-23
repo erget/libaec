@@ -54,12 +54,16 @@
 #include <config.h>
 
 #if HAVE_STDINT_H
-# include <stdint.h>
+#include <stdint.h>
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef HAVE_BSR64
+#include <intrin.h>
+#endif
 
 #include "libaec.h"
 #include "decode.h"
@@ -266,7 +270,7 @@ static inline uint32_t direct_get_fs(struct aec_stream *strm)
      */
 
     uint32_t fs = 0;
-#if HAVE_DECL___BUILTIN_CLZLL
+#if HAVE_DECL___BUILTIN_CLZLL||HAVE_BSR64
     uint32_t lz;
 #endif
     struct internal_state *state = strm->state;
@@ -283,6 +287,10 @@ static inline uint32_t direct_get_fs(struct aec_stream *strm)
     lz = __builtin_clzll(state->acc);
     fs += lz + state->bitp - 64;
     state->bitp = 63 - lz;
+#elif HAVE_BSR64
+    _BitScanReverse64(&lz, state->acc);
+    fs += state->bitp - 1 - lz;
+    state->bitp = lz;
 #else
     state->bitp--;
     while ((state->acc & (1ULL << state->bitp)) == 0) {
