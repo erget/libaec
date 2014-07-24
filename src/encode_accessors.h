@@ -51,15 +51,11 @@
  */
 
 #ifndef ENCODE_ACCESSORS_H
-#define ENCODE_ACCESSORS_H
-
-#include <config.h>
+#define ENCODE_ACCESSORS_H 1
 
 #if HAVE_STDINT_H
-# include <stdint.h>
+#  include <stdint.h>
 #endif
-
-#include "libaec.h"
 
 uint32_t aec_get_8(struct aec_stream *strm);
 uint32_t aec_get_lsb_16(struct aec_stream *strm);

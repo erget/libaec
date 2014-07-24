@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "libaec.h"
 #include "check_aec.h"
 
 #define BUF_SIZE (64 * 4)

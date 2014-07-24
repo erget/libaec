@@ -52,15 +52,11 @@
  */
 
 #ifndef ENCODE_H
-#define ENCODE_H
-
-#include <config.h>
+#define ENCODE_H 1
 
 #if HAVE_STDINT_H
-# include <stdint.h>
+#  include <stdint.h>
 #endif
-
-#include "libaec.h"
 
 #define M_CONTINUE 1
 #define M_EXIT 0

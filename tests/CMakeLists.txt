@@ -1,4 +1,5 @@
-ADD_LIBRARY(check_aec check_aec.c)
+ADD_LIBRARY(check_aec STATIC check_aec.c)
+TARGET_LINK_LIBRARIES(check_aec aec)
 
 ADD_EXECUTABLE(check_code_options check_code_options.c)
 TARGET_LINK_LIBRARIES(check_code_options check_aec aec)

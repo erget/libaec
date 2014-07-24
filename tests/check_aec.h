@@ -1,5 +1,5 @@
 #ifndef CHECK_AEC_H
-#define CHECK_AEC_H
+#define CHECK_AEC_H 1
 #include "libaec.h"
 
 struct test_state {

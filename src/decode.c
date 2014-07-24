@@ -51,22 +51,16 @@
  *
  */
 
-#include <config.h>
-
-#if HAVE_STDINT_H
-#include <stdint.h>
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef HAVE_BSR64
-#include <intrin.h>
-#endif
-
 #include "libaec.h"
 #include "decode.h"
+
+#if HAVE_BSR64
+#  include <intrin.h>
+#endif
 
 #define ROS 5
 

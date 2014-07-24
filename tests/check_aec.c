@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "libaec.h"
 #include "check_aec.h"
 
 static void out_lsb(unsigned char *dest, unsigned int val, int size)

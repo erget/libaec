@@ -2,7 +2,6 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.6)
 INCLUDE(CheckIncludeFiles)
 INCLUDE(TestBigEndian)
 INCLUDE(CheckCSourceCompiles)
-INCLUDE(GenerateExportHeader)
 PROJECT(libaec)
 SET(libaec_VERSION_MAJOR 0)
 SET(libaec_VERSION_MINOR 2)
@@ -83,9 +82,19 @@ CONFIGURE_FILE(
   ${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/config.h
   )
+ADD_DEFINITIONS("-DHAVE_CONFIG_H")
 
-SET(BUILD_SHARED_LIBS FALSE)
+# Allow the developer to select if Dynamic or Static libraries are built
+OPTION (BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
+SET (LIB_TYPE STATIC)
+IF (BUILD_SHARED_LIBS)
+  # User wants to build Dynamic Libraries,
+  # so change the LIB_TYPE variable to CMake keyword 'SHARED'
+  SET (LIB_TYPE SHARED)
+ENDIF (BUILD_SHARED_LIBS)
+
 INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}")
+INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}/src")
 INCLUDE_DIRECTORIES("${PROJECT_SOURCE_DIR}/src")
 
 ADD_SUBDIRECTORY(src)

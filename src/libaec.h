@@ -51,9 +51,24 @@
  */
 
 #ifndef LIBAEC_H
-#define LIBAEC_H
+#define LIBAEC_H 1
 
 #include <stddef.h>
+
+#if HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#ifdef _WIN32
+#  ifdef DLL_EXPORT
+#    define AEC_SCOPE       __declspec(dllexport)
+#  else
+#    define AEC_SCOPE       extern __declspec(dllimport)
+#  endif
+#endif
+#ifndef AEC_SCOPE
+#  define AEC_SCOPE         extern
+#endif
 
 struct internal_state;
 
@@ -124,16 +139,16 @@ struct aec_stream {
                                   */
 
 /* Streaming encoding and decoding functions */
-int aec_encode_init(struct aec_stream *strm);
-int aec_encode(struct aec_stream *strm, int flush);
-int aec_encode_end(struct aec_stream *strm);
+AEC_SCOPE int aec_encode_init(struct aec_stream *strm);
+AEC_SCOPE int aec_encode(struct aec_stream *strm, int flush);
+AEC_SCOPE int aec_encode_end(struct aec_stream *strm);
 
-int aec_decode_init(struct aec_stream *strm);
-int aec_decode(struct aec_stream *strm, int flush);
-int aec_decode_end(struct aec_stream *strm);
+AEC_SCOPE int aec_decode_init(struct aec_stream *strm);
+AEC_SCOPE int aec_decode(struct aec_stream *strm, int flush);
+AEC_SCOPE int aec_decode_end(struct aec_stream *strm);
 
 /* Utility functions for encoding or decoding a memory buffer. */
-int aec_buffer_encode(struct aec_stream *strm);
-int aec_buffer_decode(struct aec_stream *strm);
+AEC_SCOPE int aec_buffer_encode(struct aec_stream *strm);
+AEC_SCOPE int aec_buffer_decode(struct aec_stream *strm);
 
 #endif /* LIBAEC_H */

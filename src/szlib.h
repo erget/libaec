@@ -1,5 +1,5 @@
 #ifndef SZLIB_H
-#define SZLIB_H
+#define SZLIB_H 1
 
 #include "libaec.h"
 
@@ -30,13 +30,13 @@ typedef struct SZ_com_t_s
     int pixels_per_scanline;
 } SZ_com_t;
 
-int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
+AEC_SCOPE int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
                           const void *source, size_t sourceLen,
                           SZ_com_t *param);
-int SZ_BufftoBuffDecompress(void *dest, size_t *destLen,
+AEC_SCOPE int SZ_BufftoBuffDecompress(void *dest, size_t *destLen,
                             const void *source, size_t sourceLen,
                             SZ_com_t *param);
 
-int SZ_encoder_enabled(void);
+AEC_SCOPE int SZ_encoder_enabled(void);
 
 #endif /* SZLIB_H */

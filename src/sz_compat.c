@@ -1,9 +1,7 @@
 #include <stdio.h>
-#include <stddef.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include "szlib.h"
-#include "libaec.h"
 
 #define NOPTS 129
 
