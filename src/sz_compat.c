@@ -69,20 +69,22 @@ static size_t add_padding(void *dest, const void *src, size_t total,
     size_t i, j, k;
     const char *pixel;
     const char zero_pixel[] = {0, 0, 0, 0, 0, 0, 0, 0};
+    size_t padded_line_size = line_size + padding_size;
 
-    for (i = 0, j = 0;
-         i < total;
-         i += pixel_size, j += pixel_size) {
-        if (i > 0 && (i % line_size) == 0) {
-            if (pp)
-                pixel = (char *)src + i - 1;
-            else
-                pixel = zero_pixel;
-            for (k = 0; k < padding_size; k += pixel_size)
-                memcpy((char *)dest + j + k, pixel, pixel_size);
-            j += padding_size;
+    pixel = zero_pixel;
+    j = 0;
+    for (i = 0; i < total; i += line_size) {
+        if (i + line_size > total) {
+            line_size = total - i;
+            padding_size = padded_line_size - line_size;
         }
-        memcpy((char *)dest + j, (char *)src + i, pixel_size);
+        memcpy((char *)dest + j, (char *)src + i, line_size);
+        j += line_size;
+        if (pp)
+            pixel = (char *)src + i - 1;
+        for (k = 0; k < padding_size / pixel_size; k += pixel_size)
+            memcpy((char *)dest + j + k, pixel, pixel_size);
+        j += padding_size;
     }
     return j;
 }
@@ -92,17 +94,14 @@ static size_t remove_padding(void *buf, size_t total,
                              int pixel_size)
 {
     size_t i, j;
+    size_t padded_line_size = line_size + padding_size;
 
-    for (i = 0, j = padding_size;
-         i < total;
-         i += pixel_size, j += pixel_size) {
-        if (i % (line_size + padding_size) == 0)
-            j -= padding_size;
-        memcpy((char *)buf + j, (char *)buf + i, pixel_size);
+    i = line_size;
+    for (j = padded_line_size; j < total; j += padded_line_size) {
+        memcpy((char *)buf + i, (char *)buf + j, line_size);
+        i += line_size;
     }
-    if (i % (line_size + padding_size) == 0)
-        j -= padding_size;
-    return j;
+    return i;
 }
 
 int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
