@@ -86,11 +86,12 @@ ADD_DEFINITIONS("-DHAVE_CONFIG_H")
 
 # Allow the developer to select if Dynamic or Static libraries are built
 OPTION (BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
-SET (LIB_TYPE STATIC)
 IF (BUILD_SHARED_LIBS)
   # User wants to build Dynamic Libraries,
   # so change the LIB_TYPE variable to CMake keyword 'SHARED'
   SET (LIB_TYPE SHARED)
+ELSE(BUILD_SHARED_LIBS)
+  SET (LIB_TYPE STATIC)
 ENDIF (BUILD_SHARED_LIBS)
 
 INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}")

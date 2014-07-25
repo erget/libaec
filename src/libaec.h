@@ -59,15 +59,14 @@
 #  include <config.h>
 #endif
 
-#ifdef _WIN32
+#if _WIN32 && BUILD_SHARED_LIBS
 #  ifdef DLL_EXPORT
-#    define AEC_SCOPE       __declspec(dllexport)
+#    define AEC_SCOPE __declspec(dllexport)
 #  else
-#    define AEC_SCOPE       extern __declspec(dllimport)
+#    define AEC_SCOPE extern __declspec(dllimport)
 #  endif
-#endif
-#ifndef AEC_SCOPE
-#  define AEC_SCOPE         extern
+#else
+#  define AEC_SCOPE extern
 #endif
 
 struct internal_state;
