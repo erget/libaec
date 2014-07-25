@@ -16,6 +16,4 @@ libtool
 autom4te.cache
 .DS_Store
 data
-*.cmake
-CMakeFiles
-build
+build*
