@@ -98,7 +98,7 @@ static size_t remove_padding(void *buf, size_t total,
 
     i = line_size;
     for (j = padded_line_size; j < total; j += padded_line_size) {
-        memcpy((char *)buf + i, (char *)buf + j, line_size);
+        memmove((char *)buf + i, (char *)buf + j, line_size);
         i += line_size;
     }
     return i;
