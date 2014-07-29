@@ -81,7 +81,7 @@ static size_t add_padding(void *dest, const void *src, size_t total,
         memcpy((char *)dest + j, (char *)src + i, line_size);
         j += line_size;
         if (pp)
-            pixel = (char *)src + i - 1;
+            pixel = (char *)src + i + line_size - pixel_size;
         for (k = 0; k < padding_size; k += pixel_size)
             memcpy((char *)dest + j + k, pixel, pixel_size);
         j += padding_size;
