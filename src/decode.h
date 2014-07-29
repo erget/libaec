@@ -54,6 +54,10 @@
 #ifndef DECODE_H
 #define DECODE_H 1
 
+#if HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #if HAVE_STDINT_H
 #  include <stdint.h>
 #endif

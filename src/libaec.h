@@ -55,10 +55,6 @@
 
 #include <stddef.h>
 
-#if HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #if _WIN32 && BUILD_SHARED_LIBS
 #  ifdef DLL_EXPORT
 #    define AEC_SCOPE __declspec(dllexport)
