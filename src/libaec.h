@@ -55,8 +55,8 @@
 
 #include <stddef.h>
 
-#if _WIN32 && BUILD_SHARED_LIBS
-#  ifdef DLL_EXPORT
+#if _WIN32
+#  ifdef AECDLL_EXPORTS
 #    define AEC_SCOPE __declspec(dllexport)
 #  else
 #    define AEC_SCOPE extern __declspec(dllimport)

@@ -26,14 +26,15 @@ CONFIGURE_FILE(
 ADD_DEFINITIONS("-DHAVE_CONFIG_H")
 
 # Allow the developer to select if Dynamic or Static libraries are built
-OPTION (BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
-IF (BUILD_SHARED_LIBS)
-  # User wants to build Dynamic Libraries,
-  # so change the LIB_TYPE variable to CMake keyword 'SHARED'
+OPTION(BUILD_SHARED_LIBS "Build Shared Libraries" ON)
+IF(BUILD_SHARED_LIBS)
   SET (LIB_TYPE SHARED)
 ELSE(BUILD_SHARED_LIBS)
-  SET (LIB_TYPE STATIC)
-ENDIF (BUILD_SHARED_LIBS)
+  IF(WIN32)
+    MESSAGE(WARNING "You will have to modify libaec.h for static libs.")
+  ENDIF(WIN32)
+  SET(LIB_TYPE STATIC)
+ENDIF(BUILD_SHARED_LIBS)
 
 INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}")
 INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}/src")

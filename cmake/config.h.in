@@ -3,4 +3,3 @@
 #cmakedefine WORDS_BIGENDIAN 1
 #cmakedefine HAVE_DECL___BUILTIN_CLZLL 1
 #cmakedefine HAVE_BSR64 1
-#cmakedefine BUILD_SHARED_LIBS 1
