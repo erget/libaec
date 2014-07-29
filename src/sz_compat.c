@@ -170,18 +170,14 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
     }
 
     status = aec_buffer_encode(&strm);
-    if (status != AEC_OK)
-        return status;
-
     *destLen = strm.total_out;
 
     if (pad_scanline && padbuf)
         free(padbuf);
-
     if (interleave && buf)
         free(buf);
 
-    return SZ_OK;
+    return status;
 }
 
 int SZ_BufftoBuffDecompress(void *dest, size_t *destLen,
