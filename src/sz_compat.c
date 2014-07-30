@@ -107,6 +107,7 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
 {
     struct aec_stream strm;
     int status;
+    int aec_status;
     void *padbuf;
     void *buf;
     size_t padding_size;
@@ -166,7 +167,11 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
         strm.avail_in = sourceLen;
     }
 
-    status = aec_buffer_encode(&strm);
+    aec_status = aec_buffer_encode(&strm);
+    if (aec_status == AEC_STREAM_ERROR)
+        status = SZ_OUTBUFF_FULL;
+    else
+        status = aec_status;
     *destLen = strm.total_out;
 
 CLEANUP:
