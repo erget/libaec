@@ -691,11 +691,14 @@ static int m_get_rsi_resumable(struct aec_stream *strm)
                             state->data_raw[state->i - 1];
                     while(++state->i < strm->rsi * strm->block_size);
                 } else {
+                    /* Finish encoding by padding the last byte with
+                     * zero bits. */
                     emit(state, 0, state->bits);
                     if (strm->avail_out > 0) {
                         if (!state->direct_out)
                             *strm->next_out++ = *state->cds;
                         strm->avail_out--;
+                        state->flushed = 1;
                     }
                     return M_EXIT;
                 }
@@ -754,6 +757,17 @@ static int m_get_block(struct aec_stream *strm)
         return m_check_zero_block(strm);
     }
     return M_CONTINUE;
+}
+
+static void cleanup(struct aec_stream *strm)
+{
+    struct internal_state *state = strm->state;
+
+    if (strm->flags & AEC_DATA_PREPROCESS && state->data_raw)
+        free(state->data_raw);
+    if (state->data_pp)
+        free(state->data_pp);
+    free(state);
 }
 
 /*
@@ -858,15 +872,19 @@ int aec_encode_init(struct aec_stream *strm)
     state->data_pp = malloc(strm->rsi
                             * strm->block_size
                             * sizeof(uint32_t));
-    if (state->data_pp == NULL)
+    if (state->data_pp == NULL) {
+        cleanup(strm);
         return AEC_MEM_ERROR;
+    }
 
     if (strm->flags & AEC_DATA_PREPROCESS) {
         state->data_raw = malloc(strm->rsi
                                  * strm->block_size
                                  * sizeof(uint32_t));
-        if (state->data_raw == NULL)
+        if (state->data_raw == NULL) {
+            cleanup(strm);
             return AEC_MEM_ERROR;
+        }
     } else {
         state->data_raw = state->data_pp;
     }
@@ -875,6 +893,7 @@ int aec_encode_init(struct aec_stream *strm)
 
     strm->total_in = 0;
     strm->total_out = 0;
+    state->flushed = 0;
 
     state->cds = state->cds_buf;
     *state->cds = 0;
@@ -916,12 +935,13 @@ int aec_encode(struct aec_stream *strm, int flush)
 int aec_encode_end(struct aec_stream *strm)
 {
     struct internal_state *state = strm->state;
+    int status;
 
-    if (strm->flags & AEC_DATA_PREPROCESS)
-        free(state->data_raw);
-    free(state->data_pp);
-    free(state);
-    return AEC_OK;
+    status = AEC_OK;
+    if (state->flush == AEC_FLUSH && state->flushed == 0)
+        status = AEC_STREAM_ERROR;
+    cleanup(strm);
+    return status;
 }
 
 int aec_buffer_encode(struct aec_stream *strm)
@@ -932,9 +952,9 @@ int aec_buffer_encode(struct aec_stream *strm)
     if (status != AEC_OK)
         return status;
     status = aec_encode(strm, AEC_FLUSH);
-    if (strm->avail_out == 0)
-        status = AEC_STREAM_ERROR;
-
-    aec_encode_end(strm);
-    return status;
+    if (status != AEC_OK) {
+        cleanup(strm);
+        return status;
+    }
+    return aec_encode_end(strm);
 }
