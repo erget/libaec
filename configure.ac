@@ -13,9 +13,6 @@ AM_INIT_AUTOMAKE
 # Checks for programs.
 AC_PROG_CC
 
-# Checks for libraries.
-AC_CHECK_LIB([aec], [aec_decode])
-
 # Checks for header files.
 AC_HEADER_STDC
 
