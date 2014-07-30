@@ -267,6 +267,6 @@ void aec_get_rsi_msb_32(struct aec_stream *strm)
             | (uint32_t)in[4 * i + 3];
 }
 
-AEC_GET_RSI_NATIVE_32(lsb);
+AEC_GET_RSI_NATIVE_32(lsb)
 
 #endif /* !WORDS_BIGENDIAN */

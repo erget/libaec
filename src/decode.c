@@ -180,13 +180,13 @@ static inline void put_8(struct aec_stream *strm, uint32_t data)
     *strm->next_out++ = data;
 }
 
-FLUSH(msb_32);
-FLUSH(msb_24);
-FLUSH(msb_16);
-FLUSH(lsb_32);
-FLUSH(lsb_24);
-FLUSH(lsb_16);
-FLUSH(8);
+FLUSH(msb_32)
+FLUSH(msb_24)
+FLUSH(msb_16)
+FLUSH(lsb_32)
+FLUSH(lsb_24)
+FLUSH(lsb_16)
+FLUSH(8)
 
 static inline void check_rsi_end(struct aec_stream *strm)
 {
