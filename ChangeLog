@@ -1,5 +1,8 @@
 	v0.3
 
+	More efficient coding of second extension if reference
+	sample is present.
+
 	Port library to Windows (Visual Studio).
 
 	Support building with CMake.
