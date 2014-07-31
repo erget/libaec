@@ -429,8 +429,11 @@ static uint32_t assess_se_option(struct aec_stream *strm)
     len = 1;
 
     for (i = 0; i < strm->block_size; i+= 2) {
-        d = (uint64_t)state->block[i]
-            + (uint64_t)state->block[i + 1];
+        if (i == 0 && state->ref)
+            d = state->block[i + 1];
+        else
+            d = (uint64_t)state->block[i]
+                + (uint64_t)state->block[i + 1];
         /* we have to worry about overflow here */
         if (d > state->uncomp_len) {
             len = UINT32_MAX;
@@ -531,7 +534,6 @@ static int m_encode_splitting(struct aec_stream *strm)
     int k = state->k;
 
     emit(state, k + 1, state->id_len);
-
     if (state->ref)
         emit(state, state->block[0], strm->bits_per_sample);
 
@@ -548,7 +550,6 @@ static int m_encode_uncomp(struct aec_stream *strm)
 
     emit(state, (1U << state->id_len) - 1, state->id_len);
     emitblock(strm, strm->bits_per_sample, 0);
-
     return m_flush_block(strm);
 }
 
@@ -559,8 +560,10 @@ static int m_encode_se(struct aec_stream *strm)
     struct internal_state *state = strm->state;
 
     emit(state, 1, state->id_len + 1);
-    if (state->ref)
+    if (state->ref) {
         emit(state, state->block[0], strm->bits_per_sample);
+        state->block[0] = 0;
+    }
 
     for (i = 0; i < strm->block_size; i+= 2) {
         d = state->block[i] + state->block[i + 1];
