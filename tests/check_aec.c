@@ -3,20 +3,20 @@
 #include <string.h>
 #include "check_aec.h"
 
-static void out_lsb(unsigned char *dest, unsigned int val, int size)
+static void out_lsb(unsigned char *dest, unsigned long long int val, int size)
 {
     int i;
 
     for (i = 0; i < size; i++)
-        dest[i] = val >> (8 * i);
+        dest[i] = (unsigned char)(val >> (8 * i));
 }
 
-static void out_msb(unsigned char *dest, unsigned int val, int size)
+static void out_msb(unsigned char *dest, unsigned long long int val, int size)
 {
     int i;
 
     for (i = 0; i < size; i++)
-        dest[i] = val >> (8 * (size - 1 - i));
+        dest[i] = (unsigned char)(val >> (8 * (size - 1 - i)));
 }
 
 int update_state(struct test_state *state)
@@ -46,7 +46,7 @@ int update_state(struct test_state *state)
         state->out = out_lsb;
 
     if (strm->flags & AEC_DATA_SIGNED) {
-        state->xmin = -(1ULL << (strm->bits_per_sample - 1));
+        state->xmin = -(1LL << (strm->bits_per_sample - 1));
         state->xmax = (1ULL << (strm->bits_per_sample - 1)) - 1;
     } else {
         state->xmin = 0;
@@ -58,8 +58,9 @@ int update_state(struct test_state *state)
 
 int encode_decode_small(struct test_state *state)
 {
-    int status, i, compressed_size;
-    int n_in, avail_in, avail_out, total_out;
+    int status, i;
+    size_t compressed_size;
+    size_t n_in, avail_in, avail_out, total_out;
     struct aec_stream *strm = state->strm;
 
     status = aec_encode_init(strm);
@@ -200,7 +201,8 @@ int encode_decode_small(struct test_state *state)
 
 int encode_decode_large(struct test_state *state)
 {
-    int status, i, to;
+    int status, i;
+    size_t to;
     struct aec_stream *strm = state->strm;
 
     strm->avail_in = state->ibuf_len;

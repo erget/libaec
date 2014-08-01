@@ -39,7 +39,8 @@ static int bits_to_bytes(int bit_length)
 static void interleave_buffer(void *dest, const void *src,
                               size_t n, int wordsize)
 {
-    size_t i, j;
+    size_t i;
+    int j;
     const unsigned char *src8;
     unsigned char *dest8;
 
@@ -54,7 +55,8 @@ static void interleave_buffer(void *dest, const void *src,
 static void deinterleave_buffer(void *dest, const void *src,
                                 size_t n, int wordsize)
 {
-    size_t i, j;
+    size_t i;
+    int j;
     const unsigned char *src8;
     unsigned char *dest8;
 

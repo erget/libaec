@@ -12,7 +12,7 @@ int check_block_sizes(struct test_state *state, int id, int id_len)
     for (bs = 8; bs <= 64; bs *= 2) {
         state->strm->block_size = bs;
 
-        max_rsi = state->buf_len / (bs * state->bytes_per_sample);
+        max_rsi = (int)(state->buf_len / (bs * state->bytes_per_sample));
         if (max_rsi > 4096)
             max_rsi = 4096;
 

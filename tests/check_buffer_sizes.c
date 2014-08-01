@@ -11,7 +11,8 @@ int check_block_sizes(struct test_state *state)
 
     for (bs = 8; bs <= 64; bs *= 2) {
         state->strm->block_size = bs;
-        state->strm->rsi = state->buf_len / (bs * state->bytes_per_sample);
+        state->strm->rsi = (int)(state->buf_len
+                                 / (bs * state->bytes_per_sample));
 
         status = encode_decode_large(state);
         if (status)
@@ -28,7 +29,8 @@ int check_block_sizes_short(struct test_state *state)
     tmp = state->ibuf_len;
     for (bs = 8; bs <= 64; bs *= 2) {
         state->strm->block_size = bs;
-        state->strm->rsi = state->buf_len / (bs * state->bytes_per_sample);
+        state->strm->rsi = (int)(state->buf_len
+                                 / (bs * state->bytes_per_sample));
         state->ibuf_len = state->buf_len - 2 * bs + 4;
         status = encode_decode_large(state);
         if (status)

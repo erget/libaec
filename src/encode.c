@@ -70,18 +70,18 @@ static inline void emit(struct internal_state *state,
 
     if (bits <= state->bits) {
         state->bits -= bits;
-        *state->cds += data << state->bits;
+        *state->cds += (uint8_t)(data << state->bits);
     } else {
         bits -= state->bits;
-        *state->cds++ += (uint64_t)data >> bits;
+        *state->cds++ += (uint8_t)((uint64_t)data >> bits);
 
         while (bits > 8) {
             bits -= 8;
-            *state->cds++ = data >> bits;
+            *state->cds++ = (uint8_t)(data >> bits);
         }
 
         state->bits = 8 - bits;
-        *state->cds = data << state->bits;
+        *state->cds = (uint8_t)(data << state->bits);
     }
 }
 
@@ -108,20 +108,20 @@ static inline void emitfs(struct internal_state *state, int fs)
 
 static inline void copy64(uint8_t *dst, uint64_t src)
 {
-    dst[0] = src >> 56;
-    dst[1] = src >> 48;
-    dst[2] = src >> 40;
-    dst[3] = src >> 32;
-    dst[4] = src >> 24;
-    dst[5] = src >> 16;
-    dst[6] = src >> 8;
-    dst[7] = src;
+    dst[0] = (uint8_t)(src >> 56);
+    dst[1] = (uint8_t)(src >> 48);
+    dst[2] = (uint8_t)(src >> 40);
+    dst[3] = (uint8_t)(src >> 32);
+    dst[4] = (uint8_t)(src >> 24);
+    dst[5] = (uint8_t)(src >> 16);
+    dst[6] = (uint8_t)(src >> 8);
+    dst[7] = (uint8_t)src;
 }
 
 static inline void emitblock_fs(struct aec_stream *strm, int k, int ref)
 {
-    int i;
-    int used; /* used bits in 64 bit accumulator */
+    uint32_t i;
+    uint32_t used; /* used bits in 64 bit accumulator */
     uint64_t acc; /* accumulator */
     struct internal_state *state = strm->state;
 
@@ -171,57 +171,57 @@ static inline void emitblock(struct aec_stream *strm, int k, int ref)
 
         switch (p & ~7) {
         case 0:
-            o[0] = a >> 56;
-            o[1] = a >> 48;
-            o[2] = a >> 40;
-            o[3] = a >> 32;
-            o[4] = a >> 24;
-            o[5] = a >> 16;
-            o[6] = a >> 8;
+            o[0] = (uint8_t)(a >> 56);
+            o[1] = (uint8_t)(a >> 48);
+            o[2] = (uint8_t)(a >> 40);
+            o[3] = (uint8_t)(a >> 32);
+            o[4] = (uint8_t)(a >> 24);
+            o[5] = (uint8_t)(a >> 16);
+            o[6] = (uint8_t)(a >> 8);
             o += 7;
             break;
         case 8:
-            o[0] = a >> 56;
-            o[1] = a >> 48;
-            o[2] = a >> 40;
-            o[3] = a >> 32;
-            o[4] = a >> 24;
-            o[5] = a >> 16;
+            o[0] = (uint8_t)(a >> 56);
+            o[1] = (uint8_t)(a >> 48);
+            o[2] = (uint8_t)(a >> 40);
+            o[3] = (uint8_t)(a >> 32);
+            o[4] = (uint8_t)(a >> 24);
+            o[5] = (uint8_t)(a >> 16);
             a >>= 8;
             o += 6;
             break;
         case 16:
-            o[0] = a >> 56;
-            o[1] = a >> 48;
-            o[2] = a >> 40;
-            o[3] = a >> 32;
-            o[4] = a >> 24;
+            o[0] = (uint8_t)(a >> 56);
+            o[1] = (uint8_t)(a >> 48);
+            o[2] = (uint8_t)(a >> 40);
+            o[3] = (uint8_t)(a >> 32);
+            o[4] = (uint8_t)(a >> 24);
             a >>= 16;
             o += 5;
             break;
         case 24:
-            o[0] = a >> 56;
-            o[1] = a >> 48;
-            o[2] = a >> 40;
-            o[3] = a >> 32;
+            o[0] = (uint8_t)(a >> 56);
+            o[1] = (uint8_t)(a >> 48);
+            o[2] = (uint8_t)(a >> 40);
+            o[3] = (uint8_t)(a >> 32);
             a >>= 24;
             o += 4;
             break;
         case 32:
-            o[0] = a >> 56;
-            o[1] = a >> 48;
-            o[2] = a >> 40;
+            o[0] = (uint8_t)(a >> 56);
+            o[1] = (uint8_t)(a >> 48);
+            o[2] = (uint8_t)(a >> 40);
             a >>= 32;
             o += 3;
             break;
         case 40:
-            o[0] = a >> 56;
-            o[1] = a >> 48;
+            o[0] = (uint8_t)(a >> 56);
+            o[1] = (uint8_t)(a >> 48);
             a >>= 40;
             o += 2;
             break;
         case 48:
-            *o++ = a >> 56;
+            *o++ = (uint8_t)(a >> 56);
             a >>= 48;
             break;
         default:
@@ -230,7 +230,7 @@ static inline void emitblock(struct aec_stream *strm, int k, int ref)
         }
     }
 
-    *o = a;
+    *o = (uint8_t)a;
     state->cds = o;
     state->bits = p % 8;
 }
@@ -248,9 +248,9 @@ static void preprocess_unsigned(struct aec_stream *strm)
     struct internal_state *state = strm->state;
     const uint32_t *restrict x = state->data_raw;
     uint32_t *restrict d = state->data_pp;
-    uint32_t xmax = state->xmax;
+    uint32_t xmax = (uint32_t)state->xmax;
     uint32_t rsi = strm->rsi * strm->block_size - 1;
-    int i;
+    unsigned int i;
 
     d[0] = x[0];
     for (i = 0; i < rsi; i++) {
@@ -282,11 +282,11 @@ static void preprocess_signed(struct aec_stream *strm)
     struct internal_state *state = strm->state;
     uint32_t *restrict d = state->data_pp;
     int32_t *restrict x = (int32_t *)state->data_raw;
-    uint64_t m = 1ULL << (strm->bits_per_sample - 1);
+    uint32_t m = 1ULL << (strm->bits_per_sample - 1);
     int64_t xmax = state->xmax;
     int64_t xmin = state->xmin;
     uint32_t rsi = strm->rsi * strm->block_size - 1;
-    int i;
+    unsigned int i;
 
     d[0] = (uint32_t)x[0];
     x[0] = (x[0] ^ m) - m;
@@ -296,15 +296,15 @@ static void preprocess_signed(struct aec_stream *strm)
         if (x[i + 1] < x[i]) {
             D = (int64_t)x[i] - x[i + 1];
             if (D <= xmax - x[i])
-                d[i + 1] = 2 * D - 1;
+                d[i + 1] = 2 * (uint32_t)D - 1;
             else
-                d[i + 1] = xmax - x[i + 1];
+                d[i + 1] = (uint32_t)xmax - x[i + 1];
         } else {
             D = (int64_t)x[i + 1] - x[i];
             if (D <= x[i] - xmin)
-                d[i + 1] = 2 * D;
+                d[i + 1] = 2 * (uint32_t)D;
             else
-                d[i + 1] = x[i + 1] - xmin;
+                d[i + 1] = x[i + 1] - (uint32_t)xmin;
         }
     }
     state->ref = 1;
@@ -317,7 +317,7 @@ static inline uint64_t block_fs(struct aec_stream *strm, int k)
        Sum FS of all samples in block for given splitting position.
     */
 
-    int i;
+    uint32_t i;
     uint64_t fs = 0;
     struct internal_state *state = strm->state;
 
@@ -410,7 +410,7 @@ static uint32_t assess_splitting_option(struct aec_stream *strm)
     }
     state->k = k_min;
 
-    return len_min;
+    return (uint32_t)len_min;
 }
 
 static uint32_t assess_se_option(struct aec_stream *strm)
@@ -421,9 +421,9 @@ static uint32_t assess_se_option(struct aec_stream *strm)
        If length is above limit just return UINT32_MAX.
     */
 
-    int i;
-    uint64_t d;
+    uint32_t i;
     uint32_t len;
+    uint64_t d;
     struct internal_state *state = strm->state;
 
     len = 1;
@@ -439,7 +439,8 @@ static uint32_t assess_se_option(struct aec_stream *strm)
             len = UINT32_MAX;
             break;
         } else {
-            len += d * (d + 1) / 2 + state->block[i + 1] + 1;
+            len += (uint32_t)d * ((uint32_t)d + 1)
+                / 2 + state->block[i + 1] + 1;
         }
     }
     return len;
@@ -483,7 +484,8 @@ static int m_flush_block_resumable(struct aec_stream *strm)
     */
     struct internal_state *state = strm->state;
 
-    int n = MIN(state->cds - state->cds_buf - state->i, strm->avail_out);
+    int n = (int)MIN((size_t)(state->cds - state->cds_buf - state->i),
+                     strm->avail_out);
     memcpy(strm->next_out, state->cds_buf + state->i, n);
     strm->next_out += n;
     strm->avail_out -= n;
@@ -516,7 +518,7 @@ static int m_flush_block(struct aec_stream *strm)
 #endif
 
     if (state->direct_out) {
-        n = state->cds - strm->next_out;
+        n = (int)(state->cds - strm->next_out);
         strm->next_out += n;
         strm->avail_out -= n;
         state->mode = m_get_block;
@@ -555,7 +557,7 @@ static int m_encode_uncomp(struct aec_stream *strm)
 
 static int m_encode_se(struct aec_stream *strm)
 {
-    int i;
+    uint32_t i;
     uint32_t d;
     struct internal_state *state = strm->state;
 
@@ -631,7 +633,7 @@ static int m_check_zero_block(struct aec_stream *strm)
        end of a segment or RSI.
     */
 
-    int i;
+    uint32_t i;
     struct internal_state *state = strm->state;
     uint32_t *p = state->block;
 
@@ -861,7 +863,7 @@ int aec_encode_init(struct aec_stream *strm)
     state->rsi_len = strm->rsi * strm->block_size * state->bytes_per_sample;
 
     if (strm->flags & AEC_DATA_SIGNED) {
-        state->xmin = -(1ULL << (strm->bits_per_sample - 1));
+        state->xmin = -(1LL << (strm->bits_per_sample - 1));
         state->xmax = (1ULL << (strm->bits_per_sample - 1)) - 1;
         state->preprocess = preprocess_signed;
     } else {
@@ -922,7 +924,7 @@ int aec_encode(struct aec_stream *strm, int flush)
     while (state->mode(strm) == M_CONTINUE);
 
     if (state->direct_out) {
-        n = state->cds - strm->next_out;
+        n = (int)(state->cds - strm->next_out);
         strm->next_out += n;
         strm->avail_out -= n;
 

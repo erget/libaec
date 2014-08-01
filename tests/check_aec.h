@@ -14,7 +14,7 @@ struct test_state {
     size_t cbuf_len;
     long long int xmax;
     long long int xmin;
-    void (*out)(unsigned char *dest, unsigned int val, int size);
+    void (*out)(unsigned char *dest, unsigned long long int val, int size);
     struct aec_stream *strm;
 };
 

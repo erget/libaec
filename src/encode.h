@@ -79,37 +79,79 @@ struct internal_state {
     void (*get_rsi)(struct aec_stream *);
     void (*preprocess)(struct aec_stream *);
 
-    int id_len;             /* bit length of code option identification key */
-    int64_t xmin;           /* minimum integer for preprocessing */
-    int64_t xmax;           /* maximum integer for preprocessing */
-    int i;                  /* counter */
-    uint32_t *data_pp;      /* RSI blocks of preprocessed input */
-    uint32_t *data_raw;     /* RSI blocks of input */
-    int blocks_avail;       /* remaining blocks in buffer */
-    uint32_t *block;        /* current (preprocessed) input block */
-    int rsi_len;            /* reference sample interval in byte */
-    uint8_t *cds;           /* current Coded Data Set output */
-    uint8_t cds_buf[CDSLEN];/* buffer for one CDS (only used if
-                             * strm->next_out cannot hold full CDS) */
-    int direct_out;         /* cds points to strm->next_out (1)
-                             * or cds_buf (0) */
-    int bits;               /* Free bits (LSB) in output buffer or
-                             * accumulator */
-    int ref;                /* length of reference sample in current
-                             * block i.e. 0 or 1 depending on whether
-                             * the block has a reference sample or
-                             * not */
-    int zero_ref;           /* current zero block has a reference sample */
-    uint32_t zero_ref_sample;/* reference sample of zero block */
-    int bytes_per_sample;   /* storage size of samples in bytes */
-    int zero_blocks;        /* number of contiguous zero blocks */
-    int block_nonzero;      /* 1 if this is the first non-zero block
-                             * after one or more zero blocks */
-    int k;                  /* splitting position */
-    int kmax;               /* maximum number for k depending on id_len */
-    int flush;              /* flush option copied from argument */
-    int flushed;            /* 1 if flushing was successful */
-    uint32_t uncomp_len;    /* length of uncompressed CDS */
+    /* bit length of code option identification key */
+    int id_len;
+
+    /* minimum integer for preprocessing */
+    int64_t xmin;
+
+    /* maximum integer for preprocessing */
+    int64_t xmax;
+
+    uint32_t i;
+
+    /* RSI blocks of preprocessed input */
+    uint32_t *data_pp;
+
+    /* RSI blocks of input */
+    uint32_t *data_raw;
+
+    /* remaining blocks in buffer */
+    int blocks_avail;
+
+    /* current (preprocessed) input block */
+    uint32_t *block;
+
+    /* reference sample interval in byte */
+    uint32_t rsi_len;
+
+    /* current Coded Data Set output */
+    uint8_t *cds;
+
+    /* buffer for one CDS (only used if strm->next_out cannot hold
+     * full CDS) */
+    uint8_t cds_buf[CDSLEN];
+
+    /* cds points to strm->next_out (1) or cds_buf (0) */
+    int direct_out;
+
+    /* Free bits (LSB) in output buffer or accumulator */
+    int bits;
+
+    /* length of reference sample in current block i.e. 0 or 1
+     * depending on whether the block has a reference sample or not */
+    int ref;
+
+    /* current zero block has a reference sample */
+    int zero_ref;
+
+    /* reference sample of zero block */
+    uint32_t zero_ref_sample;
+
+    /* storage size of samples in bytes */
+    uint32_t bytes_per_sample;
+
+    /* number of contiguous zero blocks */
+    int zero_blocks;
+
+    /* 1 if this is the first non-zero block after one or more zero
+     * blocks */
+    int block_nonzero;
+
+    /* splitting position */
+    int k;
+
+    /* maximum number for k depending on id_len */
+    int kmax;
+
+    /* flush option copied from argument */
+    int flush;
+
+    /* 1 if flushing was successful */
+    int flushed;
+
+    /* length of uncompressed CDS */
+    uint32_t uncomp_len;
 };
 
 #endif /* ENCODE_H */

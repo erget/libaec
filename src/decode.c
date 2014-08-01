@@ -86,7 +86,7 @@
                     /* Reference samples have to be sign extended */    \
                     state->last_out = (state->last_out ^ m) - m;        \
                 }                                                       \
-                put_##KIND(strm, state->last_out);                      \
+                put_##KIND(strm, (uint32_t)state->last_out);            \
                 state->flush_start++;                                   \
             }                                                           \
                                                                         \
@@ -122,7 +122,7 @@
                         data = xmax - d;                                \
                     }                                                   \
                 }                                                       \
-                put_##KIND(strm, data);                                 \
+                put_##KIND(strm, (uint32_t)data);                       \
             }                                                           \
             state->last_out = data;                                     \
         } else {                                                        \
@@ -135,49 +135,49 @@
 
 static inline void put_msb_32(struct aec_stream *strm, uint32_t data)
 {
-    *strm->next_out++ = data >> 24;
-    *strm->next_out++ = data >> 16;
-    *strm->next_out++ = data >> 8;
-    *strm->next_out++ = data;
+    *strm->next_out++ = (unsigned char)(data >> 24);
+    *strm->next_out++ = (unsigned char)(data >> 16);
+    *strm->next_out++ = (unsigned char)(data >> 8);
+    *strm->next_out++ = (unsigned char)data;
 }
 
 static inline void put_msb_24(struct aec_stream *strm, uint32_t data)
 {
-    *strm->next_out++ = data >> 16;
-    *strm->next_out++ = data >> 8;
-    *strm->next_out++ = data;
+    *strm->next_out++ = (unsigned char)(data >> 16);
+    *strm->next_out++ = (unsigned char)(data >> 8);
+    *strm->next_out++ = (unsigned char)data;
 }
 
 static inline void put_msb_16(struct aec_stream *strm, uint32_t data)
 {
-    *strm->next_out++ = data >> 8;
-    *strm->next_out++ = data;
+    *strm->next_out++ = (unsigned char)(data >> 8);
+    *strm->next_out++ = (unsigned char)data;
 }
 
 static inline void put_lsb_32(struct aec_stream *strm, uint32_t data)
 {
-    *strm->next_out++ = data;
-    *strm->next_out++ = data >> 8;
-    *strm->next_out++ = data >> 16;
-    *strm->next_out++ = data >> 24;
+    *strm->next_out++ = (unsigned char)data;
+    *strm->next_out++ = (unsigned char)(data >> 8);
+    *strm->next_out++ = (unsigned char)(data >> 16);
+    *strm->next_out++ = (unsigned char)(data >> 24);
 }
 
 static inline void put_lsb_24(struct aec_stream *strm, uint32_t data)
 {
-    *strm->next_out++ = data;
-    *strm->next_out++ = data >> 8;
-    *strm->next_out++ = data >> 16;
+    *strm->next_out++ = (unsigned char)data;
+    *strm->next_out++ = (unsigned char)(data >> 8);
+    *strm->next_out++ = (unsigned char)(data >> 16);
 }
 
 static inline void put_lsb_16(struct aec_stream *strm, uint32_t data)
 {
-    *strm->next_out++ = data;
-    *strm->next_out++ = data >> 8;
+    *strm->next_out++ = (unsigned char)data;
+    *strm->next_out++ = (unsigned char)(data >> 8);
 }
 
 static inline void put_8(struct aec_stream *strm, uint32_t data)
 {
-    *strm->next_out++ = data;
+    *strm->next_out++ = (unsigned char)data;
 }
 
 FLUSH(msb_32)
@@ -195,7 +195,7 @@ static inline void check_rsi_end(struct aec_stream *strm)
      */
     struct internal_state *state = strm->state;
 
-    if (state->rsip - state->rsi_buffer == state->rsi_size) {
+    if (state->rsi_size == (size_t)(state->rsip - state->rsi_buffer)) {
         state->flush_output(strm);
         state->flush_start = state->rsi_buffer;
         state->rsip = state->rsi_buffer;
@@ -237,7 +237,7 @@ static inline void fill_acc(struct aec_stream *strm)
 
 }
 
-static inline uint32_t direct_get(struct aec_stream *strm, unsigned int n)
+static inline uint32_t direct_get(struct aec_stream *strm, int n)
 {
     /**
        Get n bit from input stream
@@ -264,8 +264,10 @@ static inline uint32_t direct_get_fs(struct aec_stream *strm)
      */
 
     uint32_t fs = 0;
-#if HAVE_DECL___BUILTIN_CLZLL||HAVE_BSR64
-    uint32_t lz;
+#if HAVE_DECL___BUILTIN_CLZLL
+    int lz;
+#elif HAVE_BSR64
+    unsigned long lz;
 #endif
     struct internal_state *state = strm->state;
 
@@ -413,7 +415,7 @@ static int m_split_fs(struct aec_stream *strm)
 
 static int m_split(struct aec_stream *strm)
 {
-    int i, k;
+    uint32_t i, k;
     struct internal_state *state = strm->state;
 
     if (BUFFERSPACE(strm)) {
@@ -464,7 +466,7 @@ static int m_zero_output(struct aec_stream *strm)
 
 static int m_zero_block(struct aec_stream *strm)
 {
-    int i, zero_blocks, b, zero_bytes;
+    uint32_t i, zero_blocks, b, zero_bytes;
     struct internal_state *state = strm->state;
 
     if (fs_ask(strm) == 0)
@@ -473,7 +475,7 @@ static int m_zero_block(struct aec_stream *strm)
     fs_drop(strm);
 
     if (zero_blocks == ROS) {
-        b = (state->rsip - state->rsi_buffer) / strm->block_size;
+        b = (int)(state->rsip - state->rsi_buffer) / strm->block_size;
         zero_blocks = MIN(strm->rsi - b, 64 - (b % 64));
     } else if (zero_blocks > ROS) {
         zero_blocks--;
@@ -535,7 +537,7 @@ static int m_se_decode(struct aec_stream *strm)
 
 static int m_se(struct aec_stream *strm)
 {
-    int i;
+    uint32_t i;
     int32_t m, d1;
     struct internal_state *state = strm->state;
 
@@ -605,7 +607,7 @@ static int m_uncomp_copy(struct aec_stream *strm)
 
 static int m_uncomp(struct aec_stream *strm)
 {
-    int i;
+    uint32_t i;
     struct internal_state *state = strm->state;
 
     if (BUFFERSPACE(strm)) {
@@ -701,7 +703,7 @@ int aec_decode_init(struct aec_stream *strm)
     }
 
     if (strm->flags & AEC_DATA_SIGNED) {
-        state->xmin = -(1ULL << (strm->bits_per_sample - 1));
+        state->xmin = -(1LL << (strm->bits_per_sample - 1));
         state->xmax = (1ULL << (strm->bits_per_sample - 1)) - 1;
     } else {
         state->xmin = 0;
