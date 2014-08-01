@@ -70,7 +70,7 @@ do
     done
     for j in 05 06 07 08
     do
-        cosdec $LOWE/Lowset${i}_8bit.n${j}.rz $LOWE/Lowset${i}_8bit.dat \
+        codec $LOWE/Lowset${i}_8bit.n${j}.rz $LOWE/Lowset${i}_8bit.dat \
             "-n$j -j16 -r64"
     done
 done
