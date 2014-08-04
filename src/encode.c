@@ -422,28 +422,26 @@ static uint32_t assess_se_option(struct aec_stream *strm)
     */
 
     uint32_t i;
-    uint32_t len;
-    uint64_t d;
+    uint64_t len, d;
     struct internal_state *state = strm->state;
+    uint32_t *block = state->block;
 
-    len = 1;
+    if (state->ref)
+        d = (uint64_t)block[1];
+    else
+        d = (uint64_t)block[0] + (uint64_t)block[1];
 
-    for (i = 0; i < strm->block_size; i+= 2) {
-        if (i == 0 && state->ref)
-            d = state->block[i + 1];
-        else
-            d = (uint64_t)state->block[i]
-                + (uint64_t)state->block[i + 1];
-        /* we have to worry about overflow here */
-        if (d > state->uncomp_len) {
-            len = UINT32_MAX;
-            break;
-        } else {
-            len += (uint32_t)d * ((uint32_t)d + 1)
-                / 2 + state->block[i + 1] + 1;
-        }
+    len = d * (d + 1) / 2 + block[1] + 2;
+    if (len > state->uncomp_len)
+        return UINT32_MAX;
+
+    for (i = 2; i < strm->block_size; i += 2) {
+        d = (uint64_t)block[i] + (uint64_t)block[i + 1];
+        len += d * (d + 1) / 2 + block[i + 1] + 1;
+        if (len > state->uncomp_len)
+            return UINT32_MAX;
     }
-    return len;
+    return (uint32_t)len;
 }
 
 static void init_output(struct aec_stream *strm)
