@@ -136,7 +136,7 @@ static inline void emitblock_fs(struct aec_stream *strm, int k, int ref)
             acc = 0;
             used -= 64;
         }
-        acc |= 1ULL << (63 - used);
+        acc |= UINT64_C(1) << (63 - used);
     }
 
     copy64(state->cds, acc);
@@ -154,7 +154,7 @@ static inline void emitblock(struct aec_stream *strm, int k, int ref)
     struct internal_state *state = strm->state;
     uint32_t *in = state->block + ref;
     uint32_t *in_end = state->block + strm->block_size;
-    uint64_t mask = (1ULL << k) - 1;
+    uint64_t mask = (UINT64_C(1) << k) - 1;
     uint8_t *o = state->cds;
     int p = state->bits;
 
@@ -283,7 +283,7 @@ static void preprocess_signed(struct aec_stream *strm)
     struct internal_state *state = strm->state;
     uint32_t *restrict d = state->data_pp;
     int32_t *restrict x = (int32_t *)state->data_raw;
-    uint32_t m = 1ULL << (strm->bits_per_sample - 1);
+    uint32_t m = UINT64_C(1) << (strm->bits_per_sample - 1);
     int64_t xmax = state->xmax;
     int64_t xmin = state->xmin;
     uint32_t rsi = strm->rsi * strm->block_size - 1;
@@ -853,12 +853,12 @@ int aec_encode_init(struct aec_stream *strm)
     state->rsi_len = strm->rsi * strm->block_size * state->bytes_per_sample;
 
     if (strm->flags & AEC_DATA_SIGNED) {
-        state->xmin = -(1LL << (strm->bits_per_sample - 1));
-        state->xmax = (1ULL << (strm->bits_per_sample - 1)) - 1;
+        state->xmin = -(INT64_C(1) << (strm->bits_per_sample - 1));
+        state->xmax = (UINT64_C(1) << (strm->bits_per_sample - 1)) - 1;
         state->preprocess = preprocess_signed;
     } else {
         state->xmin = 0;
-        state->xmax = (1ULL << strm->bits_per_sample) - 1;
+        state->xmax = (UINT64_C(1) << strm->bits_per_sample) - 1;
         state->preprocess = preprocess_unsigned;
     }
 

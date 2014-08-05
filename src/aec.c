@@ -58,7 +58,7 @@
 
 #define CHUNK 10485760
 
-int get_param(int *param, int *iarg, char *argv[])
+int get_param(unsigned int *param, int *iarg, char *argv[])
 {
     if (strlen(argv[*iarg]) == 2) {
         (*iarg)++;
@@ -78,7 +78,8 @@ int main(int argc, char *argv[])
     unsigned char *in;
     unsigned char *out;
     size_t total_out;
-    int chunk, status;
+    unsigned int chunk;
+    int status;
     int input_avail, output_avail;
     char *infn, *outfn;
     FILE *infp, *outfp;

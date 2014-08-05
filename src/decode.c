@@ -82,7 +82,7 @@
                 state->last_out = *state->rsi_buffer;                   \
                                                                         \
                 if (strm->flags & AEC_DATA_SIGNED) {                    \
-                    m = 1ULL << (strm->bits_per_sample - 1);            \
+                    m = UINT64_C(1) << (strm->bits_per_sample - 1);     \
                     /* Reference samples have to be sign extended */    \
                     state->last_out = (state->last_out ^ m) - m;        \
                 }                                                       \
@@ -251,7 +251,7 @@ static inline uint32_t direct_get(struct aec_stream *strm, int n)
         fill_acc(strm);
 
     state->bitp -= n;
-    return (state->acc >> state->bitp) & ((1ULL << n) - 1);
+    return (state->acc >> state->bitp) & ((UINT64_C(1) << n) - 1);
 }
 
 static inline uint32_t direct_get_fs(struct aec_stream *strm)
@@ -271,7 +271,7 @@ static inline uint32_t direct_get_fs(struct aec_stream *strm)
 #endif
     struct internal_state *state = strm->state;
 
-    state->acc &= ((1ULL << state->bitp) - 1);
+    state->acc &= ((UINT64_C(1) << state->bitp) - 1);
 
     while (state->acc == 0) {
         fs += state->bitp;
@@ -289,7 +289,7 @@ static inline uint32_t direct_get_fs(struct aec_stream *strm)
     state->bitp = lz;
 #else
     state->bitp--;
-    while ((state->acc & (1ULL << state->bitp)) == 0) {
+    while ((state->acc & (UINT64_C(1) << state->bitp)) == 0) {
         state->bitp--;
         fs++;
     }
@@ -313,7 +313,7 @@ static inline uint32_t bits_ask(struct aec_stream *strm, int n)
 static inline uint32_t bits_get(struct aec_stream *strm, int n)
 {
     return (strm->state->acc >> (strm->state->bitp - n))
-        & ((1ULL << n) - 1);
+        & ((UINT64_C(1) << n) - 1);
 }
 
 static inline void bits_drop(struct aec_stream *strm, int n)
@@ -325,7 +325,7 @@ static inline uint32_t fs_ask(struct aec_stream *strm)
 {
     if (bits_ask(strm, 1) == 0)
         return 0;
-    while ((strm->state->acc & (1ULL << (strm->state->bitp - 1))) == 0) {
+    while ((strm->state->acc & (UINT64_C(1) << (strm->state->bitp - 1))) == 0) {
         if (strm->state->bitp == 1) {
             if (strm->avail_in == 0)
                 return 0;
@@ -703,11 +703,11 @@ int aec_decode_init(struct aec_stream *strm)
     }
 
     if (strm->flags & AEC_DATA_SIGNED) {
-        state->xmin = -(1LL << (strm->bits_per_sample - 1));
-        state->xmax = (1ULL << (strm->bits_per_sample - 1)) - 1;
+        state->xmin = -(INT64_C(1) << (strm->bits_per_sample - 1));
+        state->xmax = (UINT64_C(1) << (strm->bits_per_sample - 1)) - 1;
     } else {
         state->xmin = 0;
-        state->xmax = (1ULL << strm->bits_per_sample) - 1;
+        state->xmax = (UINT64_C(1) << strm->bits_per_sample) - 1;
     }
 
     state->in_blklen = (strm->block_size * strm->bits_per_sample
