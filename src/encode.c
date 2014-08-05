@@ -793,6 +793,7 @@ int aec_encode_init(struct aec_stream *strm)
 
     memset(state, 0, sizeof(struct internal_state));
     strm->state = state;
+    state->uncomp_len = strm->block_size * strm->bits_per_sample;
 
     if (strm->bits_per_sample > 16) {
         /* 24/32 input bit settings */
@@ -886,6 +887,7 @@ int aec_encode_init(struct aec_stream *strm)
 
     state->block = state->data_pp;
 
+    state->ref = 0;
     strm->total_in = 0;
     strm->total_out = 0;
     state->flushed = 0;
