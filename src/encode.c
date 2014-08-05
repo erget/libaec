@@ -252,7 +252,9 @@ static void preprocess_unsigned(struct aec_stream *strm)
     uint32_t rsi = strm->rsi * strm->block_size - 1;
     unsigned int i;
 
-    d[0] = x[0];
+    state->ref = 1;
+    state->ref_sample = x[0];
+    d[0] = 0;
     for (i = 0; i < rsi; i++) {
         if (x[i + 1] >= x[i]) {
             D = x[i + 1] - x[i];
@@ -268,7 +270,6 @@ static void preprocess_unsigned(struct aec_stream *strm)
                 d[i + 1] = xmax - x[i + 1];
         }
     }
-    state->ref = 1;
     state->uncomp_len = (strm->block_size - 1) * strm->bits_per_sample;
 }
 
@@ -288,7 +289,9 @@ static void preprocess_signed(struct aec_stream *strm)
     uint32_t rsi = strm->rsi * strm->block_size - 1;
     unsigned int i;
 
-    d[0] = (uint32_t)x[0];
+    state->ref = 1;
+    state->ref_sample = x[0];
+    d[0] = 0;
     x[0] = (x[0] ^ m) - m;
 
     for (i = 0; i < rsi; i++) {
@@ -307,7 +310,6 @@ static void preprocess_signed(struct aec_stream *strm)
                 d[i + 1] = x[i + 1] - (uint32_t)xmin;
         }
     }
-    state->ref = 1;
     state->uncomp_len = (strm->block_size - 1) * strm->bits_per_sample;
 }
 
@@ -323,9 +325,6 @@ static inline uint64_t block_fs(struct aec_stream *strm, int k)
 
     for (i = 0; i < strm->block_size; i++)
         fs += (uint64_t)(state->block[i] >> k);
-
-    if (state->ref)
-        fs -= (uint64_t)(state->block[0] >> k);
 
     return fs;
 }
@@ -426,16 +425,9 @@ static uint32_t assess_se_option(struct aec_stream *strm)
     struct internal_state *state = strm->state;
     uint32_t *block = state->block;
 
-    if (state->ref)
-        d = (uint64_t)block[1];
-    else
-        d = (uint64_t)block[0] + (uint64_t)block[1];
+    len = 1;
 
-    len = d * (d + 1) / 2 + block[1] + 2;
-    if (len > state->uncomp_len)
-        return UINT32_MAX;
-
-    for (i = 2; i < strm->block_size; i += 2) {
+    for (i = 0; i < strm->block_size; i += 2) {
         d = (uint64_t)block[i] + (uint64_t)block[i + 1];
         len += d * (d + 1) / 2 + block[i + 1] + 1;
         if (len > state->uncomp_len)
@@ -535,7 +527,7 @@ static int m_encode_splitting(struct aec_stream *strm)
 
     emit(state, k + 1, state->id_len);
     if (state->ref)
-        emit(state, state->block[0], strm->bits_per_sample);
+        emit(state, state->ref_sample, strm->bits_per_sample);
 
     emitblock_fs(strm, k, state->ref);
     if (k)
@@ -549,6 +541,8 @@ static int m_encode_uncomp(struct aec_stream *strm)
     struct internal_state *state = strm->state;
 
     emit(state, (1U << state->id_len) - 1, state->id_len);
+    if (state->ref)
+        state->block[0] = state->ref_sample;
     emitblock(strm, strm->bits_per_sample, 0);
     return m_flush_block(strm);
 }
@@ -560,10 +554,8 @@ static int m_encode_se(struct aec_stream *strm)
     struct internal_state *state = strm->state;
 
     emit(state, 1, state->id_len + 1);
-    if (state->ref) {
-        emit(state, state->block[0], strm->bits_per_sample);
-        state->block[0] = 0;
-    }
+    if (state->ref)
+        emit(state, state->ref_sample, strm->bits_per_sample);
 
     for (i = 0; i < strm->block_size; i+= 2) {
         d = state->block[i] + state->block[i + 1];
@@ -635,7 +627,7 @@ static int m_check_zero_block(struct aec_stream *strm)
     struct internal_state *state = strm->state;
     uint32_t *p = state->block;
 
-    for (i = state->ref; i < strm->block_size; i++)
+    for (i = 0; i < strm->block_size; i++)
         if (p[i] != 0)
             break;
 
@@ -655,7 +647,7 @@ static int m_check_zero_block(struct aec_stream *strm)
         state->zero_blocks++;
         if (state->zero_blocks == 1) {
             state->zero_ref = state->ref;
-            state->zero_ref_sample = state->block[0];
+            state->zero_ref_sample = state->ref_sample;
         }
         if (state->blocks_avail == 0
             || (strm->rsi - state->blocks_avail) % 64 == 0) {

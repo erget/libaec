@@ -120,6 +120,9 @@ struct internal_state {
      * depending on whether the block has a reference sample or not */
     int ref;
 
+    /* reference sample stored here for performance reasons */
+    uint32_t ref_sample;
+
     /* current zero block has a reference sample */
     int zero_ref;
 
