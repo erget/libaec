@@ -8,6 +8,7 @@
 #endif
 
 #define NOPTS 129
+#define MIN(a, b) (((a) < (b))? (a): (b))
 
 static int convert_options(int sz_opts)
 {
@@ -72,20 +73,24 @@ static void add_padding(void *dest, const void *src, size_t total,
                           size_t line_size, size_t padding_size,
                           int pixel_size, int pp)
 {
-    size_t i, j, k;
+    size_t i, j, k, ls, ps;
     const char *pixel;
     const char zero_pixel[] = {0, 0, 0, 0};
 
     pixel = zero_pixel;
     j = 0;
-    for (i = 0; i < total; i += line_size) {
-        memcpy((char *)dest + j, (char *)src + i, line_size);
-        j += line_size;
+    i = 0;
+    while (i < total) {
+        ls = MIN(total - i, line_size);
+        memcpy((char *)dest + j, (char *)src + i, ls);
+        j += ls;
+        i += ls;
         if (pp)
-            pixel = (char *)src + i + line_size - pixel_size;
-        for (k = 0; k < padding_size; k += pixel_size)
+            pixel = (char *)src + i - pixel_size;
+        ps = line_size + padding_size - ls;
+        for (k = 0; k < ps; k += pixel_size)
             memcpy((char *)dest + j + k, pixel, pixel_size);
-        j += padding_size;
+        j += ps;
     }
 }
 
@@ -146,7 +151,8 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
     pixel_size = bits_to_bytes(strm.bits_per_sample);
 
     if (pad_scanline) {
-        scanlines = sourceLen / param->pixels_per_scanline;
+        scanlines = (sourceLen + param->pixels_per_scanline - 1)
+            / param->pixels_per_scanline;
         padbuf_size = strm.rsi * strm.block_size * pixel_size * scanlines;
         padbuf = malloc(padbuf_size);
         if (padbuf == NULL) {
