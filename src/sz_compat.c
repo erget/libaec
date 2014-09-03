@@ -151,7 +151,7 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
     pixel_size = bits_to_bytes(strm.bits_per_sample);
 
     if (pad_scanline) {
-        scanlines = (sourceLen + param->pixels_per_scanline - 1)
+        scanlines = (sourceLen / pixel_size + param->pixels_per_scanline - 1)
             / param->pixels_per_scanline;
         padbuf_size = strm.rsi * strm.block_size * pixel_size * scanlines;
         padbuf = malloc(padbuf_size);
