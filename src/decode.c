@@ -102,19 +102,13 @@
                                                                         \
                 if (data < med) {                                       \
                     if (half_d <= data - xmin) {                        \
-                        if (d & 1)                                      \
-                            data -= half_d;                             \
-                        else                                            \
-                            data += half_d;                             \
+                        data += (d >> 1)^(~((d & 1) - 1));              \
                     } else {                                            \
                         data = xmin + d;                                \
                     }                                                   \
                 } else {                                                \
                     if (half_d <= xmax - data) {                        \
-                        if (d & 1)                                      \
-                            data -= half_d;                             \
-                        else                                            \
-                            data += half_d;                             \
+                        data += (d >> 1)^(~((d & 1) - 1));              \
                     } else {                                            \
                         data = xmax - d;                                \
                     }                                                   \
