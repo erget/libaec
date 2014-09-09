@@ -98,18 +98,19 @@
                   d = *bp;                                              \
                   half_d = (d >> 1) + (d & 1);                          \
                                                                         \
-                  if (data < med) {                                     \
-                      if (half_d <= data) {                             \
-                          data += (d >> 1)^(~((d & 1) - 1));            \
-                      } else {                                          \
-                          data = d;                                     \
-                      }                                                 \
-                  } else {                                              \
-                      /*in this case (xmax - data == xmax ^ data)*/     \
+                  /*in this case: data >= med == data & med */          \
+                  if (data & med) {                                     \
+                      /*in this case: xmax - data == xmax ^ data */     \
                       if (half_d <= (xmax ^ data)) {                    \
                           data += (d >> 1)^(~((d & 1) - 1));            \
                       } else {                                          \
                           data = xmax ^ d;                              \
+                      }                                                 \
+                  } else {                                              \
+                      if (half_d <= data) {                             \
+                          data += (d >> 1)^(~((d & 1) - 1));            \
+                      } else {                                          \
+                          data = d;                                     \
                       }                                                 \
                   }                                                     \
                   put_##KIND(strm, (uint32_t)data);                     \
