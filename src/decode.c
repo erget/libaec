@@ -105,10 +105,11 @@
                           data = d;                                     \
                       }                                                 \
                   } else {                                              \
-                      if (half_d <= xmax - data) {                      \
+                      /*in this case (xmax - data == xmax ^ data)*/     \
+                      if (half_d <= (xmax ^ data)) {                    \
                           data += (d >> 1)^(~((d & 1) - 1));            \
                       } else {                                          \
-                          data = xmax - d;                              \
+                          data = xmax ^ d;                              \
                       }                                                 \
                   }                                                     \
                   put_##KIND(strm, (uint32_t)data);                     \
