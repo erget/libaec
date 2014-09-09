@@ -117,9 +117,8 @@
                                                                         \
             } else {                                                    \
                                                                         \
-              int32_t xmax, xmin, d;                                    \
+              int32_t xmax, d;                                          \
               data = state->last_out;                                   \
-              xmin = state->xmin;                                       \
               xmax = state->xmax;                                       \
                                                                         \
               for (bp = state->flush_start; bp < flush_end; bp++) {     \
@@ -127,10 +126,10 @@
                   half_d = ((uint32_t)d >> 1) + (d & 1);                \
                                                                         \
                   if (data < 0) {                                       \
-                      if (half_d <= data - xmin) {                      \
+                      if (half_d <= xmax + data + 1) {                  \
                           data += ((uint32_t)d >> 1)^(~((d & 1) - 1));  \
                       } else {                                          \
-                          data = xmin + d;                              \
+                          data = d - xmax - 1;                          \
                       }                                                 \
                   } else {                                              \
                       if (half_d <= xmax - data) {                      \
