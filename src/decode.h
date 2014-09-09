@@ -78,7 +78,7 @@ struct internal_state {
     void (*flush_output)(struct aec_stream *);
 
     /* previous output for post-processing */
-    int64_t last_out;
+    int32_t last_out;
 
     /* minimum integer for post-processing */
     int64_t xmin;

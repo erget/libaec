@@ -68,8 +68,7 @@
     static void flush_##KIND(struct aec_stream *strm)                   \
     {                                                                   \
         uint32_t *flush_end, *bp, half_d;                               \
-        int32_t data;                                                   \
-        int64_t m;                                                      \
+        int32_t data, m;                                                \
         struct internal_state *state = strm->state;                     \
                                                                         \
         flush_end = state->rsip;                                        \
@@ -79,7 +78,7 @@
                 state->last_out = *state->rsi_buffer;                   \
                                                                         \
                 if (strm->flags & AEC_DATA_SIGNED) {                    \
-                    m = UINT64_C(1) << (strm->bits_per_sample - 1);     \
+                    m = UINT32_C(1) << (strm->bits_per_sample - 1);     \
                     /* Reference samples have to be sign extended */    \
                     state->last_out = (state->last_out ^ m) - m;        \
                 }                                                       \
@@ -87,11 +86,12 @@
                 state->flush_start++;                                   \
             }                                                           \
                                                                         \
+            data = state->last_out;                                     \
+                                                                        \
             if (state->xmin == 0) {                                     \
                                                                         \
               uint32_t xmax, med, d;                                    \
               med = state->xmax / 2 + 1;                                \
-              data = (uint32_t)state->last_out;                         \
               xmax = state->xmax;                                       \
                                                                         \
               for (bp = state->flush_start; bp < flush_end; bp++) {     \
@@ -118,7 +118,6 @@
             } else {                                                    \
                                                                         \
               int32_t xmax, d;                                          \
-              data = state->last_out;                                   \
               xmax = state->xmax;                                       \
                                                                         \
               for (bp = state->flush_start; bp < flush_end; bp++) {     \
