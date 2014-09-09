@@ -97,21 +97,14 @@
               for (bp = state->flush_start; bp < flush_end; bp++) {     \
                   d = *bp;                                              \
                   half_d = (d >> 1) + (d & 1);                          \
-                                                                        \
                   /*in this case: data >= med == data & med */          \
-                  if (data & med) {                                     \
-                      /*in this case: xmax - data == xmax ^ data */     \
-                      if (half_d <= (xmax ^ data)) {                    \
-                          data += (d >> 1)^(~((d & 1) - 1));            \
-                      } else {                                          \
-                          data = xmax ^ d;                              \
-                      }                                                 \
+                  uint32_t mask = (data & med)?xmax:0;                  \
+                                                                        \
+                  /*in this case: xmax - data == xmax ^ data */         \
+                  if (half_d <= (mask ^ data)) {                        \
+                      data += (d >> 1)^(~((d & 1) - 1));                \
                   } else {                                              \
-                      if (half_d <= data) {                             \
-                          data += (d >> 1)^(~((d & 1) - 1));            \
-                      } else {                                          \
-                          data = d;                                     \
-                      }                                                 \
+                      data = mask ^ d;                                  \
                   }                                                     \
                   put_##KIND(strm, (uint32_t)data);                     \
               }                                                         \
