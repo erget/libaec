@@ -81,10 +81,10 @@ struct internal_state {
     int32_t last_out;
 
     /* minimum integer for post-processing */
-    int64_t xmin;
+    uint32_t xmin;
 
     /* maximum integer for post-processing */
-    int64_t xmax;
+    uint32_t xmax;
 
      /* length of uncompressed input block should be the longest
         possible block */
