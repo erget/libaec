@@ -262,7 +262,7 @@ static inline uint32_t direct_get(struct aec_stream *strm, int n)
         fill_acc(strm);
 
     state->bitp -= n;
-    return (state->acc >> state->bitp) & ((UINT64_C(1) << n) - 1);
+    return (state->acc >> state->bitp) & (UINT64_MAX >> (64 - n));
 }
 
 static inline uint32_t direct_get_fs(struct aec_stream *strm)
@@ -282,7 +282,10 @@ static inline uint32_t direct_get_fs(struct aec_stream *strm)
 #endif
     struct internal_state *state = strm->state;
 
-    state->acc &= ((UINT64_C(1) << state->bitp) - 1);
+    if (state->bitp)
+        state->acc &= UINT64_MAX >> (64 - state->bitp);
+    else
+        state->acc = 0;
 
     while (state->acc == 0) {
         fs += state->bitp;
@@ -324,7 +327,7 @@ static inline uint32_t bits_ask(struct aec_stream *strm, int n)
 static inline uint32_t bits_get(struct aec_stream *strm, int n)
 {
     return (strm->state->acc >> (strm->state->bitp - n))
-        & ((UINT64_C(1) << n) - 1);
+        & (UINT64_MAX >> (64 - n));
 }
 
 static inline void bits_drop(struct aec_stream *strm, int n)
@@ -397,7 +400,10 @@ static int m_split_output(struct aec_stream *strm)
     do {
         if (bits_ask(strm, k) == 0 || strm->avail_out == 0)
             return M_EXIT;
-        *state->rsip++ += bits_get(strm, k);
+        if (k)
+            *state->rsip++ += bits_get(strm, k);
+        else
+            state->rsip++;
         strm->avail_out -= state->bytes_per_sample;
         bits_drop(strm, k);
     } while(++state->i < state->n);
@@ -421,6 +427,7 @@ static int m_split_fs(struct aec_stream *strm)
 
     state->i = 0;
     state->mode = m_split_output;
+
     return M_CONTINUE;
 }
 
@@ -438,8 +445,12 @@ static int m_split(struct aec_stream *strm)
         for (i = 0; i < strm->block_size - state->ref; i++)
             state->rsip[i] = direct_get_fs(strm) << k;
 
-        for (i = state->ref; i < strm->block_size; i++)
-            *state->rsip++ += direct_get(strm, k);
+        if (k) {
+            for (i = state->ref; i < strm->block_size; i++)
+                *state->rsip++ += direct_get(strm, k);
+        } else {
+            state->rsip += strm->block_size - state->ref;
+        }
 
         strm->avail_out -= state->out_blklen;
         check_rsi_end(strm);
