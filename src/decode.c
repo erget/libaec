@@ -61,86 +61,83 @@
 
 #define ROS 5
 
-#define BUFFERSPACE(strm) (strm->avail_in >= strm->state->in_blklen     \
+#define BUFFERSPACE(strm) (strm->avail_in >= strm->state->in_blklen      \
                            && strm->avail_out >= strm->state->out_blklen)
 
-#define FLUSH(KIND)                                                     \
-    static void flush_##KIND(struct aec_stream *strm)                   \
-    {                                                                   \
-        uint32_t *flush_end, *bp, half_d;                               \
-        int32_t data, m;                                                \
-        struct internal_state *state = strm->state;                     \
-                                                                        \
-        flush_end = state->rsip;                                        \
-        if (state->pp) {                                                \
-            if (state->flush_start == state->rsi_buffer                 \
-                && state->rsip > state->rsi_buffer) {                   \
-                state->last_out = *state->rsi_buffer;                   \
-                                                                        \
-                if (strm->flags & AEC_DATA_SIGNED) {                    \
-                    m = UINT32_C(1) << (strm->bits_per_sample - 1);     \
-                    /* Reference samples have to be sign extended */    \
-                    state->last_out = (state->last_out ^ m) - m;        \
-                }                                                       \
-                put_##KIND(strm, (uint32_t)state->last_out);            \
-                state->flush_start++;                                   \
-            }                                                           \
-                                                                        \
-            data = state->last_out;                                     \
-                                                                        \
-            if (state->xmin == 0) {                                     \
-                                                                        \
-              uint32_t xmax, med, d;                                    \
-              med = state->xmax / 2 + 1;                                \
-              xmax = state->xmax;                                       \
-                                                                        \
-              for (bp = state->flush_start; bp < flush_end; bp++) {     \
-                  d = *bp;                                              \
-                  half_d = (d >> 1) + (d & 1);                          \
-                  /*in this case: data >= med == data & med */          \
-                  uint32_t mask = (data & med)?xmax:0;                  \
-                                                                        \
-                  /*in this case: xmax - data == xmax ^ data */         \
-                  if (half_d <= (mask ^ data)) {                        \
-                      data += (d >> 1)^(~((d & 1) - 1));                \
-                  } else {                                              \
-                      data = mask ^ d;                                  \
-                  }                                                     \
-                  put_##KIND(strm, (uint32_t)data);                     \
-              }                                                         \
-              state->last_out = data;                                   \
-                                                                        \
-            } else {                                                    \
-                                                                        \
-              int32_t xmax, d;                                          \
-              xmax = state->xmax;                                       \
-                                                                        \
-              for (bp = state->flush_start; bp < flush_end; bp++) {     \
-                  d = *bp;                                              \
-                  half_d = ((uint32_t)d >> 1) + (d & 1);                \
-                                                                        \
-                  if (data < 0) {                                       \
-                      if (half_d <= xmax + data + 1) {                  \
-                          data += ((uint32_t)d >> 1)^(~((d & 1) - 1));  \
-                      } else {                                          \
-                          data = d - xmax - 1;                          \
-                      }                                                 \
-                  } else {                                              \
-                      if (half_d <= xmax - data) {                      \
-                          data += ((uint32_t)d >> 1)^(~((d & 1) - 1));  \
-                      } else {                                          \
-                          data = xmax - d;                              \
-                      }                                                 \
-                  }                                                     \
-                  put_##KIND(strm, (uint32_t)data);                     \
-              }                                                         \
-              state->last_out = data;                                   \
-            }                                                           \
-        } else {                                                        \
-            for (bp = state->flush_start; bp < flush_end; bp++)         \
-                put_##KIND(strm, *bp);                                  \
-        }                                                               \
-        state->flush_start = state->rsip;                               \
+#define FLUSH(KIND)                                                      \
+    static void flush_##KIND(struct aec_stream *strm)                    \
+    {                                                                    \
+        uint32_t *flush_end, *bp, half_d;                                \
+        int32_t data, m;                                                 \
+        struct internal_state *state = strm->state;                      \
+                                                                         \
+        flush_end = state->rsip;                                         \
+        if (state->pp) {                                                 \
+            if (state->flush_start == state->rsi_buffer                  \
+                && state->rsip > state->rsi_buffer) {                    \
+                state->last_out = *state->rsi_buffer;                    \
+                                                                         \
+                if (strm->flags & AEC_DATA_SIGNED) {                     \
+                    m = UINT32_C(1) << (strm->bits_per_sample - 1);      \
+                    /* Reference samples have to be sign extended */     \
+                    state->last_out = (state->last_out ^ m) - m;         \
+                }                                                        \
+                put_##KIND(strm, (uint32_t)state->last_out);             \
+                state->flush_start++;                                    \
+            }                                                            \
+                                                                         \
+            data = state->last_out;                                      \
+                                                                         \
+            if (state->xmin == 0) {                                      \
+                uint32_t xmax, med, d;                                   \
+                med = state->xmax / 2 + 1;                               \
+                xmax = state->xmax;                                      \
+                                                                         \
+                for (bp = state->flush_start; bp < flush_end; bp++) {    \
+                    d = *bp;                                             \
+                    half_d = (d >> 1) + (d & 1);                         \
+                    /*in this case: data >= med == data & med */         \
+                    uint32_t mask = (data & med)?xmax:0;                 \
+                                                                         \
+                    /*in this case: xmax - data == xmax ^ data */        \
+                    if (half_d <= (mask ^ data)) {                       \
+                        data += (d >> 1)^(~((d & 1) - 1));               \
+                    } else {                                             \
+                        data = mask ^ d;                                 \
+                    }                                                    \
+                    put_##KIND(strm, (uint32_t)data);                    \
+                }                                                        \
+                state->last_out = data;                                  \
+            } else {                                                     \
+                int32_t xmax, d;                                         \
+                xmax = state->xmax;                                      \
+                                                                         \
+                for (bp = state->flush_start; bp < flush_end; bp++) {    \
+                    d = *bp;                                             \
+                    half_d = ((uint32_t)d >> 1) + (d & 1);               \
+                                                                         \
+                    if (data < 0) {                                      \
+                        if (half_d <= xmax + data + 1) {                 \
+                            data += ((uint32_t)d >> 1)^(~((d & 1) - 1)); \
+                        } else {                                         \
+                            data = d - xmax - 1;                         \
+                        }                                                \
+                    } else {                                             \
+                        if (half_d <= xmax - data) {                     \
+                            data += ((uint32_t)d >> 1)^(~((d & 1) - 1)); \
+                        } else {                                         \
+                            data = xmax - d;                             \
+                        }                                                \
+                    }                                                    \
+                    put_##KIND(strm, (uint32_t)data);                    \
+                }                                                        \
+                state->last_out = data;                                  \
+            }                                                            \
+        } else {                                                         \
+            for (bp = state->flush_start; bp < flush_end; bp++)          \
+                put_##KIND(strm, *bp);                                   \
+        }                                                                \
+        state->flush_start = state->rsip;                                \
     }
 
 
@@ -245,7 +242,6 @@ static inline void fill_acc(struct aec_stream *strm)
       case (1):
         strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
     };
-
 }
 
 static inline uint32_t direct_get(struct aec_stream *strm, int n)
