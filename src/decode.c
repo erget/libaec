@@ -271,10 +271,10 @@ static inline uint32_t direct_get_fs(struct aec_stream *strm)
      */
 
     uint32_t fs = 0;
-#if HAVE_DECL___BUILTIN_CLZLL
-    int lz;
-#elif HAVE_BSR64
-    unsigned long lz;
+#if HAVE_BSR64
+    unsigned long i;
+#else
+    int i;
 #endif
     struct internal_state *state = strm->state;
 
@@ -290,20 +290,16 @@ static inline uint32_t direct_get_fs(struct aec_stream *strm)
     }
 
 #if HAVE_DECL___BUILTIN_CLZLL
-    lz = __builtin_clzll(state->acc);
-    fs += lz + state->bitp - 64;
-    state->bitp = 63 - lz;
+    i = 63 - __builtin_clzll(state->acc);
 #elif HAVE_BSR64
-    _BitScanReverse64(&lz, state->acc);
-    fs += state->bitp - 1 - lz;
-    state->bitp = lz;
+    _BitScanReverse64(&i, state->acc);
 #else
-    state->bitp--;
-    while ((state->acc & (UINT64_C(1) << state->bitp)) == 0) {
-        state->bitp--;
-        fs++;
-    }
+    i = state->bitp - 1;
+    while ((state->acc & (UINT64_C(1) << i)) == 0)
+        i--;
 #endif
+    fs += state->bitp - i - 1;
+    state->bitp = i;
     return fs;
 }
 
