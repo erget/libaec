@@ -219,31 +219,6 @@ static inline void put_sample(struct aec_stream *strm, uint32_t s)
     check_rsi_end(strm);
 }
 
-static inline void fill_acc(struct aec_stream *strm)
-{
-    int b = (63 - strm->state->bitp) >> 3;
-
-    strm->avail_in -= b;
-    strm->state->bitp += b << 3;
-
-    switch (b) {
-      case (7):
-        strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
-      case (6):
-        strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
-      case (5):
-        strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
-      case (4):
-        strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
-      case (3):
-        strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
-      case (2):
-        strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
-      case (1):
-        strm->state->acc = (strm->state->acc << 8) | *strm->next_in++;
-    };
-}
-
 static inline uint32_t direct_get(struct aec_stream *strm, int n)
 {
     /**
@@ -253,9 +228,58 @@ static inline uint32_t direct_get(struct aec_stream *strm, int n)
      */
 
     struct internal_state *state = strm->state;
+    int b;
 
     if (state->bitp < n)
-        fill_acc(strm);
+    {
+        b = (63 - state->bitp) >> 3;
+        if (b == 6) {
+            state->acc = (state->acc << 48)
+                | ((uint64_t)strm->next_in[0] << 40)
+                | ((uint64_t)strm->next_in[1] << 32)
+                | ((uint64_t)strm->next_in[2] << 24)
+                | ((uint64_t)strm->next_in[3] << 16)
+                | ((uint64_t)strm->next_in[4] << 8)
+                | (uint64_t)strm->next_in[5];
+        } else if (b == 7) {
+            state->acc = (state->acc << 56)
+                | ((uint64_t)strm->next_in[0] << 48)
+                | ((uint64_t)strm->next_in[1] << 40)
+                | ((uint64_t)strm->next_in[2] << 32)
+                | ((uint64_t)strm->next_in[3] << 24)
+                | ((uint64_t)strm->next_in[4] << 16)
+                | ((uint64_t)strm->next_in[5] << 8)
+                | (uint64_t)strm->next_in[6];
+        } else if (b == 5) {
+            state->acc = (state->acc << 40)
+                | ((uint64_t)strm->next_in[0] << 32)
+                | ((uint64_t)strm->next_in[1] << 24)
+                | ((uint64_t)strm->next_in[2] << 16)
+                | ((uint64_t)strm->next_in[3] << 8)
+                | (uint64_t)strm->next_in[4];
+        } else if (b == 4) {
+            state->acc = (state->acc << 32)
+                | ((uint64_t)strm->next_in[0] << 24)
+                | ((uint64_t)strm->next_in[1] << 16)
+                | ((uint64_t)strm->next_in[2] << 8)
+                | (uint64_t)strm->next_in[3];
+        } else if (b == 3) {
+            state->acc = (state->acc << 24)
+                | ((uint64_t)strm->next_in[0] << 16)
+                | ((uint64_t)strm->next_in[1] << 8)
+                | (uint64_t)strm->next_in[2];
+        } else if (b == 2) {
+            state->acc = (state->acc << 16)
+                | ((uint64_t)strm->next_in[0] << 8)
+                | (uint64_t)strm->next_in[1];
+        } else if (b == 1) {
+            state->acc = (state->acc << 8)
+                | (uint64_t)strm->next_in[0];
+        }
+        strm->next_in += b;
+        strm->avail_in -= b;
+        state->bitp += b << 3;
+    }
 
     state->bitp -= n;
     return (state->acc >> state->bitp) & (UINT64_MAX >> (64 - n));
@@ -284,9 +308,18 @@ static inline uint32_t direct_get_fs(struct aec_stream *strm)
         state->acc = 0;
 
     while (state->acc == 0) {
+        state->acc = (state->acc << 56)
+            | ((uint64_t)strm->next_in[0] << 48)
+            | ((uint64_t)strm->next_in[1] << 40)
+            | ((uint64_t)strm->next_in[2] << 32)
+            | ((uint64_t)strm->next_in[3] << 24)
+            | ((uint64_t)strm->next_in[4] << 16)
+            | ((uint64_t)strm->next_in[5] << 8)
+            | (uint64_t)strm->next_in[6];
+        strm->next_in += 7;
+        strm->avail_in -= 7;
         fs += state->bitp;
-        state->bitp = 0;
-        fill_acc(strm);
+        state->bitp = 56;
     }
 
 #if HAVE_DECL___BUILTIN_CLZLL
