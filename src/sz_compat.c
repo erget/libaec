@@ -70,8 +70,8 @@ static void deinterleave_buffer(void *dest, const void *src,
 }
 
 static void add_padding(void *dest, const void *src, size_t total,
-                          size_t line_size, size_t padding_size,
-                          int pixel_size, int pp)
+                        size_t line_size, size_t padding_size,
+                        int pixel_size, int pp)
 {
     size_t i, j, k, ls, ps;
     const char *pixel;
@@ -127,7 +127,7 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
     strm.block_size = param->pixels_per_block;
     strm.rsi = (param->pixels_per_scanline + param->pixels_per_block - 1)
         / param->pixels_per_block;
-    strm.flags = convert_options(param->options_mask);
+    strm.flags = AEC_NOT_ENFORCE | convert_options(param->options_mask);
     strm.avail_out = *destLen;
     strm.next_out = dest;
     buf = 0;

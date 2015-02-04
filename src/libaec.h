@@ -120,6 +120,9 @@ struct aec_stream {
 /* Pad RSI to byte boundary. Only for decoding CCSDS sample data. */
 #define AEC_PAD_RSI 32
 
+/* Do not enforce standard regarding legal block sizes. */
+#define AEC_NOT_ENFORCE 64
+
 /*************************************/
 /* Return codes of library functions */
 /*************************************/
