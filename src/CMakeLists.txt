@@ -1,11 +1,11 @@
 SET(libaec_SRCS encode.c encode_accessors.c decode.c)
 ADD_LIBRARY(aec ${LIB_TYPE} ${libaec_SRCS})
 SET_TARGET_PROPERTIES(aec PROPERTIES
-  SOVERSION 0.0.2
+  SOVERSION 0.0.3
   )
 ADD_LIBRARY(sz ${LIB_TYPE} sz_compat.c)
 SET_TARGET_PROPERTIES(sz PROPERTIES
-  SOVERSION 2.0.2
+  SOVERSION 2.0.1
   )
 
 TARGET_LINK_LIBRARIES(sz aec)

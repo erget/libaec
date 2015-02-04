@@ -1,3 +1,11 @@
+2015-02-04  Mathis Rosenhauer  <rosenhauer@dkrz.de>
+
+	v0.3.2
+
+	Allow nonconforming block sizes in SZ mode.
+
+	Performance improvement for decoder.
+
 2014-10-23  Mathis Rosenhauer  <rosenhauer@dkrz.de>
 
 	v0.3.1
