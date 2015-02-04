@@ -100,7 +100,7 @@
                     uint32_t mask = (data & med)?xmax:0;                 \
                                                                          \
                     /*in this case: xmax - data == xmax ^ data */        \
-                    if (half_d <= (mask ^ data)) {                       \
+                    if (half_d <= (mask ^ (uint32_t)data)) {             \
                         data += (d >> 1)^(~((d & 1) - 1));               \
                     } else {                                             \
                         data = mask ^ d;                                 \
@@ -117,13 +117,13 @@
                     half_d = ((uint32_t)d >> 1) + (d & 1);               \
                                                                          \
                     if (data < 0) {                                      \
-                        if (half_d <= xmax + data + 1) {                 \
+                        if (half_d <= xmax + (uint32_t)data + 1) {       \
                             data += ((uint32_t)d >> 1)^(~((d & 1) - 1)); \
                         } else {                                         \
                             data = d - xmax - 1;                         \
                         }                                                \
                     } else {                                             \
-                        if (half_d <= xmax - data) {                     \
+                        if (half_d <= xmax - (uint32_t)data) {           \
                             data += ((uint32_t)d >> 1)^(~((d & 1) - 1)); \
                         } else {                                         \
                             data = xmax - d;                             \
