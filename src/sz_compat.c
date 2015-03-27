@@ -279,3 +279,6 @@ int SZ_encoder_enabled(void)
 {
     return 1;
 }
+
+/* netcdf searches for SZ_Compress in configure */
+char SZ_Compress() { return SZ_OK; }
