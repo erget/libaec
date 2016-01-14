@@ -804,6 +804,9 @@ int aec_decode(struct aec_stream *strm, int flush)
     struct internal_state *state = strm->state;
     int status;
 
+    if (strm->avail_out % strm->state->bytes_per_sample)
+        return AEC_MEM_ERROR;
+
     strm->total_in += strm->avail_in;
     strm->total_out += strm->avail_out;
 
