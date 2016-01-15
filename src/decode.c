@@ -388,7 +388,7 @@ static inline void fs_drop(struct aec_stream *strm)
 static inline uint32_t copysample(struct aec_stream *strm)
 {
     if (bits_ask(strm, strm->bits_per_sample) == 0
-        || strm->avail_out == 0)
+        || strm->avail_out < strm->state->bytes_per_sample)
         return 0;
 
     put_sample(strm, bits_get(strm, strm->bits_per_sample));
@@ -423,7 +423,7 @@ static int m_split_output(struct aec_stream *strm)
     int k = state->id - 1;
 
     do {
-        if (bits_ask(strm, k) == 0 || strm->avail_out == 0)
+        if (bits_ask(strm, k) == 0 || strm->avail_out < state->bytes_per_sample)
             return M_EXIT;
         if (k)
             *state->rsip++ += bits_get(strm, k);
@@ -502,7 +502,7 @@ static int m_zero_output(struct aec_stream *strm)
     struct internal_state *state = strm->state;
 
     do {
-        if (strm->avail_out == 0)
+        if (strm->avail_out < state->bytes_per_sample)
             return M_EXIT;
         put_sample(strm, 0);
     } while(--state->i);
@@ -565,13 +565,13 @@ static int m_se_decode(struct aec_stream *strm)
         d1 = m - state->se_table[2 * m + 1];
 
         if ((state->i & 1) == 0) {
-            if (strm->avail_out == 0)
+            if (strm->avail_out < state->bytes_per_sample)
                 return M_EXIT;
             put_sample(strm, state->se_table[2 * m] - d1);
             state->i++;
         }
 
-        if (strm->avail_out == 0)
+        if (strm->avail_out < state->bytes_per_sample)
             return M_EXIT;
         put_sample(strm, d1);
         state->i++;
@@ -804,9 +804,6 @@ int aec_decode(struct aec_stream *strm, int flush)
     struct internal_state *state = strm->state;
     int status;
 
-    if (strm->avail_out % strm->state->bytes_per_sample)
-        return AEC_MEM_ERROR;
-
     strm->total_in += strm->avail_in;
     strm->total_out += strm->avail_out;
 
@@ -816,6 +813,10 @@ int aec_decode(struct aec_stream *strm, int flush)
 
     if (status == M_ERROR)
         return AEC_DATA_ERROR;
+
+    if (status == M_EXIT && strm->avail_out > 0 &&
+        strm->avail_out < state->bytes_per_sample)
+        return AEC_MEM_ERROR;
 
     state->flush_output(strm);
 
