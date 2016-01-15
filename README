@@ -86,9 +86,9 @@ output goes into *dest.
 ...
 
 block_size can vary from 8 to 64 samples. Smaller blocks allow the
-compression to adapt to rapid changes in entropy. Larger blocks create
-less overhead but can be less efficient if entropy changes across the
-block.
+compression to adapt more rapidly to changing source
+statistics. Larger blocks create less overhead but can be less
+efficient if source statistics change across the block.
 
 rsi sets the reference sample interval. A large RSI will improve
 performance and efficiency. It will also increase memory requirements
@@ -111,7 +111,8 @@ i.e. big endian. You have to specify AEC_DATA_MSB even if your host
 architecture is big endian. Default is little endian on all
 architectures.
 
-AEC_DATA_3BYTE: the 24 bit input data is stored in three bytes.
+AEC_DATA_3BYTE: the 17 to 24 bit input data is stored in three
+bytes. This flag has no effect for other sample sizes.
 
 AEC_RESTRICTED: use a restricted set of code options. This option is
 only valid for bits_per_sample <= 4.
@@ -123,14 +124,15 @@ flag.
 
 Data size:
 
-Except for the AEC_DATA_3BYTE case for 24 bit data, the following
-rules apply for deducing storage size from sample size
+Except for the AEC_DATA_3BYTE case for 17 to 24 bit data, the
+following rules apply for deducing storage size from sample size
 (bits_per_sample):
 
 sample size   storage size
  1 -  8 bits  1 byte
  9 - 16 bits  2 bytes
-17 - 32 bits  4 bytes (also for 24bit if AEC_DATA_3BYTE is not set)
+17 - 32 bits  4 bytes (also for 17 to 24 bits if AEC_DATA_3BYTE is
+                       not set)
 
 If a sample requires less bits than the storage size provides, then
 you have to make sure that unused bits are not set. Libaec does not
@@ -191,6 +193,11 @@ and output is reversed.
         return 1;
     aec_decode_end(&strm);
 ...
+
+The size of the output buffer (next_out) should be a multiple of the
+storage size in bytes. If the buffer is not a multiple of the storage
+size and the buffer would be filled to the last sample, the error code
+AEC_MEM_ERROR is returned.
 
 It is essential for decoding that parameters like bits_per_sample,
 block_size, rsi, and flags are exactly the same as they were for
