@@ -124,15 +124,15 @@ flag.
 
 Data size:
 
-Except for the AEC_DATA_3BYTE case for 17 to 24 bit data, the
-following rules apply for deducing storage size from sample size
+The following rules apply for deducing storage size from sample size
 (bits_per_sample):
 
 sample size   storage size
  1 -  8 bits  1 byte
  9 - 16 bits  2 bytes
-17 - 32 bits  4 bytes (also for 17 to 24 bits if AEC_DATA_3BYTE is
-                       not set)
+17 - 24 bits  3 bytes (only if AEC_DATA_3BYTE is set)
+25 - 32 bits  4 bytes (if AEC_DATA_3BYTE is set)
+17 - 32 bits  4 bytes (if AEC_DATA_3BYTE is not set)
 
 If a sample requires less bits than the storage size provides, then
 you have to make sure that unused bits are not set. Libaec does not
@@ -194,10 +194,10 @@ and output is reversed.
     aec_decode_end(&strm);
 ...
 
-The size of the output buffer (next_out) should be a multiple of the
-storage size in bytes. If the buffer is not a multiple of the storage
-size and the buffer would be filled to the last sample, the error code
-AEC_MEM_ERROR is returned.
+It is strongly recommended that the size of the output buffer
+(next_out) is a multiple of the storage size in bytes. If the buffer
+is not a multiple of the storage size and the buffer gets filled to
+the last sample, the error code AEC_MEM_ERROR is returned.
 
 It is essential for decoding that parameters like bits_per_sample,
 block_size, rsi, and flags are exactly the same as they were for
