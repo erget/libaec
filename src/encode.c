@@ -246,8 +246,8 @@ static void preprocess_unsigned(struct aec_stream *strm)
     const uint32_t *restrict x = state->data_raw;
     uint32_t *restrict d = state->data_pp;
     uint32_t xmax = state->xmax;
-    int rsi = (int)strm->rsi * strm->block_size - 1;
-    int i;
+    uint32_t rsi = strm->rsi * strm->block_size - 1;
+    size_t i;
 
     state->ref = 1;
     state->ref_sample = x[0];
@@ -282,9 +282,9 @@ static void preprocess_signed(struct aec_stream *strm)
     uint32_t *restrict d = state->data_pp;
     int32_t xmax = (int32_t)state->xmax;
     int32_t xmin = (int32_t)state->xmin;
-    int rsi = (int)strm->rsi * strm->block_size - 1;
+    uint32_t rsi = strm->rsi * strm->block_size - 1;
     uint32_t m = UINT64_C(1) << (strm->bits_per_sample - 1);
-    int i;
+    size_t i;
 
     state->ref = 1;
     state->ref_sample = x[0];
