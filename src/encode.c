@@ -117,7 +117,7 @@ static inline void copy64(uint8_t *dst, uint64_t src)
 
 static inline void emitblock_fs(struct aec_stream *strm, int k, int ref)
 {
-    uint32_t i;
+    size_t i;
     uint32_t used; /* used bits in 64 bit accumulator */
     uint64_t acc; /* accumulator */
     struct internal_state *state = strm->state;
@@ -316,7 +316,7 @@ static inline uint64_t block_fs(struct aec_stream *strm, int k)
        Sum FS of all samples in block for given splitting position.
     */
 
-    uint32_t i;
+    size_t i;
     uint64_t fs = 0;
     struct internal_state *state = strm->state;
 
@@ -417,7 +417,7 @@ static uint32_t assess_se_option(struct aec_stream *strm)
        If length is above limit just return UINT32_MAX.
     */
 
-    uint32_t i;
+    size_t i;
     uint64_t len, d;
     struct internal_state *state = strm->state;
     uint32_t *block = state->block;
@@ -546,7 +546,7 @@ static int m_encode_uncomp(struct aec_stream *strm)
 
 static int m_encode_se(struct aec_stream *strm)
 {
-    uint32_t i;
+    size_t i;
     uint32_t d;
     struct internal_state *state = strm->state;
 
@@ -620,7 +620,7 @@ static int m_check_zero_block(struct aec_stream *strm)
        end of a segment or RSI.
     */
 
-    uint32_t i;
+    size_t i;
     struct internal_state *state = strm->state;
     uint32_t *p = state->block;
 

@@ -458,7 +458,7 @@ static int m_split_fs(struct aec_stream *strm)
 
 static int m_split(struct aec_stream *strm)
 {
-    uint32_t i, k;
+    size_t i, k;
     struct internal_state *state = strm->state;
 
     if (BUFFERSPACE(strm)) {
@@ -654,7 +654,7 @@ static int m_uncomp_copy(struct aec_stream *strm)
 
 static int m_uncomp(struct aec_stream *strm)
 {
-    uint32_t i;
+    size_t i;
     struct internal_state *state = strm->state;
 
     if (BUFFERSPACE(strm)) {
