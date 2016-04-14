@@ -1,3 +1,17 @@
+2016-05-12  Mathis Rosenhauer  <rosenhauer@dkrz.de>
+
+	v0.3.3
+
+	Fixed bug with zero blocks in the last RSI (reference sample
+	interval) when data size is not a multiple of RSIs or segments (64
+	blocks) and the zero region reaches a sement boundary.
+
+	Vectorization improvement for Intel compiler
+
+	More robust error handling
+
+	Better compatibility with netcdf's build process
+
 2015-02-04  Mathis Rosenhauer  <rosenhauer@dkrz.de>
 
 	v0.3.2
