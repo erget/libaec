@@ -15,5 +15,4 @@ configure
 libtool
 autom4te.cache
 .DS_Store
-data
 build*

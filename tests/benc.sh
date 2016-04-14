@@ -1,10 +1,17 @@
 #!/bin/sh
 set -e
 AEC=../src/aec
-
+test_data=https://gitlab.dkrz.de/k202009/libaec/raw/master/data/typical.rz
 if [ ! -f  typical.dat ]; then
     rm -f typical.rz
-    wget https://www.dkrz.de/redmine/attachments/download/442/typical.rz
+    type wget >/dev/null 2>&1 || {
+        echo >&2 "wget not found. Please download $test_data by other means and place it in tests. Aborting."
+        exit 1
+    }
+    wget $test_data || {
+        echo >&2 "Could not download $test_data. Please download it by other means and place it in tests. Aborting."
+        exit 1
+    }
     $AEC -d -n16 -j64 -r256 -m typical.rz typical.dat
     rm -f bench.dat
 fi
