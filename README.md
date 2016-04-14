@@ -35,7 +35,7 @@ Suppose you have an array of 32 bit signed integers you want to
 compress. The pointer pointing to the data shall be called `*source`,
 output goes into `*dest`.
 
-```C++
+```c
 #include <libaec.h>
 
 ...
@@ -166,7 +166,7 @@ members and constants.
 Using decoding is very similar to encoding, only the meaning of input
 and output is reversed.
 
-```C++
+```c
 #include <libaec.h>
 
 ...
