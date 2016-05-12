@@ -646,10 +646,10 @@ static int m_check_zero_block(struct aec_stream *strm)
             state->zero_ref = state->ref;
             state->zero_ref_sample = state->ref_sample;
         }
-        if (state->blocks_avail == 0
-            || (strm->rsi - state->blocks_avail) % 64 == 0) {
+        if (state->blocks_avail == 0 || state->blocks_dispensed % 64 == 0) {
             if (state->zero_blocks > 4)
                 state->zero_blocks = ROS;
+
             state->mode = m_encode_zero;
             return M_CONTINUE;
         }
@@ -728,6 +728,7 @@ static int m_get_block(struct aec_stream *strm)
     if (state->blocks_avail == 0) {
         state->blocks_avail = strm->rsi - 1;
         state->block = state->data_pp;
+        state->blocks_dispensed = 1;
 
         if (strm->avail_in >= state->rsi_len) {
             state->get_rsi(strm);
@@ -745,6 +746,7 @@ static int m_get_block(struct aec_stream *strm)
             state->uncomp_len = strm->block_size * strm->bits_per_sample;
         }
         state->block += strm->block_size;
+        state->blocks_dispensed++;
         state->blocks_avail--;
         return m_check_zero_block(strm);
     }

@@ -94,6 +94,9 @@ struct internal_state {
     /* remaining blocks in buffer */
     int blocks_avail;
 
+    /* blocks encoded so far in RSI */
+    int blocks_dispensed;
+
     /* current (preprocessed) input block */
     uint32_t *block;
 
