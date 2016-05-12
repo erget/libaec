@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = libaec.la libsz.la
 libaec_la_SOURCES = encode.c encode_accessors.c decode.c \
 encode.h encode_accessors.h decode.h
-libaec_la_LDFLAGS = -version-info 0:3:0
+libaec_la_LDFLAGS = -version-info 0:4:0
 
 libsz_la_SOURCES = sz_compat.c
 libsz_la_LIBADD = libaec.la
