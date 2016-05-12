@@ -15,7 +15,7 @@ defined in the Space Data System Standard documents [121.0-B-2][1] and
 
 ## Downloads
 
-Source code and binary installer can be [downloaded here](https://gitlab.dkrz.de/k202009/libaec/wikis/home).
+Source code and binary installer can be [downloaded here](https://gitlab.dkrz.de/k202009/libaec/tags).
 
 ## Patents
 
