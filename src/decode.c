@@ -458,7 +458,8 @@ static int m_split_fs(struct aec_stream *strm)
 
 static int m_split(struct aec_stream *strm)
 {
-    size_t i, k;
+    size_t i;
+    int k;
     struct internal_state *state = strm->state;
 
     if (BUFFERSPACE(strm)) {
