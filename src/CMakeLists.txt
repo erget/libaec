@@ -23,7 +23,6 @@ IF(UNIX)
   ADD_EXECUTABLE(utime EXCLUDE_FROM_ALL utime.c)
 ENDIF(UNIX)
 
-INSTALL(FILES libaec.h szlib.h DESTINATION include)
 IF(WIN32)
   INSTALL(TARGETS aec sz
     RUNTIME
@@ -41,13 +40,14 @@ ELSE(WIN32)
     COMPONENT libraries
     )
 ENDIF(WIN32)
+INSTALL(FILES libaec.h szlib.h
+  DESTINATION include
+  COMPONENT headers
+  )
 INSTALL(TARGETS aec_client
   RUNTIME
   DESTINATION bin
   COMPONENT applications
   )
-INSTALL(FILES libaec.h szlib.h
-  DESTINATION include
-  COMPONENT headers
-  )
+
 SET(CPACK_COMPONENTS_ALL applications libraries headers)

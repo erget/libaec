@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src tests
 EXTRA_DIST = doc/license.txt CMakeLists.txt cmake/config.h.in \
-cmake/macros.cmake README.SZIP
+cmake/macros.cmake README.SZIP Copyright.txt
 
 bench: all
 	cd tests && $(MAKE) $(AM_MAKEFLAGS) bench
