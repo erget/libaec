@@ -60,7 +60,7 @@
 #endif
 
 #define ROS 5
-
+#define RSI_USED(state) ((size_t)(state->rsip - state->rsi_buffer))
 #define BUFFERSPACE(strm) (strm->avail_in >= strm->state->in_blklen      \
                            && strm->avail_out >= strm->state->out_blklen)
 
@@ -203,7 +203,7 @@ static inline void check_rsi_end(struct aec_stream *strm)
      */
     struct internal_state *state = strm->state;
 
-    if (state->rsi_size == (size_t)(state->rsip - state->rsi_buffer)) {
+    if (state->rsi_size == RSI_USED(state)) {
         state->flush_output(strm);
         state->flush_start = state->rsi_buffer;
         state->rsip = state->rsi_buffer;
@@ -523,7 +523,7 @@ static int m_zero_block(struct aec_stream *strm)
     fs_drop(strm);
 
     if (zero_blocks == ROS) {
-        b = (int)(state->rsip - state->rsi_buffer) / strm->block_size;
+        b = (int)RSI_USED(state) / strm->block_size;
         zero_blocks = MIN(strm->rsi - b, 64 - (b % 64));
     } else if (zero_blocks > ROS) {
         zero_blocks--;
@@ -537,7 +537,7 @@ static int m_zero_block(struct aec_stream *strm)
     zero_bytes = i * state->bytes_per_sample;
 
     if (strm->avail_out >= zero_bytes) {
-        if (state->rsi_size - (state->rsip - state->rsi_buffer) < i)
+        if (state->rsi_size - RSI_USED(state) < i)
             return M_ERROR;
 
         memset(state->rsip, 0, i * sizeof(uint32_t));
