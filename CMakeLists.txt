@@ -6,7 +6,7 @@ INCLUDE(cmake/macros.cmake)
 PROJECT(libaec)
 SET(libaec_VERSION_MAJOR 0)
 SET(libaec_VERSION_MINOR 3)
-SET(libaec_VERSION_PATCH 3)
+SET(libaec_VERSION_PATCH 4)
 SET(CMAKE_BUILD_TYPE Release)
 ENABLE_TESTING()
 

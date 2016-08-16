@@ -1,3 +1,9 @@
+2016-08-16  Mathis Rosenhauer  <rosenhauer@dkrz.de>
+
+	v0.3.4
+
+	Pad incomplete last line when in SZ compatibility mode
+
 2016-05-12  Mathis Rosenhauer  <rosenhauer@dkrz.de>
 
 	v0.3.3
