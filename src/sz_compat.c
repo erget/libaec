@@ -69,7 +69,7 @@ static void deinterleave_buffer(void *dest, const void *src,
             dest8[i * wordsize + j] = src8[j * (n / wordsize) + i];
 }
 
-static void add_padding(void *dest, const void *src, size_t total,
+static void add_padding(void *dest, const void *src, size_t src_length,
                         size_t line_size, size_t padding_size,
                         int pixel_size, int pp)
 {
@@ -80,8 +80,8 @@ static void add_padding(void *dest, const void *src, size_t total,
     pixel = zero_pixel;
     j = 0;
     i = 0;
-    while (i < total) {
-        ls = MIN(total - i, line_size);
+    while (i < src_length) {
+        ls = MIN(src_length - i, line_size);
         memcpy((char *)dest + j, (char *)src + i, ls);
         j += ls;
         i += ls;
@@ -94,7 +94,7 @@ static void add_padding(void *dest, const void *src, size_t total,
     }
 }
 
-static void remove_padding(void *buf, size_t total,
+static void remove_padding(void *buf, size_t buf_length,
                            size_t line_size, size_t padding_size,
                            int pixel_size)
 {
@@ -102,7 +102,7 @@ static void remove_padding(void *buf, size_t total,
     size_t padded_line_size = line_size + padding_size;
 
     i = line_size;
-    for (j = padded_line_size; j < total; j += padded_line_size) {
+    for (j = padded_line_size; j < buf_length; j += padded_line_size) {
         memmove((char *)buf + i, (char *)buf + j, line_size);
         i += line_size;
     }
@@ -121,7 +121,6 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
     size_t scanlines;
     size_t padbuf_size;
     int pixel_size;
-    int pad_scanline;
     int interleave;
 
     strm.block_size = param->pixels_per_block;
@@ -134,7 +133,6 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
     padbuf = 0;
 
     interleave = param->bits_per_pixel == 32 || param->bits_per_pixel == 64;
-    pad_scanline = param->pixels_per_scanline % param->pixels_per_block;
     if (interleave) {
         strm.bits_per_sample = 8;
         buf = malloc(sourceLen);
@@ -150,30 +148,25 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
 
     pixel_size = bits_to_bytes(strm.bits_per_sample);
 
-    if (pad_scanline) {
-        scanlines = (sourceLen / pixel_size + param->pixels_per_scanline - 1)
-            / param->pixels_per_scanline;
-        padbuf_size = strm.rsi * strm.block_size * pixel_size * scanlines;
-        padbuf = malloc(padbuf_size);
-        if (padbuf == NULL) {
-            status = SZ_MEM_ERROR;
-            goto CLEANUP;
-        }
-
-        padding_size =
-            (strm.rsi * strm.block_size - param->pixels_per_scanline)
-            * pixel_size;
-
-        add_padding(padbuf, buf, sourceLen,
-                    param->pixels_per_scanline * pixel_size,
-                    padding_size, pixel_size,
-                    strm.flags & AEC_DATA_PREPROCESS);
-        strm.next_in = padbuf;
-        strm.avail_in = padbuf_size;
-    } else {
-        strm.next_in = buf;
-        strm.avail_in = sourceLen;
+    scanlines = (sourceLen / pixel_size + param->pixels_per_scanline - 1)
+        / param->pixels_per_scanline;
+    padbuf_size = strm.rsi * strm.block_size * pixel_size * scanlines;
+    padbuf = malloc(padbuf_size);
+    if (padbuf == NULL) {
+        status = SZ_MEM_ERROR;
+        goto CLEANUP;
     }
+
+    padding_size =
+        (strm.rsi * strm.block_size - param->pixels_per_scanline)
+        * pixel_size;
+
+    add_padding(padbuf, buf, sourceLen,
+                param->pixels_per_scanline * pixel_size,
+                padding_size, pixel_size,
+                strm.flags & AEC_DATA_PREPROCESS);
+    strm.next_in = padbuf;
+    strm.avail_in = padbuf_size;
 
     aec_status = aec_buffer_encode(&strm);
     if (aec_status == AEC_STREAM_ERROR)
@@ -183,7 +176,7 @@ int SZ_BufftoBuffCompress(void *dest, size_t *destLen,
     *destLen = strm.total_out;
 
 CLEANUP:
-    if (pad_scanline && padbuf)
+    if (padbuf)
         free(padbuf);
     if (interleave && buf)
         free(buf);
