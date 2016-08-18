@@ -22,11 +22,12 @@ check_szcomp_SOURCES = check_szcomp.c $(top_builddir)/src/szlib.h
 LDADD = libcheck_aec.la $(top_builddir)/src/libaec.la
 check_szcomp_LDADD = $(top_builddir)/src/libsz.la
 
-EXTRA_DIST = sampledata.sh szcomp.sh benc.sh bdec.sh CMakeLists.txt
+EXTRA_DIST = sampledata.sh szcomp.sh benc.sh bdec.sh CMakeLists.txt data
+
 szcomp.log: sampledata.log
 bench: benc bdec
 benc:
-	$(srcdir)/benc.sh
+	$(srcdir)/benc.sh $(srcdir)/data/typical.rz
 bdec:
 	$(srcdir)/bdec.sh
 .PHONY: bench benc bdec

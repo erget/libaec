@@ -1,27 +1,10 @@
 #!/bin/sh
 set -e
 AEC=../src/aec
-CCSDS_DATA=121B2TestData
+CCSDS_DATA=${srcdir}/data/121B2TestData
 ALLO=${CCSDS_DATA}/AllOptions
 EXTP=${CCSDS_DATA}/ExtendedParameters
 LOWE=${CCSDS_DATA}/LowEntropyOptions
-archive=121B2TestData.zip
-archive_url=http://cwe.ccsds.org/sls/docs/SLS-DC/BB121B2TestData/$archive
-if [ ! -f $archive ]; then
-    type curl >/dev/null 2>&1 || {
-        echo >&2 "curl not found. Please download $archive_url by other means and place it in tests.\nAborting."
-        exit 1
-    }
-    curl $archive_url -O || {
-        echo >&2 "Could not download $archive_url. Please download $archive by other means and place it in tests. Aborting."
-        exit 1
-    }
-fi
-type unzip >/dev/null 2>&1 || {
-    echo >&2 "unzip not found. Please install unzip or unpack $archive in tests.\nAborting."
-    exit 1
-}
-unzip -oq $archive
 
 filesize () {
     wc -c $1 | awk '{print $1}'
@@ -56,7 +39,6 @@ cosdec () {
 }
 
 echo All Options
-mv -f ${ALLO}/test_P512n22.dat ${ALLO}/test_p512n22.dat
 for i in 01 02 03 04
 do
     uf=$ALLO/test_p256n${i}.dat
