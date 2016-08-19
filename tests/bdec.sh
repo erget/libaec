@@ -8,7 +8,7 @@ if [ ! -f bench.rz ]; then
     "${path}"/benc.sh
 fi
 rm -f dec.dat
-bsize=$(stat -c "%s" bench.dat)
+bsize=$(wc -c bench.dat | awk '{print $1}')
 utime=$(../src/utime $AEC -d -n16 -j64 -r256 -m bench.rz dec.dat 2>&1)
 perf=$(echo "$bsize/1048576/$utime" | bc)
 echo "[0;32m*** Decoding with $perf MiB/s user time ***[0m"

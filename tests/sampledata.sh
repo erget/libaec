@@ -19,9 +19,13 @@ if [ ! -f $archive ]; then
 fi
 unzip -oq $archive
 
+filesize () {
+    wc -c $1 | awk '{print $1}'
+}
+
 decode () {
     $AEC -d $3 $1 test.dat
-    cmp -n $(stat -c "%s" $2) $2 test.dat
+    cmp -n $(filesize $2) $2 test.dat
 }
 
 code () {
@@ -31,7 +35,7 @@ code () {
 
 code_size () {
     $AEC $3 $2 test.rz
-    if [ ! $(stat -c "%s" test.rz) -eq $(stat -c "%s" $1) ]; then
+    if [ ! $(filesize test.rz) -eq $(filesize $1) ]; then
         echo "$1 size mismatch"
         exit 1
     fi
@@ -48,7 +52,7 @@ cosdec () {
 }
 
 echo All Options
-ln -f ${ALLO}/test_P512n22.dat ${ALLO}/test_p512n22.dat
+mv -f ${ALLO}/test_P512n22.dat ${ALLO}/test_p512n22.dat
 for i in 01 02 03 04
 do
     uf=$ALLO/test_p256n${i}.dat
