@@ -9,7 +9,7 @@ archive=121B2TestData.zip
 archive_url=http://cwe.ccsds.org/sls/docs/SLS-DC/BB121B2TestData/$archive
 if [ ! -f $archive ]; then
     type wget >/dev/null 2>&1 || {
-        echo >&2 "wget not found. Please download $archive_url by other means and place it in tests. Aborting."
+        echo >&2 "wget not found. Please download $archive_url by other means and place it in tests.\nAborting."
         exit 1
     }
     wget $archive_url || {
@@ -17,6 +17,10 @@ if [ ! -f $archive ]; then
         exit 1
     }
 fi
+type unzip >/dev/null 2>&1 || {
+    echo >&2 "unzip not found. Please install unzip or unpack $archive in tests.\nAborting."
+    exit 1
+}
 unzip -oq $archive
 
 filesize () {
