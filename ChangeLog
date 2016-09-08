@@ -1,5 +1,9 @@
 2016-08-16  Mathis Rosenhauer  <rosenhauer@dkrz.de>
 
+	Better compatibility with OSX for make check
+
+	Allow Cygwin to build DLLs
+
 	v0.3.4
 
 	Pad incomplete last line when in SZ compatibility mode
