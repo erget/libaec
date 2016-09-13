@@ -15,4 +15,11 @@ utime_SOURCES = utime.c
 aec_LDADD = libaec.la
 aec_SOURCES = aec.c
 
-EXTRA_DIST = CMakeLists.txt
+EXTRA_DIST = CMakeLists.txt benc.sh bdec.sh
+CLEANFILES = bench.dat bench.rz
+
+bench-local: all benc bdec
+benc-local: all
+	$(srcdir)/benc.sh $(top_srcdir)/data/typical.rz
+bdec-local: all
+	top_srcdir=$(top_srcdir) $(srcdir)/bdec.sh

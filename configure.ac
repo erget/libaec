@@ -31,6 +31,7 @@ AC_C_RESTRICT
 AC_CHECK_FUNCS([memset strstr])
 AC_CHECK_DECLS(__builtin_clzll)
 
+AM_EXTRA_RECURSIVE_TARGETS([bench benc bdec])
 AC_CONFIG_FILES([Makefile         \
                  src/Makefile     \
                  tests/Makefile])

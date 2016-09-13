@@ -16,3 +16,4 @@ libtool
 autom4te.cache
 .DS_Store
 build*
+data/121B2TestData

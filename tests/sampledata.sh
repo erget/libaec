@@ -1,7 +1,10 @@
 #!/bin/sh
 set -e
 AEC=../src/aec
-CCSDS_DATA=${srcdir}/data/121B2TestData
+if [ -n "$1" ]; then
+    srcdir=$1
+fi
+CCSDS_DATA=${srcdir}/../data/121B2TestData
 ALLO=${CCSDS_DATA}/AllOptions
 EXTP=${CCSDS_DATA}/ExtendedParameters
 LOWE=${CCSDS_DATA}/LowEntropyOptions

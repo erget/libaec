@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 TEST_DATA=$1
-AEC=../src/aec
+AEC=./aec
 if [ ! -f  bench.dat ]; then
     rm -f typical.dat
     $AEC -d -n16 -j64 -r256 -m $TEST_DATA typical.dat
@@ -9,9 +9,10 @@ if [ ! -f  bench.dat ]; then
     do
         cat typical.dat >> bench.dat
     done
+    rm -f typical.dat
 fi
 rm -f bench.rz
-utime=$(../src/utime $AEC -n16 -j64 -r256 -m bench.dat bench.rz 2>&1)
+utime=$(./utime $AEC -n16 -j64 -r256 -m bench.dat bench.rz 2>&1)
 bsize=$(wc -c bench.dat | awk '{print $1}')
 perf=$(echo "$bsize/1048576/$utime" | bc)
 echo "[0;32m*** Encoding with $perf MiB/s user time ***[0m"

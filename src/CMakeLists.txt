@@ -21,6 +21,11 @@ TARGET_LINK_LIBRARIES(aec_client aec)
 
 IF(UNIX)
   ADD_EXECUTABLE(utime EXCLUDE_FROM_ALL utime.c)
+  ADD_CUSTOM_TARGET(bench
+    COMMAND ${CMAKE_SOURCE_DIR}/src/benc.sh ${CMAKE_SOURCE_DIR}/data/typical.rz
+    COMMAND ${CMAKE_SOURCE_DIR}/src/bdec.sh
+    DEPENDS aec_client utime
+    )
 ENDIF(UNIX)
 
 IF(WIN32)

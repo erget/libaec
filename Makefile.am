@@ -1,12 +1,15 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src tests
 EXTRA_DIST = doc/license.txt CMakeLists.txt cmake/config.h.in \
-cmake/macros.cmake README.SZIP Copyright.txt
+cmake/macros.cmake README.SZIP Copyright.txt data
 
-bench: all
-	cd tests && $(MAKE) $(AM_MAKEFLAGS) bench
-benc: all
-	cd tests && $(MAKE) $(AM_MAKEFLAGS) benc
-bdec: all
-	cd tests && $(MAKE) $(AM_MAKEFLAGS) bdec
-.PHONY: bench benc bdec
+sampledata = 121B2TestData
+sampledata_url = http://cwe.ccsds.org/sls/docs/SLS-DC/BB121B2TestData/$(sampledata).zip
+update-sampledata:
+	cd $(srcdir)/data && \
+	  rm -rf $(sampledata) && \
+	  curl $(sampledata_url) -O && unzip $(sampledata).zip && \
+	  rm -f $(sampledata).zip && \
+	  cd $(sampledata)/AllOptions && mv -f test_P512n22.dat test_p512n22.dat
+
+.PHONY: update-sampledata
