@@ -52,8 +52,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "libaec.h"
 #include "decode.h"
+#include "libaec.h"
 
 #if HAVE_BSR64
 #  include <intrin.h>

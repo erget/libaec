@@ -68,6 +68,8 @@
 /* Marker for Remainder Of Segment condition in zero block encoding */
 #define ROS -1
 
+struct aec_stream;
+
 struct internal_state {
     int (*mode)(struct aec_stream *);
     uint32_t (*get_sample)(struct aec_stream *);

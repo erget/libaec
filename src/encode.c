@@ -52,9 +52,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "libaec.h"
 #include "encode.h"
 #include "encode_accessors.h"
+#include "libaec.h"
 
 static int m_get_block(struct aec_stream *strm);
 

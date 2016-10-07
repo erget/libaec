@@ -63,6 +63,8 @@
 
 #define MIN(a, b) (((a) < (b))? (a): (b))
 
+struct aec_stream;
+
 struct internal_state {
     int (*mode)(struct aec_stream *);
 

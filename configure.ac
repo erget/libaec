@@ -7,7 +7,7 @@ AC_CONFIG_SRCDIR([src/libaec.h])
 AC_CONFIG_HEADERS(config/config.h)
 
 LT_INIT
-
+gl_VISIBILITY
 AM_INIT_AUTOMAKE
 
 # Checks for programs.
@@ -35,5 +35,4 @@ AM_EXTRA_RECURSIVE_TARGETS([bench benc bdec])
 AC_CONFIG_FILES([Makefile         \
                  src/Makefile     \
                  tests/Makefile])
-
 AC_OUTPUT

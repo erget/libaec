@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "szlib.h"
-
 #if HAVE_CONFIG_H
 #  include <config.h>
 #endif
+#include "szlib.h"
 
 #define NOPTS 129
 #define MIN(a, b) (((a) < (b))? (a): (b))
