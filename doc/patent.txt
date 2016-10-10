@@ -1,10 +1,11 @@
------------------------------------------------------------------------------------
-Lossless Data Compression,Recommended Standard, Issue 2, MAy 2012, CCSDS, 121.0-B-2
------------------------------------------------------------------------------------
-License Considerations, Section A3, page 37
+-------------------------------------------------------------------
+Lossless Data Compression, Recommended Standard, Issue 2, May 2012,
+CCSDS 121.0-B-2
+-------------------------------------------------------------------
+Patent Considerations, Section A3, page 37
 
-With respect to this issue we got the following information from the aforementioned
-NASA contact:
+With respect to this issue we got the following information from
+NASA's Chief Patent Counsel:
 
 From: Geurts, Bryan A. (GSFC-1401)
 Sent: Tuesday, April 21, 2009 12:14 PM
@@ -30,7 +31,7 @@ Greenbelt, MD 20771
 Phone:  (301) 286-7352
 Fax:  (301) 286-9502
 
-Reassuring this information in August 2012 because of the license
+Reassuring this information in August 2012 because of the patent
 considerations in the above referenced CCSDS standard:
 
 From: Geurts, Bryan A. (GSFC-1401)
@@ -48,8 +49,9 @@ your own risk and NASA cannot warrant that its use will satisfy your
 particular needs or that your use will not infringe on another's
 intellectual property rights.
 
------------------------------------------------------------------------------------
+-------------------------------------------------------------------
 
-The cited CCSDS standard does not refer to any other intellectual property rights.
+The cited CCSDS standard does not refer to any other intellectual
+property rights.
 
------------------------------------------------------------------------------------
+-------------------------------------------------------------------

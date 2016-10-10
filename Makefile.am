@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src tests
-EXTRA_DIST = doc/license.txt CMakeLists.txt cmake/config.h.in \
+EXTRA_DIST = doc/patent.txt CMakeLists.txt cmake/config.h.in \
 cmake/macros.cmake README.SZIP Copyright.txt data
 
 sampledata = 121B2TestData

@@ -17,9 +17,9 @@ defined in the Space Data System Standard documents [121.0-B-2][1] and
 
 Source code and binary installer can be [downloaded here](https://gitlab.dkrz.de/k202009/libaec/tags).
 
-## Patents
+## Patent
 
-In [license.txt](doc/license.txt) a clarification on potentially
+In [patent.txt](doc/patent.txt) a statement on potentially
 applying intellectual property rights is given.
 
 ## Installation
