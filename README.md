@@ -1,3 +1,5 @@
+# Warning: This repo is an unmaintained fork of https://gitlab.dkrz.de/k202009/libaec ! Please [report issues there](https://gitlab.dkrz.de/k202009/libaec/-/issues).
+
 # libaec - Adaptive Entropy Coding library
 
 Libaec provides fast lossless compression of 1 up to 32 bit wide
