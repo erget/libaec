@@ -597,6 +597,9 @@ static int m_se(struct aec_stream *strm)
 
         while (i < strm->block_size) {
             m = direct_get_fs(strm);
+            if (2 * m + 1 > sizeof(state->se_table)) {
+                return M_ERROR;
+            }
             d1 = m - state->se_table[2 * m + 1];
 
             if ((i & 1) == 0) {
